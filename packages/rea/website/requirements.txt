@@ -1,0 +1,4 @@
+# SVG-to-PNG conversion for the generated social preview.
+CairoSVG==2.9.1
+# Standard gettext PO/POT catalogs; no translation service is used by builds.
+polib==1.2.0

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta
+      name="description"
+      content="A small Notes app for the REA browser and network analysis guide."
+    />
+    <title>Notes — REA browser example</title>
+    <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../assets/styles.css" />
+    <script src="export.js" defer></script>
+    <script src="../../assets/main.js" defer></script>
+  </head>
+  <body id="top">
+    <main class="container example-app">
+      <p class="breadcrumb">
+        <a href="../../guides/browser/">Browser observation guide</a> / Example
+      </p>
+      <p class="eyebrow">A small app to inspect</p>
+      <h1>Notes</h1>
+      <p class="lede">
+        Two notes. One CSV export. Observe what happens when you click.
+      </p>
+      <ul class="example-notes">
+        <li>First note</li>
+        <li>Follow the export</li>
+      </ul>
+      <button class="button" type="button" id="export">Export notes</button>
+      <p class="example-status" id="status" role="status" aria-live="polite">
+        Ready to export.
+      </p>
+      <p class="caption">
+        This example loads <code>notes.json</code> and creates a CSV in your
+        browser.
+      </p>
+    </main>
+    <a class="back-to-top" href="#top" aria-label="Back to top">
+      <span aria-hidden="true">↑</span> Top
+    </a>
+  </body>
+</html>

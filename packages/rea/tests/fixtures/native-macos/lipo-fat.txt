@@ -1,0 +1,15 @@
+Fat header in: fixture
+fat_magic 0xcafebabe
+nfat_arch 2
+architecture x86_64
+    cputype 16777223
+    cpusubtype 3
+    offset 16384
+    size 4096
+    align 2^14 (16384)
+architecture arm64
+    cputype 16777228
+    cpusubtype 0
+    offset 32768
+    size 8192
+    align 2^14 (16384)

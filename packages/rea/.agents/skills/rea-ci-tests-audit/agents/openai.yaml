@@ -1,0 +1,4 @@
+interface:
+  display_name: "REA CI and tests audit"
+  short_description: "Audit CI/test correctness and measured performance"
+  default_prompt: "Use $rea-ci-tests-audit to investigate CI and test correctness, drift, and performance before proposing changes."

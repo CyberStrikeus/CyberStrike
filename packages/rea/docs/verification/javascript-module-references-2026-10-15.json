@@ -1,0 +1,691 @@
+{
+  "base_revision": "c9f9b83c6f5878f1d5b102ab206a2ce214749258",
+  "source_sha256": {
+    "scripts/verify/javascript/module-references.mjs": "9d5f0b8b35ed2ebb4591f9dc3baea0fc116a0c3fd7d8e5ce30ec476c84671ed1",
+    "src/contracts/analysisViewToolContracts.ts": "f7c64b3472e7ec1090f9d47ede864b8c9630d506d896454a800747f2c90a8960",
+    "src/domain/analysisView/analysisView.ts": "854b03988791c19642b01d17813b379b51d8edc10d2190a3c236c9a1b2feb365",
+    "src/domain/analysisView/javascriptApplicationView.ts": "f2c41ad15fdc9f891412c9161a832b60baf3dae55e3c4d60159098d07f7d1ef1",
+    "src/domain/analysisView/javascriptModuleReferences.ts": "34c7a7ff466e9c49d43f1b11b72f878041de61a1bc09086ec190a5833b454806",
+    "scripts/fixtures/tokenizer-family-wrapper.py": "2e9b7092ee539ae1c6a477492f05bb6007d4612dadfff9b90051d621de43049b"
+  },
+  "verification": {
+    "scope": "Completed module-fact reads from identical retained Evidence; no hosted-model performance claim",
+    "artifact": {
+      "path": "/tmp/rea-codemode-experiment-20261015/artifacts/obsidian-1.14.4.asar",
+      "sha256": "146ef8470d8cbb4a6db209bdc19bf2bad13350444186c0fd93c31087b142b92f"
+    },
+    "parent_evidence_id": "ev_73ef06e3b9b944f54c5257f7960279127d8518d2a73cd8618bd045dbe44e6b5a",
+    "source_selection": {
+      "requested_paths": ["package.json", "main.js"],
+      "unselected_files": 36
+    },
+    "source_coverage": {
+      "application": {
+        "status": "partial",
+        "truncated": false,
+        "omitted_count": null,
+        "limits": []
+      },
+      "semantic": {
+        "status": "partial",
+        "truncated": false,
+        "omitted_nodes": null,
+        "omitted_relations": null,
+        "limits": [],
+        "families": [
+          {
+            "family": "boundary",
+            "status": "partial",
+            "retained_relations": 14,
+            "omitted_relations": null,
+            "unknown_count": 31
+          },
+          {
+            "family": "call-flow",
+            "status": "partial",
+            "retained_relations": 845,
+            "omitted_relations": null,
+            "unknown_count": 1278
+          },
+          {
+            "family": "child-process",
+            "status": "partial",
+            "retained_relations": 0,
+            "omitted_relations": null,
+            "unknown_count": 31
+          },
+          {
+            "family": "closure",
+            "status": "partial",
+            "retained_relations": 1187,
+            "omitted_relations": null,
+            "unknown_count": 31
+          },
+          {
+            "family": "configuration",
+            "status": "partial",
+            "retained_relations": 0,
+            "omitted_relations": null,
+            "unknown_count": 31
+          },
+          {
+            "family": "data-flow",
+            "status": "partial",
+            "retained_relations": 9388,
+            "omitted_relations": null,
+            "unknown_count": 1135
+          },
+          {
+            "family": "event",
+            "status": "partial",
+            "retained_relations": 127,
+            "omitted_relations": null,
+            "unknown_count": 89
+          },
+          {
+            "family": "object-flow",
+            "status": "partial",
+            "retained_relations": 1462,
+            "omitted_relations": null,
+            "unknown_count": 2292
+          },
+          {
+            "family": "promise-ownership",
+            "status": "partial",
+            "retained_relations": 80,
+            "omitted_relations": null,
+            "unknown_count": 98
+          },
+          {
+            "family": "request",
+            "status": "partial",
+            "retained_relations": 0,
+            "omitted_relations": null,
+            "unknown_count": 31
+          },
+          {
+            "family": "resource-lifecycle",
+            "status": "partial",
+            "retained_relations": 4,
+            "omitted_relations": null,
+            "unknown_count": 31
+          },
+          {
+            "family": "timer",
+            "status": "partial",
+            "retained_relations": 8,
+            "omitted_relations": null,
+            "unknown_count": 31
+          }
+        ]
+      },
+      "application_unknowns": 36,
+      "semantic_unknowns": 5109
+    },
+    "where": {
+      "path": "main.js",
+      "kind": "javascript-module"
+    },
+    "preparation_ms": 20978.249922,
+    "samples": [
+      {
+        "round": 0,
+        "mode": "legacy",
+        "elapsed_ms": 363.02500200000213,
+        "calls": 24,
+        "structured_reply_bytes": 325201,
+        "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+        "matching_modules": 23,
+        "coverage": {
+          "status": "page",
+          "examined": 55,
+          "total": 55,
+          "next_offset": null,
+          "exhausted": true
+        }
+      },
+      {
+        "round": 0,
+        "mode": "references",
+        "elapsed_ms": 14.895039999999426,
+        "calls": 1,
+        "structured_reply_bytes": 22158,
+        "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+        "matching_modules": 23,
+        "coverage": {
+          "status": "page",
+          "examined": 23,
+          "total": 23,
+          "next_offset": null,
+          "exhausted": true
+        }
+      },
+      {
+        "round": 1,
+        "mode": "references",
+        "elapsed_ms": 12.951290000000881,
+        "calls": 1,
+        "structured_reply_bytes": 22158,
+        "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+        "matching_modules": 23,
+        "coverage": {
+          "status": "page",
+          "examined": 23,
+          "total": 23,
+          "next_offset": null,
+          "exhausted": true
+        }
+      },
+      {
+        "round": 1,
+        "mode": "legacy",
+        "elapsed_ms": 232.7533779999976,
+        "calls": 24,
+        "structured_reply_bytes": 325201,
+        "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+        "matching_modules": 23,
+        "coverage": {
+          "status": "page",
+          "examined": 55,
+          "total": 55,
+          "next_offset": null,
+          "exhausted": true
+        }
+      },
+      {
+        "round": 2,
+        "mode": "legacy",
+        "elapsed_ms": 235.16672899999685,
+        "calls": 24,
+        "structured_reply_bytes": 325201,
+        "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+        "matching_modules": 23,
+        "coverage": {
+          "status": "page",
+          "examined": 55,
+          "total": 55,
+          "next_offset": null,
+          "exhausted": true
+        }
+      },
+      {
+        "round": 2,
+        "mode": "references",
+        "elapsed_ms": 10.566158999998152,
+        "calls": 1,
+        "structured_reply_bytes": 22158,
+        "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+        "matching_modules": 23,
+        "coverage": {
+          "status": "page",
+          "examined": 23,
+          "total": 23,
+          "next_offset": null,
+          "exhausted": true
+        }
+      }
+    ],
+    "token_costs": {
+      "tokenizer": "cl100k_base",
+      "tiktoken_version": "0.12.0",
+      "costs": {
+        "legacy": {
+          "selected_catalog": 7977,
+          "full_catalog": 195446,
+          "common_request": 53,
+          "common_summary": 2675,
+          "requests": 2836,
+          "structured_replies": 71761,
+          "selected_catalog_task_total": 85302,
+          "full_catalog_task_total": 272771
+        },
+        "references": {
+          "selected_catalog": 7977,
+          "full_catalog": 195446,
+          "common_request": 53,
+          "common_summary": 2675,
+          "requests": 102,
+          "structured_replies": 5741,
+          "selected_catalog_task_total": 16548,
+          "full_catalog_task_total": 204017
+        }
+      }
+    },
+    "cli_parity": {
+      "evidence_id": "ev_b3586dfdf7d4f01157f8f2978326aaa7103987110f2df4fa5bf3331ff2898749",
+      "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+      "exact_cli_mcp_view_parity": true
+    },
+    "conditions": "First query is after shared artifact analysis; subsequent queries share one MCP session. Legacy item reads are serial; a concurrent legacy baseline is unmeasured. Filesystem/build warmness uncontrolled. Token costs count one post-change catalog, preparation request/summary and each request/structured reply once; client rendering, replay, reasoning, final answer and model latency are unmeasured. Preparation and parity/tokenization overhead are outside per-query elapsed times; external family-resource receipts include the complete verifier and children."
+  },
+  "resources": {
+    "scope": "Complete verifier, MCP/analysis descendants, temporary export, CLI parity and tokenizer; cgroup memory includes charged file cache and is not summed RSS",
+    "elapsed_seconds": 35.797,
+    "cpu_seconds": 35.197074,
+    "peak_cgroup_bytes": 1938313216,
+    "memory_max_bytes": 8589934592,
+    "memory_early_stop_bytes": 6442450944,
+    "cpu_quota_percent": 100,
+    "payload_exit_code": 0,
+    "payload_cleanup_verified": true,
+    "events_at_payload_exit": {
+      "memory.events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "pids.events": {
+        "max": 0
+      }
+    },
+    "observer_sources_sha256": {
+      "resource-run.py": "7728862171415e7dee2c11af2ead2b9a54265fccaf82a7113956d36b29065e33",
+      "resource_payload.py": "6f089e645459eba80c5d73e39c21606c78173a44daf49fabc3b88c4631ce51c6"
+    }
+  },
+  "prior_attempts": [
+    {
+      "scope": "Initial verifier incorrectly requested full MCP delivery; completed analysis exceeded existing response admission",
+      "elapsed_seconds": 21.971,
+      "cpu_seconds": 21.78546,
+      "peak_cgroup_bytes": 1080860672,
+      "outcome": "resource_constraint transport; verifier corrected to summary-first; no performance credit"
+    },
+    {
+      "scope": "Interim successful parity run before eliminating verifier assertion serialization and counting the bootstrap request",
+      "elapsed_seconds": 31.335,
+      "cpu_seconds": 31.07044,
+      "peak_cgroup_bytes": 1652293632,
+      "outcome": "parity passed; superseded measurement, not pooled with final samples"
+    },
+    {
+      "scope": "Successful three-pair probe before adding the shared analyze_javascript_application schema to selected-catalog accounting",
+      "preparation_ms": 18317.110148,
+      "samples": [
+        {
+          "round": 0,
+          "mode": "legacy",
+          "elapsed_ms": 313.59318599999824,
+          "calls": 24,
+          "structured_reply_bytes": 325201,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 55,
+            "total": 55,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 0,
+          "mode": "references",
+          "elapsed_ms": 13.595478999999614,
+          "calls": 1,
+          "structured_reply_bytes": 22158,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 23,
+            "total": 23,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 1,
+          "mode": "references",
+          "elapsed_ms": 11.230690000000322,
+          "calls": 1,
+          "structured_reply_bytes": 22158,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 23,
+            "total": 23,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 1,
+          "mode": "legacy",
+          "elapsed_ms": 206.19418099999893,
+          "calls": 24,
+          "structured_reply_bytes": 325201,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 55,
+            "total": 55,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 2,
+          "mode": "legacy",
+          "elapsed_ms": 242.2037199999977,
+          "calls": 24,
+          "structured_reply_bytes": 325201,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 55,
+            "total": 55,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 2,
+          "mode": "references",
+          "elapsed_ms": 13.734700000000885,
+          "calls": 1,
+          "structured_reply_bytes": 22158,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 23,
+            "total": 23,
+            "next_offset": null,
+            "exhausted": true
+          }
+        }
+      ],
+      "elapsed_seconds": 31.037,
+      "cpu_seconds": 30.786998,
+      "peak_cgroup_bytes": 1886543872,
+      "outcome": "Facts and CLI/MCP parity passed. Selected-catalog totals omitted the common analysis-tool schema; superseded, not pooled. Shared-host timing differed substantially from the final run."
+    },
+    {
+      "scope": "Completed three-pair probe with full token accounting before the review-added tokenizer deadline",
+      "preparation_ms": 66696.731143,
+      "samples": [
+        {
+          "round": 0,
+          "mode": "legacy",
+          "elapsed_ms": 1114.080965000001,
+          "calls": 24,
+          "structured_reply_bytes": 325201,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 55,
+            "total": 55,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 0,
+          "mode": "references",
+          "elapsed_ms": 46.572758999987855,
+          "calls": 1,
+          "structured_reply_bytes": 22158,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 23,
+            "total": 23,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 1,
+          "mode": "references",
+          "elapsed_ms": 37.09324900001229,
+          "calls": 1,
+          "structured_reply_bytes": 22158,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 23,
+            "total": 23,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 1,
+          "mode": "legacy",
+          "elapsed_ms": 675.7124039999908,
+          "calls": 24,
+          "structured_reply_bytes": 325201,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 55,
+            "total": 55,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 2,
+          "mode": "legacy",
+          "elapsed_ms": 777.2660329999926,
+          "calls": 24,
+          "structured_reply_bytes": 325201,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 55,
+            "total": 55,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 2,
+          "mode": "references",
+          "elapsed_ms": 36.31178899999941,
+          "calls": 1,
+          "structured_reply_bytes": 22158,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 23,
+            "total": 23,
+            "next_offset": null,
+            "exhausted": true
+          }
+        }
+      ],
+      "elapsed_seconds": 108.372,
+      "cpu_seconds": 81.551676,
+      "peak_cgroup_bytes": 1884962816,
+      "outcome": "All facts/costs and CLI/MCP parity passed. Superseded execution source after adding a tokenizer deadline; retained separately, not pooled."
+    },
+    {
+      "scope": "Successful data comparison with direct-child tokenizer timeout before adopting shared owned-process supervision",
+      "preparation_ms": 19051.368892000002,
+      "samples": [
+        {
+          "round": 0,
+          "mode": "legacy",
+          "elapsed_ms": 330.7313439999998,
+          "calls": 24,
+          "structured_reply_bytes": 325201,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 55,
+            "total": 55,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 0,
+          "mode": "references",
+          "elapsed_ms": 13.62184999999954,
+          "calls": 1,
+          "structured_reply_bytes": 22158,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 23,
+            "total": 23,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 1,
+          "mode": "references",
+          "elapsed_ms": 12.475999999998749,
+          "calls": 1,
+          "structured_reply_bytes": 22158,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 23,
+            "total": 23,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 1,
+          "mode": "legacy",
+          "elapsed_ms": 187.18667300000016,
+          "calls": 24,
+          "structured_reply_bytes": 325201,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 55,
+            "total": 55,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 2,
+          "mode": "legacy",
+          "elapsed_ms": 293.4882039999975,
+          "calls": 24,
+          "structured_reply_bytes": 325201,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 55,
+            "total": 55,
+            "next_offset": null,
+            "exhausted": true
+          }
+        },
+        {
+          "round": 2,
+          "mode": "references",
+          "elapsed_ms": 8.146389999998064,
+          "calls": 1,
+          "structured_reply_bytes": 22158,
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "matching_modules": 23,
+          "coverage": {
+            "status": "page",
+            "examined": 23,
+            "total": 23,
+            "next_offset": null,
+            "exhausted": true
+          }
+        }
+      ],
+      "elapsed_seconds": 30.742,
+      "cpu_seconds": 30.425218,
+      "peak_cgroup_bytes": 1592938496,
+      "outcome": "Fact and cost parity passed. That harness only killed its immediate tokenizer child; superseded by process-family supervision and detached-helper verification."
+    }
+  ],
+  "prior_tokenizer_timeout_verifications": [
+    {
+      "artifact_sha256": "146ef8470d8cbb4a6db209bdc19bf2bad13350444186c0fd93c31087b142b92f",
+      "scenario": "Real Obsidian references plus CLI parity, then a deliberately stalled tokenizer",
+      "injected_tokenizer_source": "#!/bin/sh\nexec /bin/sleep 30\n",
+      "timeout_ms": 20,
+      "observed_error_code": "ETIMEDOUT",
+      "expected_payload_exit_code": 1,
+      "payload_cleanup_verified": true,
+      "remaining_owned_temporary_files": 0,
+      "elapsed_seconds": 31.258,
+      "cpu_seconds": 31.00025,
+      "peak_cgroup_bytes": 1644077056,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      },
+      "scope": "Robustness check; no efficiency credit",
+      "limitation": "Immediate child only; did not test detached descendants and is superseded by the owned-family check."
+    }
+  ],
+  "tokenizer_timeout_verification": {
+    "artifact_sha256": "146ef8470d8cbb4a6db209bdc19bf2bad13350444186c0fd93c31087b142b92f",
+    "scenario": "Real Obsidian references and CLI parity, then an owned tokenizer wrapper with a detached SIGTERM-ignoring helper",
+    "fixture": "scripts/fixtures/tokenizer-family-wrapper.py",
+    "fixture_sha256": "2e9b7092ee539ae1c6a477492f05bb6007d4612dadfff9b90051d621de43049b",
+    "timeout_ms": 2000,
+    "observed_failure_type": "OwnedCommandFailure",
+    "observed_reason": "timeout",
+    "cleanup_failure": null,
+    "expected_payload_exit_code": 1,
+    "payload_cleanup_verified": true,
+    "remaining_owned_temporary_files": 0,
+    "helper_observation": {
+      "pid": 2871108,
+      "group": 2871108,
+      "parent": 2871107,
+      "run_id": "rea-module-token-f139b74a-dd83-498b-b663-e765104159ec",
+      "detached": true,
+      "ignores_sigterm": true
+    },
+    "elapsed_seconds": 55.08,
+    "cpu_seconds": 45.245603,
+    "peak_cgroup_bytes": 1563475968,
+    "events_at_payload_exit": {
+      "memory.events": {
+        "low": 0,
+        "high": 0,
+        "max": 0,
+        "oom": 0,
+        "oom_kill": 0,
+        "oom_group_kill": 0
+      },
+      "pids.events": {
+        "max": 0
+      }
+    },
+    "scope": "Robustness check; no efficiency credit. PIDs are observations; signaling authority comes from the shared process owner."
+  }
+}

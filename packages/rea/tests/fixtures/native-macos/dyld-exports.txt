@@ -1,0 +1,3 @@
+exports:
+0x100001000 _main
+0x100001080 _$s4Test3fooyyF

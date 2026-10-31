@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" fill="none">
+  <title>An analyst thinking at a computer</title>
+  <style>
+@media (prefers-color-scheme: dark){
+[stroke="#294f82"]{stroke:#89b4fa}
+[fill="#5b6570"]{fill:#a6adc8}
+[stroke="#5b6570"]{stroke:#a6adc8}
+[stroke="#e0e5e9"]{stroke:#45475a}
+[fill="#edf2f8"]{fill:#313244}
+[fill="#f4f6f8"]{fill:#1e1e2e}
+[fill="#fff"]{fill:#181825}
+}
+  </style>
+  <g stroke="#5b6570" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 101h136" stroke="#e0e5e9" />
+    <path d="M24 54h38l-6 35H18z" fill="#f4f6f8" />
+    <path d="M18 89h53m-33 0-2 12m-8 0h24" />
+    <path d="M87 57c-10 7-15 18-16 35l23 9h33c-1-14-6-26-18-33" fill="#edf2f8" />
+    <path d="M89 62v-9m16 10v-8" />
+    <path d="M88 24c8-5 19-2 22 5 3 9 0 20-8 25-8 4-15-1-16-8l-5-2 4-8v-8" fill="#fff" />
+    <path d="M83 31c-4-9 0-17 11-19 10-2 19 5 20 14l-7 7-2-8c-7 3-14 4-22 2" fill="#5b6570" />
+    <path d="M87 35h3m-5 10 7 1" />
+    <path d="m121 88-22-13-9-26m-5 2 6-4 4 4m4 24-22 12-9-3" stroke="#294f82" />
+    <path d="m93 83-13 8 13 10m-16-14-8 5-12-2" />
+  </g>
+</svg>

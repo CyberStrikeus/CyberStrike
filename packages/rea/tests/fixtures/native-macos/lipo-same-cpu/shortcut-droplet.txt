@@ -1,0 +1,17 @@
+Fat header in: fixture
+fat_magic 0xcafebabe
+nfat_arch 2
+architecture arm64
+    cputype CPU_TYPE_ARM64
+    cpusubtype CPU_SUBTYPE_ARM64_ALL
+    capabilities
+    offset 16384
+    size 52000
+    align 2^14 (16384)
+architecture arm64e.x1
+    cputype CPU_TYPE_ARM64
+    cpusubtype unknown arm64 cpusubtype
+    capabilities PTR_AUTH_VERSION USERSPACE 0
+    offset 81920
+    size 52000
+    align 2^14 (16384)

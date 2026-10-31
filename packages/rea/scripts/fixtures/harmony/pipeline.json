@@ -1,0 +1,16 @@
+{
+  "name": "harmony-next-pipeline",
+  "version": "1.0.1",
+  "source": "https://github.com/ohosvscode/harmony-next-pipeline",
+  "source_revision": "196956a1c73e7f800887ef699eeff68b07129e98",
+  "license": "MIT",
+  "license_url": "https://github.com/ohosvscode/harmony-next-pipeline/blob/196956a1c73e7f800887ef699eeff68b07129e98/LICENSE",
+  "license_note": "The source repository is MIT licensed. The downloaded release is used locally, not redistributed; bundled component licenses were not independently audited.",
+  "url": "https://github.com/ohosvscode/harmony-next-pipeline/releases/download/v1.0.1/entry-default-unsigned.hap",
+  "asset_id": 223070058,
+  "filename": "entry-default-unsigned.hap",
+  "bytes": 112885,
+  "sha256": "928a4c6718125328695d2c32297ef5dfba2e06d16fd501d507d4aa32423cbad6",
+  "toolchain": null,
+  "provenance_note": "This is an upstream release artifact. Compiler and SDK versions and a reproducible source-to-artifact build have not been independently established."
+}

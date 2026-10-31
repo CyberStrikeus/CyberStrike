@@ -1,0 +1,4 @@
+interface:
+  display_name: "REA analysis optimization"
+  short_description: "Optimize analysis with preserved Evidence and measured costs"
+  default_prompt: "Use $rea-analysis-optimization to find and verify a concrete analysis bottleneck while preserving correctness and Evidence."

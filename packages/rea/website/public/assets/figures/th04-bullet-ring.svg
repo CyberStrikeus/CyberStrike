@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="520" viewBox="0 0 1000 520" role="img" aria-labelledby="title description">
+  <title id="title">TH04: spacing and aiming a ring of bullets</title>
+  <desc id="description">A full clockwise turn has 256 angle units. Sixteen bullets start at angles zero, sixteen, thirty-two, through 240. Adding an example player direction of forty turns all sixteen directions together; the first bullet points at the player. Template rotation is zero.</desc>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#294f82" /></marker></defs>
+  <style>text { font-family: Arial, Helvetica, sans-serif; fill: #20252b; } .heading { font-size: 26px; font-weight: 600; } .note { font-size: 19px; fill: #5b6570; } .mono { font-family: Consolas, 'Liberation Mono', monospace; font-size: 19px; } .accent { fill: #294f82; } .spoke { stroke: #d2dbe4; stroke-width: 1.6; } .bullet { fill: #9eafc0; } .first { fill: #294f82; } 
+@media (prefers-color-scheme: dark){
+svg{background-color:#181825}
+[fill="#20252b"]{fill:#cdd6f4}
+[fill="#294f82"]{fill:#89b4fa}
+[stroke="#294f82"]{stroke:#89b4fa}
+[stroke="#e0e5ea"]{stroke:#45475a}
+[fill="#edf2f8"]{fill:#313244}
+[fill="#ffffff"]{fill:#181825}
+text{fill:#cdd6f4}
+.note{fill:#a6adc8}
+.accent{fill:#89b4fa}
+.spoke{stroke:#6c7086}
+.bullet{fill:#9399b2}
+.first{fill:#89b4fa}
+}
+</style>
+  <rect width="1000" height="520" fill="#ffffff" />
+  <line x1="500" y1="42" x2="500" y2="428" stroke="#e0e5ea" />
+  <text x="42" y="58" class="heading">Fixed ring</text>
+  <text x="42" y="88" class="note">First bullet: angle 0</text>
+  <text x="542" y="58" class="heading">Aimed ring</text>
+  <text x="542" y="88" class="note">First bullet: player direction</text>
+  <g id="fixed-ring" data-count="16" data-aim="0">
+    <circle cx="245" cy="246" r="118" fill="none" stroke="#e0e5ea" stroke-dasharray="3 5" />
+    <line x1="245" y1="246" x2="363.000" y2="246.000" stroke="#294f82" stroke-width="2.5" />
+    <circle cx="363.000" cy="246.000" r="6" class="first" data-index="0" data-angle="0" />
+    <line x1="245" y1="246" x2="354.018" y2="291.157" class="spoke" />
+    <circle cx="354.018" cy="291.157" r="4.5" class="bullet" data-index="1" data-angle="16" />
+    <line x1="245" y1="246" x2="328.439" y2="329.439" class="spoke" />
+    <circle cx="328.439" cy="329.439" r="4.5" class="bullet" data-index="2" data-angle="32" />
+    <line x1="245" y1="246" x2="290.157" y2="355.018" class="spoke" />
+    <circle cx="290.157" cy="355.018" r="4.5" class="bullet" data-index="3" data-angle="48" />
+    <line x1="245" y1="246" x2="245.000" y2="364.000" class="spoke" />
+    <circle cx="245.000" cy="364.000" r="4.5" class="bullet" data-index="4" data-angle="64" />
+    <line x1="245" y1="246" x2="199.843" y2="355.018" class="spoke" />
+    <circle cx="199.843" cy="355.018" r="4.5" class="bullet" data-index="5" data-angle="80" />
+    <line x1="245" y1="246" x2="161.561" y2="329.439" class="spoke" />
+    <circle cx="161.561" cy="329.439" r="4.5" class="bullet" data-index="6" data-angle="96" />
+    <line x1="245" y1="246" x2="135.982" y2="291.157" class="spoke" />
+    <circle cx="135.982" cy="291.157" r="4.5" class="bullet" data-index="7" data-angle="112" />
+    <line x1="245" y1="246" x2="127.000" y2="246.000" class="spoke" />
+    <circle cx="127.000" cy="246.000" r="4.5" class="bullet" data-index="8" data-angle="128" />
+    <line x1="245" y1="246" x2="135.982" y2="200.843" class="spoke" />
+    <circle cx="135.982" cy="200.843" r="4.5" class="bullet" data-index="9" data-angle="144" />
+    <line x1="245" y1="246" x2="161.561" y2="162.561" class="spoke" />
+    <circle cx="161.561" cy="162.561" r="4.5" class="bullet" data-index="10" data-angle="160" />
+    <line x1="245" y1="246" x2="199.843" y2="136.982" class="spoke" />
+    <circle cx="199.843" cy="136.982" r="4.5" class="bullet" data-index="11" data-angle="176" />
+    <line x1="245" y1="246" x2="245.000" y2="128.000" class="spoke" />
+    <circle cx="245.000" cy="128.000" r="4.5" class="bullet" data-index="12" data-angle="192" />
+    <line x1="245" y1="246" x2="290.157" y2="136.982" class="spoke" />
+    <circle cx="290.157" cy="136.982" r="4.5" class="bullet" data-index="13" data-angle="208" />
+    <line x1="245" y1="246" x2="328.439" y2="162.561" class="spoke" />
+    <circle cx="328.439" cy="162.561" r="4.5" class="bullet" data-index="14" data-angle="224" />
+    <line x1="245" y1="246" x2="354.018" y2="200.843" class="spoke" />
+    <circle cx="354.018" cy="200.843" r="4.5" class="bullet" data-index="15" data-angle="240" />
+    <circle cx="245" cy="246" r="7" fill="#20252b" />
+    <rect x="215" y="261" width="60" height="26" fill="#ffffff" />
+    <text x="245" y="280" text-anchor="middle" class="note">Origin</text>
+  </g>
+  <g id="aimed-ring" data-count="16" data-aim="40">
+    <circle cx="730" cy="246" r="118" fill="none" stroke="#e0e5ea" stroke-dasharray="3 5" />
+    <line x1="730" y1="246" x2="795.557" y2="344.113" stroke="#294f82" stroke-width="2.5" />
+    <circle cx="795.557" cy="344.113" r="6" class="first" data-index="0" data-angle="40" />
+    <line x1="730" y1="246" x2="753.021" y2="361.733" class="spoke" />
+    <circle cx="753.021" cy="361.733" r="4.5" class="bullet" data-index="1" data-angle="56" />
+    <line x1="730" y1="246" x2="706.979" y2="361.733" class="spoke" />
+    <circle cx="706.979" cy="361.733" r="4.5" class="bullet" data-index="2" data-angle="72" />
+    <line x1="730" y1="246" x2="664.443" y2="344.113" class="spoke" />
+    <circle cx="664.443" cy="344.113" r="4.5" class="bullet" data-index="3" data-angle="88" />
+    <line x1="730" y1="246" x2="631.887" y2="311.557" class="spoke" />
+    <circle cx="631.887" cy="311.557" r="4.5" class="bullet" data-index="4" data-angle="104" />
+    <line x1="730" y1="246" x2="614.267" y2="269.021" class="spoke" />
+    <circle cx="614.267" cy="269.021" r="4.5" class="bullet" data-index="5" data-angle="120" />
+    <line x1="730" y1="246" x2="614.267" y2="222.979" class="spoke" />
+    <circle cx="614.267" cy="222.979" r="4.5" class="bullet" data-index="6" data-angle="136" />
+    <line x1="730" y1="246" x2="631.887" y2="180.443" class="spoke" />
+    <circle cx="631.887" cy="180.443" r="4.5" class="bullet" data-index="7" data-angle="152" />
+    <line x1="730" y1="246" x2="664.443" y2="147.887" class="spoke" />
+    <circle cx="664.443" cy="147.887" r="4.5" class="bullet" data-index="8" data-angle="168" />
+    <line x1="730" y1="246" x2="706.979" y2="130.267" class="spoke" />
+    <circle cx="706.979" cy="130.267" r="4.5" class="bullet" data-index="9" data-angle="184" />
+    <line x1="730" y1="246" x2="753.021" y2="130.267" class="spoke" />
+    <circle cx="753.021" cy="130.267" r="4.5" class="bullet" data-index="10" data-angle="200" />
+    <line x1="730" y1="246" x2="795.557" y2="147.887" class="spoke" />
+    <circle cx="795.557" cy="147.887" r="4.5" class="bullet" data-index="11" data-angle="216" />
+    <line x1="730" y1="246" x2="828.113" y2="180.443" class="spoke" />
+    <circle cx="828.113" cy="180.443" r="4.5" class="bullet" data-index="12" data-angle="232" />
+    <line x1="730" y1="246" x2="845.733" y2="222.979" class="spoke" />
+    <circle cx="845.733" cy="222.979" r="4.5" class="bullet" data-index="13" data-angle="248" />
+    <line x1="730" y1="246" x2="845.733" y2="269.021" class="spoke" />
+    <circle cx="845.733" cy="269.021" r="4.5" class="bullet" data-index="14" data-angle="8" />
+    <line x1="730" y1="246" x2="828.113" y2="311.557" class="spoke" />
+    <circle cx="828.113" cy="311.557" r="4.5" class="bullet" data-index="15" data-angle="24" />
+    <circle cx="730" cy="246" r="7" fill="#20252b" />
+    <rect x="700" y="261" width="60" height="26" fill="#ffffff" />
+    <text x="730" y="280" text-anchor="middle" class="note">Origin</text>
+    <line x1="800.557" y1="351.597" x2="829.447" y2="394.833" stroke="#294f82" stroke-width="1.8" stroke-dasharray="4 4" marker-end="url(#arrow)" />
+    <path d="M 832.225 391.990 l 7 7 l -7 7 l -7 -7 z" fill="#294f82" />
+    <text x="848.225" y="405.990" class="note accent">Player</text>
+  </g>
+  <text x="42" y="413" class="mono">0, 16, 32, …, 240</text>
+  <text x="542" y="413" class="mono">40, 56, 72, …, 24</text>
+  <rect x="24" y="451" width="952" height="47" rx="4" fill="#edf2f8" />
+  <text x="500" y="481" text-anchor="middle" class="note accent">Same spacing: 256 ÷ 16 = 16 angle units = 22.5°</text>
+</svg>

@@ -1,0 +1,1865 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Install REA and Set Up Your Coding Agent</title>
+    <meta
+      name="description"
+      content="Connect REA to your coding agent or inspect a local JavaScript or Electron app from the terminal. Setup, first questions and native provider guides."
+    />
+    <!-- website:sharing:start -->
+    <!-- prettier-ignore -->
+    <link rel="canonical" href="https://rea.tools/get-started/" />
+    <!-- website:languages:start -->
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="en" href="https://rea.tools/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="zh-CN" href="https://rea.tools/zh-CN/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="zh-TW" href="https://rea.tools/zh-TW/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ja" href="https://rea.tools/ja/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ko" href="https://rea.tools/ko/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="tr" href="https://rea.tools/tr/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ru" href="https://rea.tools/ru/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="vi" href="https://rea.tools/vi/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="th" href="https://rea.tools/th/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="de" href="https://rea.tools/de/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="es" href="https://rea.tools/es/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="fr" href="https://rea.tools/fr/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="uk" href="https://rea.tools/uk/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="pl" href="https://rea.tools/pl/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="pt-BR" href="https://rea.tools/pt-BR/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ar" href="https://rea.tools/ar/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="fa" href="https://rea.tools/fa/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="id" href="https://rea.tools/id/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="it" href="https://rea.tools/it/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="el" href="https://rea.tools/el/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ml" href="https://rea.tools/ml/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ur-Latn" href="https://rea.tools/ur-Latn/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ro" href="https://rea.tools/ro/get-started/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="x-default" href="https://rea.tools/get-started/" />
+    <!-- website:languages:end -->
+    <!-- prettier-ignore -->
+    <meta property="og:type" content="website" />
+    <!-- prettier-ignore -->
+    <meta property="og:site_name" content="REA" />
+    <!-- prettier-ignore -->
+    <meta property="og:title" content="Install REA and Set Up Your Coding Agent" />
+    <!-- prettier-ignore -->
+    <meta property="og:description" content="Connect REA to your coding agent or inspect a local JavaScript or Electron app from the terminal. Setup, first questions and native provider guides." />
+    <!-- prettier-ignore -->
+    <meta property="og:url" content="https://rea.tools/get-started/" />
+    <!-- prettier-ignore -->
+    <meta property="og:image" content="https://rea.tools/assets/social-card.png" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:type" content="image/png" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:width" content="1200" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:height" content="630" />
+    <!-- prettier-ignore -->
+    <meta
+      property="og:image:alt"
+      content="REA: Find out how software works. Reverse engineering with your coding agent."
+    />
+    <!-- prettier-ignore -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- prettier-ignore -->
+    <meta name="twitter:title" content="Install REA and Set Up Your Coding Agent" />
+    <!-- prettier-ignore -->
+    <meta name="twitter:description" content="Connect REA to your coding agent or inspect a local JavaScript or Electron app from the terminal. Setup, first questions and native provider guides." />
+    <!-- prettier-ignore -->
+    <meta name="twitter:image" content="https://rea.tools/assets/social-card.png" />
+    <!-- prettier-ignore -->
+    <meta
+      name="twitter:image:alt"
+      content="REA: Find out how software works. Reverse engineering with your coding agent."
+    />
+    <!-- website:sharing:end -->
+    <!-- website:theme:start -->
+    <meta name="theme-color" content="#ffffff" />
+    <!-- Apply the saved theme before styles load, to avoid a flash on navigation. -->
+    <script src="../assets/theme.js"></script>
+    <!-- website:theme:end -->
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../assets/styles.css" />
+    <script src="../assets/main.js" defer></script>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- website:header:start -->
+    <!-- prettier-ignore -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="../" aria-label="REA home"
+          ><span class="brand-name">REA</span
+          ><span class="brand-caption" data-i18n-skip>Reverse Engineer Anything</span></a
+        >
+        <nav class="navigation" aria-label="Main navigation">
+          <a href="../get-started/" class="nav-start" aria-current="page">Get started</a>
+          <a href="../showcase/">Showcases</a>
+          <a href="../blog/">Blog</a>
+          <a href="../guides/">Guides</a>
+        </nav>
+        <div class="header-social">
+          <details class="language-picker" data-i18n-skip><summary><span aria-hidden="true">文 / A</span> <span>English</span></summary><nav aria-label="English"><a href="../get-started/" lang="en" dir="ltr" data-language="en" aria-current="true">English</a><a href="../zh-CN/get-started/" lang="zh-CN" dir="ltr" data-language="zh-CN">简体中文</a><a href="../zh-TW/get-started/" lang="zh-TW" dir="ltr" data-language="zh-TW">繁體中文</a><a href="../ja/get-started/" lang="ja" dir="ltr" data-language="ja">日本語</a><a href="../ko/get-started/" lang="ko" dir="ltr" data-language="ko">한국어</a><a href="../tr/get-started/" lang="tr" dir="ltr" data-language="tr">Türkçe</a><a href="../ru/get-started/" lang="ru" dir="ltr" data-language="ru">Русский</a><a href="../vi/get-started/" lang="vi" dir="ltr" data-language="vi">Tiếng Việt</a><a href="../th/get-started/" lang="th" dir="ltr" data-language="th">ไทย</a><a href="../de/get-started/" lang="de" dir="ltr" data-language="de">Deutsch</a><a href="../es/get-started/" lang="es" dir="ltr" data-language="es">Español</a><a href="../fr/get-started/" lang="fr" dir="ltr" data-language="fr">Français</a><a href="../uk/get-started/" lang="uk" dir="ltr" data-language="uk">Українська</a><a href="../pl/get-started/" lang="pl" dir="ltr" data-language="pl">Polski</a><a href="../pt-BR/get-started/" lang="pt-BR" dir="ltr" data-language="pt-BR">Português (Brasil)</a><a href="../ar/get-started/" lang="ar" dir="rtl" data-language="ar">العربية</a><a href="../fa/get-started/" lang="fa" dir="rtl" data-language="fa">فارسی</a><a href="../id/get-started/" lang="id" dir="ltr" data-language="id">Bahasa Indonesia</a><a href="../it/get-started/" lang="it" dir="ltr" data-language="it">Italiano</a><a href="../el/get-started/" lang="el" dir="ltr" data-language="el">Ελληνικά</a><a href="../ml/get-started/" lang="ml" dir="ltr" data-language="ml">മലയാളം</a><a href="../ur-Latn/get-started/" lang="ur-Latn" dir="ltr" data-language="ur-Latn">Roman Urdu</a><a href="../ro/get-started/" lang="ro" dir="ltr" data-language="ro">Română</a></nav></details>
+          <button class="theme-toggle" type="button" data-theme-toggle hidden>
+            <svg class="theme-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M20.9 13a9 9 0 0 1-9.9-9.9A9 9 0 1 0 20.9 13Z" />
+            </svg>
+            <svg class="theme-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+            </svg>
+          </button>
+          <a
+            class="nav-github"
+            href="https://github.com/morluto/rea"
+            aria-label="REA on GitHub"
+            title="REA on GitHub"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+              />
+            </svg>
+            <span class="nav-github-count" hidden aria-hidden="true"></span>
+          </a>
+          <a
+            class="nav-discord"
+            href="https://discord.gg/GkcryMnJDM"
+            aria-label="Join REA on Discord"
+            title="Join REA on Discord"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286ZM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189Zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"
+              />
+            </svg>
+          </a>
+          <a
+            class="nav-x"
+            href="https://x.com/reatools"
+            aria-label="Follow REA on X"
+            title="Follow REA on X"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"
+              />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </header>
+    <!-- website:header:end -->
+    <main id="main" class="container">
+      <div class="page-heading">
+        <p class="breadcrumb"><a href="../">Home</a> / Get started</p>
+        <h1>Set up REA.</h1>
+        <p class="lede">
+          Set up your computer and coding agent, connect REA, then investigate a
+          small app.
+        </p>
+        <p>
+          New to this? Follow the four steps below. Already have an agent? Go
+          straight to <a href="#agent">Connect REA</a>.
+        </p>
+      </div>
+      <div class="article-layout">
+        <nav class="contents" aria-label="On this page">
+          <p>On this page</p>
+          <ul>
+            <li><a href="#computer">1. Prepare your computer</a></li>
+            <li><a href="#choose-agent">2. Choose an agent</a></li>
+            <li><a href="#agent">3. Connect REA</a></li>
+            <li><a href="#first-task">4. Try an investigation</a></li>
+            <li><a href="#native">Other targets and providers</a></li>
+            <li><a href="#terminal">Use the CLI</a></li>
+            <li><a href="#help">Getting help</a></li>
+          </ul>
+        </nav>
+        <article class="article" aria-label="REA getting started guide">
+          <section class="article-section" id="computer">
+            <h2>1. Prepare your computer</h2>
+            <p>
+              Use the computer where your target files are stored. A local
+              coding agent can read those files and run tools for you.
+            </p>
+            <details class="evidence-details" id="open-terminal">
+              <summary>How do I open a terminal?</summary>
+              <ul>
+                <li>
+                  <strong>Windows:</strong> open the Start menu, type
+                  <em>PowerShell</em> and press Enter.
+                </li>
+                <li>
+                  <strong>macOS:</strong> press <kbd>⌘</kbd> <kbd>Space</kbd>,
+                  type <em>Terminal</em> and press Enter.
+                </li>
+                <li>
+                  <strong>Linux:</strong> press <kbd>Ctrl</kbd> <kbd>Alt</kbd>
+                  <kbd>T</kbd> on most desktops.
+                </li>
+              </ul>
+              <p>
+                Paste a command with <kbd>Ctrl</kbd> <kbd>V</kbd> (macOS:
+                <kbd>⌘</kbd> <kbd>V</kbd>; Linux terminals: <kbd>Ctrl</kbd>
+                <kbd>Shift</kbd> <kbd>V</kbd>), then press Enter.
+              </p>
+              <p>
+                Commands go in the terminal. Prompts labeled “Your coding agent”
+                go in the agent's chat.
+              </p>
+            </details>
+            <p class="requirements">
+              You'll need <span translate="no">Node.js</span> 22 (22.23.4+), 24
+              (24.22.1+) or 26+ (>=26.12.1). npm comes with
+              <span translate="no">Node.js</span>.
+            </p>
+            <details class="evidence-details" id="install-node">
+              <summary>
+                Don't have <span translate="no">Node.js</span>, or not sure?
+              </summary>
+              <p>Open a terminal and check:</p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span>Terminal</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="node-check"
+                    aria-label="Copy Node.js version check"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="node-check">node -v
+npm -v</code></pre>
+              </div>
+              <p>
+                If <code>node -v</code> prints v22.23.4+, v24.22.1+ or
+                v26.12.1+, you're ready. If it prints an older version or "not
+                recognized" / "command not found", install
+                <span translate="no">Node.js</span> 24 LTS:
+              </p>
+              <details class="evidence-details" id="node-windows-help">
+                <summary translate="no">Windows (PowerShell)</summary>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span>Windows PowerShell</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="node-windows"
+                      aria-label="Copy Node.js installation command for Windows"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="node-windows">winget install --exact --id OpenJS.NodeJS.LTS</code></pre>
+                </div>
+                <p>
+                  Type Y if asked to accept the terms. Close PowerShell, open it
+                  again, then run <code>node -v</code>.
+                </p>
+                <p>
+                  <a href="https://nodejs.org/en/download"
+                    >Download the Node.js installer</a
+                  >
+                  if winget is unavailable.
+                </p>
+                <p>
+                  If PowerShell later says
+                  <em>"running scripts is disabled on this system"</em> when you
+                  run <code>npx</code>, use <code>npx.cmd</code> instead. For
+                  npm, use <code>npm.cmd</code>:
+                </p>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span>Windows PowerShell</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="node-windows-shim"
+                      aria-label="Copy Windows REA setup command"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="node-windows-shim">npx.cmd rea-agents@latest setup</code></pre>
+                </div>
+              </details>
+              <details class="evidence-details" id="node-macos-help">
+                <summary translate="no">macOS</summary>
+                <p>
+                  For a first installation, download the
+                  <a href="https://nodejs.org/en/download"
+                    >Node.js 24 LTS macOS installer (.pkg)</a
+                  >, open it and follow the installer. Then reopen Terminal.
+                </p>
+                <details class="evidence-details">
+                  <summary>Already use Homebrew?</summary>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span>macOS · Homebrew</span
+                      ><button
+                        class="copy-button"
+                        type="button"
+                        data-copy="node-macos-brew"
+                        aria-label="Copy Homebrew Node.js installation command"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <pre><code id="node-macos-brew">brew install node</code></pre>
+                  </div>
+                </details>
+              </details>
+              <details class="evidence-details" id="node-linux-help">
+                <summary translate="no">Linux</summary>
+                <p>
+                  Install curl and unzip first if they are missing. On Debian or
+                  Ubuntu, run <code>sudo apt install curl unzip</code>; on other
+                  distributions, use your package manager.
+                </p>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span>Linux</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="node-linux-fnm"
+                      aria-label="Copy fnm installation command for Linux"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="node-linux-fnm">curl -fsSL https://fnm.vercel.app/install | bash</code></pre>
+                </div>
+                <p>Close the terminal, open it again, then:</p>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span>Linux</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="node-linux-install"
+                      aria-label="Copy Node.js 24 commands for Linux"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="node-linux-install">fnm install 24
+fnm use 24
+fnm default 24</code></pre>
+                </div>
+                <p>
+                  Your distribution's own <code>nodejs</code> package is often
+                  older than 22.23.4, so check <code>node -v</code> if you use
+                  it instead.
+                </p>
+              </details>
+              <p>
+                Prefer a regular installer? Download the LTS version from
+                <a href="https://nodejs.org/en/download">nodejs.org</a>.
+              </p>
+            </details>
+
+            <details class="evidence-details" id="working-folder">
+              <summary>Make a working folder for your agent</summary>
+              <p>
+                In your terminal, make a folder for the exercise, then move into
+                it:
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Terminal</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="make-work-folder"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="make-work-folder">mkdir rea-work
+cd rea-work</code></pre>
+              </div>
+              <p>
+                Keep this terminal open for the next step. If you already have a
+                working folder, open it instead.
+              </p>
+            </details>
+          </section>
+          <section class="article-section" id="choose-agent">
+            <h2>2. Choose a coding agent</h2>
+            <p>
+              Your agent is the AI you talk to. REA supplies the inspection
+              tools it uses. Pick one client below; open its instructions if you
+              haven't used it before.
+            </p>
+            <details class="evidence-details" id="client-codex">
+              <summary>Codex · use your ChatGPT account</summary>
+              <p>Install Codex using the command for your operating system:</p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Windows PowerShell</span>
+                  <button
+                    class="copy-button"
+                    type="button"
+                    data-copy="install-codex-windows"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="install-codex-windows">powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 | iex"</code></pre>
+              </div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">macOS / Linux</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="install-codex"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="install-codex">curl -fsSL https://chatgpt.com/codex/install.sh | sh</code></pre>
+              </div>
+              <p>
+                After installation, reopen your terminal and return to the
+                working folder. Then start Codex:
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Terminal</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="launch-codex"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="launch-codex">codex</code></pre>
+              </div>
+              <p>
+                Choose “Sign in with ChatGPT”, complete the browser sign-in,
+                then return to the terminal. When the message box appears,
+                continue to step 3.
+              </p>
+              <p>
+                <a href="https://learn.chatgpt.com/docs/codex/cli"
+                  >Codex installation and sign-in</a
+                >
+              </p>
+            </details>
+            <details class="evidence-details" id="client-editors">
+              <summary>Cursor, Windsurf or VS Code · use an editor</summary>
+              <ol>
+                <li>
+                  Install the editor for your operating system and sign in.
+                </li>
+                <li>Open the rea-work folder you made in step 1.</li>
+                <li>
+                  Open its AI chat and choose Agent mode. In Windsurf or Devin
+                  Desktop, open the agent chat; in VS Code, set up GitHub
+                  Copilot first.
+                </li>
+              </ol>
+              <p>
+                <a href="https://cursor.com/docs">Cursor setup</a> ·
+                <a href="https://docs.windsurf.com/windsurf/getting-started"
+                  >Windsurf / Devin Desktop setup</a
+                >
+                ·
+                <a href="https://code.visualstudio.com/docs/setup/copilot"
+                  >VS Code and Copilot setup</a
+                >
+              </p>
+            </details>
+            <details class="evidence-details" id="client-claude-code">
+              <summary>Claude Code · use your Claude account</summary>
+              <p>Install using the command for your operating system:</p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Windows PowerShell</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="install-claude-windows"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="install-claude-windows">irm https://claude.ai/install.ps1 | iex</code></pre>
+              </div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">macOS / Linux</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="install-claude-unix"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="install-claude-unix">curl -fsSL https://claude.ai/install.sh | bash</code></pre>
+              </div>
+              <p>
+                Reopen your terminal, return to your working folder and run
+                <code>claude</code>. Follow the sign-in prompts. Access uses an
+                eligible Claude subscription or a configured API account.
+              </p>
+              <p>
+                <a href="https://code.claude.com/docs/en/setup"
+                  >Claude Code installation and account options</a
+                >
+              </p>
+            </details>
+            <details class="evidence-details" id="client-claude-desktop">
+              <summary>Claude Desktop · use a desktop chat</summary>
+              <p>
+                Install Claude Desktop on Windows or macOS and sign in. Quit it
+                completely, then run this command in a terminal you opened
+                outside Claude:
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Terminal</span>
+                  <button
+                    class="copy-button"
+                    type="button"
+                    data-copy="setup-claude-desktop"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="setup-claude-desktop">npx rea-agents@latest setup --client claude_desktop</code></pre>
+              </div>
+              <p>
+                Review and approve the plan, reopen Claude, then
+                <a href="#check-connection">check the connection in step 3</a>.
+              </p>
+              <p>
+                <a href="https://claude.ai/download">Download Claude Desktop</a>
+                ·
+                <a
+                  href="https://github.com/morluto/rea/blob/main/docs/client-configuration.md#claude-desktop"
+                  >Claude Desktop connection details</a
+                >
+              </p>
+            </details>
+            <details class="evidence-details" id="client-opencode">
+              <summary>OpenCode · choose an AI model</summary>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Terminal</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="install-opencode"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="install-opencode">npm install --global opencode-ai</code></pre>
+              </div>
+              <p>
+                Run <code>opencode</code> in your working folder. Use
+                <code>/connect</code> in its chat to connect your model account,
+                then select a model.
+              </p>
+              <p>
+                <a href="https://opencode.ai/docs/"
+                  >OpenCode installation and model setup</a
+                >
+              </p>
+            </details>
+            <details class="evidence-details" id="supported-clients">
+              <summary>All supported clients and setup IDs</summary>
+              <p>
+                Use the ID with <code>--client</code> when choosing a client
+                explicitly. These clients are supported in npm 6.8.0 and later.
+              </p>
+              <div class="evidence-table-wrap">
+                <table class="evidence-table">
+                  <thead>
+                    <tr>
+                      <th>Client</th>
+                      <th>Setup ID</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td translate="no">Claude Code</td>
+                      <td><code>claude_code</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Claude Desktop</td>
+                      <td><code>claude_desktop</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Codex</td>
+                      <td><code>codex</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Cursor</td>
+                      <td><code>cursor</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Gemini CLI</td>
+                      <td><code>gemini_cli</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Windsurf</td>
+                      <td><code>windsurf</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Devin</td>
+                      <td><code>devin</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">OpenCode</td>
+                      <td><code>opencode</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Antigravity</td>
+                      <td><code>antigravity</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">GitHub Copilot CLI</td>
+                      <td><code>copilot_cli</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Command Code</td>
+                      <td><code>commandcode</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Qwen Code</td>
+                      <td><code>qwen_code</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Kimi Code</td>
+                      <td><code>kimi</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">VS Code</td>
+                      <td><code>vscode</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Grok Build</td>
+                      <td><code>grok_build</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">OMP</td>
+                      <td><code>omp</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Pi</td>
+                      <td><code>pi</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Hermes</td>
+                      <td><code>hermes</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Qoder</td>
+                      <td><code>qoder</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Factory Droid</td>
+                      <td><code>droid</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Trae</td>
+                      <td><code>trae</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">WorkBuddy</td>
+                      <td><code>workbuddy</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">ZCode</td>
+                      <td><code>zcode</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">DeepSeek Harness</td>
+                      <td><code>dsh</code></td>
+                    </tr>
+                    <tr>
+                      <td translate="no">FreeBuff</td>
+                      <td><code>freebuff</code></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p>
+                <code>droid</code>, <code>dsh</code>, <code>kimi</code>,
+                <code>qoder</code>, <code>trae</code>,
+                <code>workbuddy</code> and <code>zcode</code> require npm 6.5.0
+                or later. <code>freebuff</code> requires npm 6.8.0 or later.
+              </p>
+              <p>
+                <a
+                  href="https://github.com/morluto/rea/blob/main/docs/client-configuration.md"
+                  >Client configuration and troubleshooting</a
+                >
+                ·
+                <a
+                  href="https://github.com/morluto/rea/blob/main/docs/installation.md#released-package-and-main"
+                  >Release availability</a
+                >
+              </p>
+              <details class="evidence-details">
+                <summary>Grok Bot · connect on its hosted computer</summary>
+                <p>
+                  In Grok Bot's chat, ask it to add a custom MCP server named
+                  <code>rea</code> using this command on the Bot's computer:
+                </p>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span translate="no">Grok Bot</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="grok-bot-command"
+                      aria-label="Copy command"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="grok-bot-command">npx -y rea-agents@6.4.0 mcp</code></pre>
+                </div>
+                <p>
+                  <a
+                    href="https://github.com/morluto/rea/blob/main/docs/client-configuration.md#other-client-settings"
+                    >Grok Bot connector instructions</a
+                  >
+                </p>
+              </details>
+            </details>
+          </section>
+          <section class="article-section" id="agent">
+            <h2>3. Connect REA</h2>
+            <p>Copy this into your coding agent:</p>
+            <div class="agent-terminal">
+              <div class="terminal-header">
+                <span class="terminal-title"
+                  ><span class="terminal-dots" aria-hidden="true"
+                    ><i></i><i></i><i></i></span
+                  >Your coding agent</span
+                >
+                <button
+                  class="copy-button"
+                  type="button"
+                  data-copy="agent-install-prompt"
+                  aria-label="Copy REA installation prompt"
+                >
+                  Copy
+                </button>
+              </div>
+              <p class="terminal-prompt">
+                <span class="prompt-symbol" aria-hidden="true">›</span
+                ><span id="agent-install-prompt"
+                  >Install REA and connect it to this coding agent using
+                  <span translate="no">npx rea-agents@latest setup</span>. Show
+                  me the setup plan for approval, then verify the
+                  installation.</span
+                ><span class="terminal-cursor" aria-hidden="true"></span>
+              </p>
+            </div>
+
+            <details class="evidence-details">
+              <summary>Or run setup yourself</summary>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Terminal</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="agent-setup"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="agent-setup">npx rea-agents@latest setup</code></pre>
+              </div>
+              <p>For one specific client, add its setup ID:</p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Terminal</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="agent-setup-one"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="agent-setup-one">npx rea-agents@latest setup --client codex</code></pre>
+              </div>
+              <p>
+                If npm asks to download the package, type <code>y</code> and
+                press Enter. In REA's client list, use the arrow keys to move,
+                Space to select your client and Enter to continue.
+              </p>
+            </details>
+            <p>
+              Choose your client and review the setup plan. REA adds its MCP
+              connection and the matching investigation skill, keeping a backup
+              of existing configuration. It asks before applying the changes.
+            </p>
+            <p>
+              MCP is the connection that lets your agent call REA. The skill
+              gives it a workflow for investigating software.
+            </p>
+            <p>
+              For the first exercise, you can skip the optional Hopper
+              installation. Restart your client when setup finishes.
+            </p>
+            <details class="evidence-details">
+              <summary>How do I restart my client?</summary>
+              <p>
+                <strong>Desktop apps</strong> (Claude Desktop, Cursor, Windsurf,
+                VS Code): quit the app completely, then open it again. Closing
+                the window isn't enough. On macOS press <kbd>⌘</kbd>
+                <kbd>Q</kbd>; on Windows, also quit from the tray icon if there
+                is one.
+              </p>
+              <p>
+                <strong>Terminal agents</strong> (Claude Code, Codex, Gemini
+                CLI): exit the session and start it again.
+              </p>
+            </details>
+
+            <div class="code-block" id="check-connection">
+              <div class="code-header">
+                <span translate="no">Terminal</span
+                ><button
+                  class="copy-button"
+                  type="button"
+                  data-copy="client-doctor"
+                  aria-label="Copy command"
+                >
+                  Copy
+                </button>
+              </div>
+              <pre><code id="client-doctor">npx -y rea-agents@latest doctor --client codex --json</code></pre>
+            </div>
+            <p>
+              Replace <code>codex</code> with your client's setup ID. A
+              successful check reports <code>"healthy": true</code>. Then ask
+              your agent:
+            </p>
+            <blockquote class="prompt">
+              <p>
+                Check that REA is connected and show me which REA tools you can
+                use.
+              </p>
+            </blockquote>
+          </section>
+          <section class="article-section" id="first-task">
+            <h2>4. Try your first investigation</h2>
+            <p>
+              The example is a six-file Electron app with an
+              <strong>Export notes</strong> button. Your agent can inspect its
+              code without installing or launching Electron.
+            </p>
+            <div class="agent-terminal">
+              <div class="terminal-header">
+                <span class="terminal-title">Your coding agent</span
+                ><button
+                  class="copy-button"
+                  type="button"
+                  data-copy="setup-first-prompt"
+                  aria-label="Copy Notes investigation prompt"
+                >
+                  Copy
+                </button>
+              </div>
+              <p class="terminal-prompt">
+                <span class="prompt-symbol" aria-hidden="true">›</span
+                ><span id="setup-first-prompt"
+                  >Download
+                  <span translate="no"
+                    >https://rea.tools/examples/notes-example.zip</span
+                  >
+                  into a new example folder and unpack it. Use REA to find what
+                  happens when I click Export notes. Show where
+                  <span translate="no">notes.csv</span> is written, which fields
+                  it contains, and the relevant files and lines.</span
+                ><span class="terminal-cursor" aria-hidden="true"></span>
+              </p>
+            </div>
+            <p>Look for a short explanation with file and line references:</p>
+            <blockquote class="prompt">
+              <p>
+                The button sends a <code>notes:export</code> message. The main
+                process formats the notes as CSV and writes
+                <code>notes.csv</code> in the user’s Downloads folder. The
+                columns are <code>id</code> and <code>title</code>.
+              </p>
+            </blockquote>
+            <p>
+              <a href="../first-investigation/#check"
+                >Check a prediction in the guided exercise →</a
+              >
+            </p>
+            <details class="evidence-details">
+              <summary>
+                Download the example yourself, or use your own app
+              </summary>
+              <p>
+                <a
+                  class="button"
+                  href="../examples/notes-example.zip"
+                  download="notes-example.zip"
+                  >Download example ZIP</a
+                >
+              </p>
+              <p class="caption">
+                If your agent can’t download files, unzip this archive yourself.
+                Give it the path to the <code>notes-example</code> folder and
+                the same export question.
+              </p>
+              <blockquote class="prompt">
+                <p>
+                  Use REA to inspect the app at
+                  <code>/absolute/path/to/app</code>. Find how it exports data
+                  and show the relevant files and lines.
+                </p>
+              </blockquote>
+              <details class="evidence-details">
+                <summary>How do I get a folder's full path?</summary>
+                <ul>
+                  <li>
+                    <strong>Windows:</strong> in File Explorer, right-click the
+                    folder and choose <em>Copy as path</em>. On Windows 10, hold
+                    Shift while right-clicking.
+                  </li>
+                  <li>
+                    <strong>macOS:</strong> in Finder, right-click the folder,
+                    hold Option and choose <em>Copy "…" as Pathname</em>.
+                  </li>
+                  <li>
+                    <strong>Any system:</strong> drag the folder into a terminal
+                    window and its path appears.
+                  </li>
+                </ul>
+                <p>
+                  In a terminal, put quotes around a path that contains spaces.
+                </p>
+              </details>
+            </details>
+          </section>
+          <section class="article-section" id="native">
+            <h2>Analyze another kind of software</h2>
+            <p>
+              Choose the section for your target. A provider is the local
+              analysis tool REA uses for that kind of software.
+            </p>
+            <details class="evidence-details" id="native-providers">
+              <summary>
+                Native executables and libraries · Hopper, Ghidra or IDA
+              </summary>
+              <p>
+                Install one analysis tool on the computer running REA. The host
+                is your operating system; the target is the program you want to
+                inspect.
+              </p>
+              <div class="evidence-table-wrap">
+                <table class="evidence-table">
+                  <thead>
+                    <tr>
+                      <th>Provider</th>
+                      <th translate="no">Windows</th>
+                      <th translate="no">macOS</th>
+                      <th translate="no">Linux</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td translate="no">Hopper</td>
+                      <td>Unavailable</td>
+                      <td>12+</td>
+                      <td>x86_64 installer on supported distributions</td>
+                    </tr>
+                    <tr>
+                      <td translate="no">Ghidra</td>
+                      <td>x64 · experimental</td>
+                      <td translate="no">x64 / arm64</td>
+                      <td translate="no">x64 / arm64</td>
+                    </tr>
+                    <tr>
+                      <td translate="no">IDA</td>
+                      <td>Verified profiles</td>
+                      <td>Verified headless profile</td>
+                      <td>See provider guide</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <details class="evidence-details" id="hopper">
+                <summary>Hopper · let setup install or connect it</summary>
+                <p>
+                  Connect Hopper on macOS or Linux. Run the setup command above;
+                  it detects an existing installation or offers an installation
+                  plan for your approval.
+                </p>
+                <p>
+                  Choose Hopper in setup and review its separate installation
+                  plan. On macOS, choose demo mode or activate your license when
+                  Hopper first opens. On Linux, setup prepares the supported
+                  demo and its private display.
+                </p>
+                <p>
+                  Automated Linux setup requires an x86_64 host running Ubuntu
+                  24.04+, Fedora 41+, Nobara 44+, Arch Linux, CachyOS or
+                  Omarchy. An existing Hopper launcher can also be configured on
+                  other supported Linux distributions. On Linux arm64, use
+                  Ghidra. Hopper is commercial software; its demo has
+                  vendor-defined limits.
+                </p>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span translate="no">Terminal</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="hopper-check"
+                      aria-label="Copy command"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="hopper-check">npx -y rea-agents@latest doctor --provider hopper --json</code></pre>
+                </div>
+                <p>
+                  If macOS asks for Automation permission, allow the app that
+                  starts REA in System Settings → Privacy &amp; Security →
+                  Automation, then retry.
+                </p>
+                <p>
+                  <a
+                    href="https://github.com/morluto/rea/blob/main/docs/installation.md#hopper"
+                    >Hopper setup and troubleshooting</a
+                  >
+                </p>
+              </details>
+              <details class="evidence-details" id="ghidra">
+                <summary>
+                  Ghidra · install the free analysis tool and Java
+                </summary>
+                <ol>
+                  <li>
+                    Install a 64-bit JDK 21 or newer, including the Java
+                    compiler. Choose the package matching your computer's
+                    architecture.
+                  </li>
+                  <li>
+                    Download Ghidra 12.1.4 from the release's Assets list and
+                    extract the <code>ghidra_…_PUBLIC_….zip</code> archive.
+                    Choose the release archive, not “Source code”.
+                  </li>
+                  <li>
+                    Find the extracted folder containing
+                    <code>ghidraRun</code> or <code>ghidraRun.bat</code>. Use
+                    that folder for <code>GHIDRA_INSTALL_DIR</code>.
+                  </li>
+                </ol>
+                <p>
+                  <a href="https://adoptium.net/temurin/releases/?version=21"
+                    >Download a JDK</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/NationalSecurityAgency/ghidra/releases/tag/Ghidra_12.1.4_build"
+                    >Download Ghidra 12.1.4</a
+                  >
+                </p>
+                <p>
+                  Check Java. The first command prints <code>java.home</code>;
+                  use that folder for <code>JAVA_HOME</code>. The second
+                  confirms the compiler is installed:
+                </p>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span translate="no">Terminal</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="jdk-check"
+                      aria-label="Copy command"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="jdk-check">java -XshowSettings:properties -version
+javac -version</code></pre>
+                </div>
+                <details class="evidence-details">
+                  <summary>Connect Ghidra on Windows</summary>
+                  <p>
+                    Windows x64 has experimental, read-only support for native
+                    x86 and x64 PE applications and DLLs on fixed local NTFS
+                    drives. Use an existing Ghidra 12.1.x installation and a
+                    64-bit JDK 21 or newer:
+                  </p>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span translate="no">Windows PowerShell</span
+                      ><button
+                        class="copy-button"
+                        type="button"
+                        data-copy="ghidra-windows-connect"
+                        aria-label="Copy command"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <pre><code id="ghidra-windows-connect">$env:GHIDRA_INSTALL_DIR = "C:/tools/ghidra_12.1.4_PUBLIC"
+$env:JAVA_HOME = "C:/tools/jdk-21"
+npx -y rea-agents@latest doctor --provider ghidra --json
+npx rea-agents@latest setup</code></pre>
+                  </div>
+                  <p>
+                    Replace the two paths with your installations, then review
+                    setup's plan.
+                  </p>
+                </details>
+                <details class="evidence-details">
+                  <summary>Connect your Ghidra installation</summary>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span translate="no">macOS / Linux</span
+                      ><button
+                        class="copy-button"
+                        type="button"
+                        data-copy="ghidra-connect"
+                        aria-label="Copy command"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <pre><code id="ghidra-connect">export GHIDRA_INSTALL_DIR="/absolute/path/to/ghidra_12.1.4_PUBLIC"
+export JAVA_HOME="/absolute/path/to/jdk-21"</code></pre>
+                  </div>
+                  <p>
+                    Replace both paths with your existing installations. For a
+                    fresh macOS or Linux arm64 installation, build the native
+                    decompiler for your computer before continuing.
+                  </p>
+                  <details class="evidence-details" id="ghidra-native-build">
+                    <summary>Build Ghidra's native decompiler</summary>
+                    <p>
+                      On macOS, the build needs Xcode Command Line Tools, make
+                      and bison. Use the guide for your computer:
+                    </p>
+                    <ul>
+                      <li>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/installation.md#missing-macos-native-decompiler"
+                          >macOS · Intel</a
+                        >
+                      </li>
+                      <li>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/installation.md#macos-arm64-native-decompiler"
+                          >macOS · Apple Silicon</a
+                        >
+                      </li>
+                      <li>
+                        <a
+                          href="https://github.com/NationalSecurityAgency/ghidra/blob/Ghidra_12.1.4_build/GhidraDocs/GettingStarted.md#building-native-components"
+                          >Linux arm64 · native build instructions</a
+                        >
+                      </li>
+                    </ul>
+                  </details>
+                  <p>Then check Ghidra and save its paths for your client:</p>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span translate="no">macOS / Linux</span>
+                      <button
+                        class="copy-button"
+                        type="button"
+                        data-copy="ghidra-unix-setup"
+                        aria-label="Copy command"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <pre><code id="ghidra-unix-setup">npx -y rea-agents@latest doctor --provider ghidra --json
+npx rea-agents@latest setup</code></pre>
+                  </div>
+                </details>
+                <p>
+                  Keep these commands in the same terminal session. Rerun setup
+                  after setting the paths, approve the updated client
+                  configuration, then restart your agent.
+                </p>
+                <p>
+                  <a
+                    href="https://github.com/morluto/rea/blob/main/docs/installation.md#ghidra"
+                    >Ghidra setup and architecture requirements</a
+                  >
+                  ·
+                  <a
+                    href="https://github.com/morluto/rea/blob/main/docs/windows-ghidra-p0.md"
+                    >Windows Ghidra guide</a
+                  >
+                </p>
+              </details>
+              <details class="evidence-details" id="ida">
+                <summary>IDA · connect an existing installation</summary>
+                <p>
+                  Use the IDA provider guide to prepare an upstream MCP
+                  registration. Choose an attached GUI with the original binary
+                  open, or a headless supervisor that opens a private database.
+                </p>
+                <p>
+                  Verified profiles include the Windows legacy GUI and headless
+                  supervisor, plus a macOS arm64 headless supervisor with IDA
+                  Professional 9.1. The optional native GUI bridge has its own
+                  version and platform requirements.
+                </p>
+                <p>
+                  The macOS headless profile and native GUI bridge require a
+                  <a
+                    href="https://github.com/morluto/rea/blob/main/CONTRIBUTING.md#development-setup"
+                    >REA source build</a
+                  >
+                  or a release containing those changes. npm
+                  <code>6.4.0</code> does not include them.
+                </p>
+                <p>
+                  From the built checkout, run
+                  <code>node scripts/rea.mjs doctor --provider ida --json</code>
+                  and <code>node scripts/rea.mjs setup</code> instead of the
+                  <code>npx</code> commands below.
+                </p>
+                <details class="evidence-details">
+                  <summary>Prepare the IDA registration file</summary>
+                  <p>
+                    Install and configure the upstream server using the IDA
+                    guide below. Then save its working registration as
+                    <code>ida-mcp.json</code> in a text editor. On Windows,
+                    choose “All files” when saving in Notepad so it doesn't add
+                    <code>.txt</code>.
+                  </p>
+                  <p>
+                    For a headless supervisor providing
+                    <code>idb_open</code>, <code>idb_list</code> and
+                    <code>idb_close</code>, the file can look like this:
+                  </p>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span translate="no">ida-mcp.json</span>
+                      <button
+                        class="copy-button"
+                        type="button"
+                        data-copy="ida-headless-registration"
+                        aria-label="Copy command"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                    <pre><code id="ida-headless-registration">{
+  "command": "idalib-mcp",
+  "args": ["--stdio", "--max-workers", "1"],
+  "mode": "headless"
+}</code></pre>
+                  </div>
+                  <p>
+                    For an attached legacy 1.4.0 GUI server, copy its working
+                    <code>command</code>, <code>args</code> and optional
+                    <code>env</code> into the file. Open the original binary in
+                    IDA and start its upstream plugin before asking REA to
+                    inspect it.
+                  </p>
+                </details>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span translate="no">Windows PowerShell</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="ida-connect"
+                      aria-label="Copy command"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="ida-connect">$env:REA_IDA_MCP_CONFIG = "C:/analysis/ida-mcp.json"
+$env:REA_ANALYSIS_PROVIDER = "ida"
+npx -y rea-agents@latest doctor --provider ida --json
+npx rea-agents@latest setup</code></pre>
+                </div>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span translate="no">macOS / Linux</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="ida-connect-unix"
+                      aria-label="Copy command"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="ida-connect-unix">export REA_IDA_MCP_CONFIG="/absolute/path/to/ida-mcp.json"
+export REA_ANALYSIS_PROVIDER="ida"
+npx -y rea-agents@latest doctor --provider ida --json
+npx rea-agents@latest setup</code></pre>
+                </div>
+                <p>
+                  Use the JSON registration file you prepared with the provider
+                  guide, then rerun setup and restart your agent.
+                </p>
+                <p>
+                  <a
+                    href="https://github.com/morluto/rea/blob/main/docs/ida-provider.md"
+                    >IDA profiles, registration examples and verified
+                    platforms</a
+                  >
+                </p>
+              </details>
+              <p>
+                Once connected, give your agent the original executable's full
+                path and name your provider:
+              </p>
+              <blockquote class="prompt">
+                <p>
+                  Use REA with my configured provider to inspect
+                  <code>/absolute/path/to/program</code>. List its functions and
+                  strings, then explain the part that handles user input with
+                  references to the code.
+                </p>
+              </blockquote>
+              <p>
+                <a href="../guides/native/">Follow a native analysis example</a>
+              </p>
+            </details>
+            <details class="evidence-details" id="other-targets">
+              <summary>
+                Websites, Android, .NET, firmware and other targets
+              </summary>
+              <p>
+                Open the guide for the target you have. Each guide gives the
+                additional tools, supported hosts and first command.
+              </p>
+              <div class="evidence-table-wrap">
+                <table class="evidence-table">
+                  <thead>
+                    <tr>
+                      <th>Target</th>
+                      <th>Tools to prepare</th>
+                      <th>Guide</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>JavaScript / Electron</td>
+                      <td translate="no">Node.js + npm</td>
+                      <td><a href="../guides/javascript/">Open guide</a></td>
+                    </tr>
+                    <tr>
+                      <td>Website</td>
+                      <td translate="no">Chrome / Chromium / Edge</td>
+                      <td><a href="../guides/browser/">Open guide</a></td>
+                    </tr>
+                    <tr>
+                      <td>.NET / Flutter / packages</td>
+                      <td translate="no">Node.js + npm</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/managed-code-analysis.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Android APK</td>
+                      <td translate="no">JADX + JDK 17+</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/android-analysis.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Android device</td>
+                      <td translate="no">adb</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/adb-device-analysis.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Android resources</td>
+                      <td translate="no">Apktool + Java</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/apktool-resource-analysis.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>JEB project</td>
+                      <td translate="no">JEB + MCP</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/jeb-analysis.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Firmware</td>
+                      <td translate="no">Binwalk / Unblob · Linux</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/firmware-analysis.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>WASM</td>
+                      <td translate="no">WABT</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/wasm-artifacts.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>SQLite database</td>
+                      <td translate="no">Node.js 24.15+ / 26+</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/sqlite-databases.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>EVM bytecode</td>
+                      <td translate="no">Node.js · Linux x64</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/evm-bytecode.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>ELF / Linux crash</td>
+                      <td translate="no">pwntools / GDB / pwndbg</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/recorded-crashes.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>HAR / SAZ / mitmproxy</td>
+                      <td translate="no">Node.js / mitmdump</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/web-network-captures.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>PCAP / PCAPNG</td>
+                      <td translate="no">TShark / capinfos · Linux</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/packet-captures.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Logic signals</td>
+                      <td translate="no">sigrok-cli · Linux</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/signal-recordings.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                    <tr>
+                      <td>Process behavior</td>
+                      <td translate="no">PTY · Linux / macOS</td>
+                      <td>
+                        <a
+                          href="https://github.com/morluto/rea/blob/main/docs/process-capture.md"
+                          >Open guide</a
+                        >
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p>
+                <a
+                  href="https://github.com/morluto/rea/blob/main/docs/flutter-analysis.md"
+                  >Flutter guide</a
+                >
+                ·
+                <a
+                  href="https://github.com/morluto/rea/blob/main/docs/javascript-artifact-reconstruction.md"
+                  >Packages and resources</a
+                >
+                ·
+                <a
+                  href="https://github.com/morluto/rea/blob/main/docs/evm-bytecode.md"
+                  >EVM bytecode</a
+                >
+                · <a href="../guides/">All investigation guides</a>
+              </p>
+            </details>
+          </section>
+          <section class="article-section" id="terminal">
+            <h2>Use REA from a terminal</h2>
+            <details class="evidence-details">
+              <summary>CLI commands, global installation and curl</summary>
+              <p>
+                Analyze a JavaScript or Electron application folder or ASAR
+                archive without running the app:
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span>Static application analysis</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="terminal-analysis"
+                    aria-label="Copy JavaScript analysis command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="terminal-analysis">npx -y rea-agents@latest analyze-javascript-application "/absolute/path/to/app" --json</code></pre>
+              </div>
+              <p>
+                Replace the path with your extracted app directory or
+                <code>.asar</code> file. On Windows, a path such as
+                <code>"D:/apps/example"</code> works here.
+              </p>
+              <details class="evidence-details">
+                <summary>Where do I find an app's .asar file?</summary>
+                <p>
+                  Electron apps usually keep it in a
+                  <code>resources</code> folder:
+                </p>
+                <ul>
+                  <li>
+                    <strong>Windows:</strong>
+                    <code
+                      >C:\Users\&lt;you&gt;\AppData\Local\Programs\&lt;App&gt;\resources\app.asar</code
+                    >
+                  </li>
+                  <li>
+                    <strong>macOS:</strong>
+                    <code
+                      >/Applications/&lt;App&gt;.app/Contents/Resources/app.asar</code
+                    >
+                    (right-click the app and choose
+                    <em>Show Package Contents</em>)
+                  </li>
+                  <li>
+                    <strong>Linux:</strong> often
+                    <code>/opt/&lt;App&gt;/resources/app.asar</code>
+                  </li>
+                </ul>
+                <p>
+                  Some apps install elsewhere. Search the app's folder for
+                  <code>app.asar</code>.
+                </p>
+              </details>
+              <p>
+                The result identifies the app, shows connections between modules
+                and gives their source locations. Connections REA cannot resolve
+                are marked in the result.
+              </p>
+              <p>
+                If you'd like a permanent <code>rea</code> command in your
+                shell:
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span>Install the CLI</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="install-cli"
+                    aria-label="Copy CLI installation command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="install-cli">npm install --global rea-agents</code></pre>
+              </div>
+              <p>
+                <a href="../guides/javascript/"
+                  >Continue with the JavaScript application guide</a
+                >
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Terminal</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="native-function"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="native-function">npx -y rea-agents@latest function "/absolute/path/to/program" main --provider ghidra --json</code></pre>
+              </div>
+              <p>
+                Replace <code>main</code> with a function name or address from
+                the target's function list. Ghidra must be configured first.
+              </p>
+              <p id="curl-installation">
+                On macOS or Linux, you can also use the curl installer after
+                preparing Node.js:
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">macOS / Linux</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="install-curl"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="install-curl">curl -fsSL https://raw.githubusercontent.com/morluto/rea/main/install.sh | bash</code></pre>
+              </div>
+              <p>
+                Follow the setup prompts to connect your agent. If they don't
+                appear, run <code>rea setup</code>.
+              </p>
+              <p id="curl-setup-path">
+                If your shell can't find <code>rea</code>, use the executable
+                path printed by the installer. On Linux, the default setup
+                command is <code>"$HOME/.local/bin/rea" setup</code>.
+              </p>
+            </details>
+          </section>
+
+          <section class="article-section" id="help">
+            <h2>Getting help</h2>
+            <details class="evidence-details">
+              <summary>If your agent doesn't see REA</summary>
+              <p>
+                Restart or reconnect the client after setup. Check its REA
+                connection with <code>doctor</code>; for Codex:
+              </p>
+              <p>
+                Use the client check in step 3 with your setup ID. In editor
+                clients, enable REA in MCP settings and allow its tools in the
+                agent chat.
+              </p>
+            </details>
+            <details class="evidence-details">
+              <summary>If a provider needs attention</summary>
+              <p>Check the provider you're using. For Ghidra:</p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span>Check one provider</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="provider-doctor"
+                    aria-label="Copy provider diagnosis command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="provider-doctor">npx -y rea-agents@latest doctor --provider ghidra --json</code></pre>
+              </div>
+              <p>
+                The report gives the failed check and a suggested next step.
+              </p>
+            </details>
+            <details class="evidence-details">
+              <summary>Windows, WSL and paths with spaces</summary>
+              <p>
+                Use Windows PowerShell for Windows clients and analysis tools.
+                If your agent runs inside WSL, install Node.js and REA inside
+                that Linux environment and use Linux paths there. Headless
+                providers run on the same host as REA.
+              </p>
+              <p>
+                In a terminal, put quotes around a path that contains spaces.
+              </p>
+              <p>Windows setup command:</p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Windows PowerShell</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="windows-setup-command"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="windows-setup-command">npx.cmd rea-agents@latest setup</code></pre>
+              </div>
+            </details>
+            <details class="evidence-details">
+              <summary>Update or remove REA</summary>
+              <p>
+                To refresh your agent connection, run the latest setup command
+                again, review its plan and restart your client.
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Terminal</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="refresh-rea"
+                    aria-label="Copy command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="refresh-rea">npx rea-agents@latest setup</code></pre>
+              </div>
+              <p>
+                If you installed the global CLI, update it with
+                <code>rea update</code>. Use
+                <code>npx rea-agents@latest uninstall</code> to remove REA's
+                client configuration and skill.
+              </p>
+              <p>
+                <a
+                  href="https://github.com/morluto/rea/blob/main/docs/installation.md#diagnose-update-and-remove"
+                  >Update and uninstall details</a
+                >
+              </p>
+            </details>
+            <ul class="reading-list">
+              <li>
+                <a href="../faq/">REA FAQ</a
+                ><span>Quick answers on updates, agents and analysis.</span>
+              </li>
+              <li>
+                <a href="../guides/">Choose an investigation guide</a
+                ><span
+                  >Worked examples for a binary, an Electron app and a
+                  browser.</span
+                >
+              </li>
+              <li>
+                <a href="https://github.com/morluto/rea/issues">GitHub issues</a
+                ><span>Report a problem with the command and diagnostics.</span>
+              </li>
+              <li>
+                <a href="https://discord.gg/GkcryMnJDM">REA community</a
+                ><span>Questions, investigations and work in progress.</span>
+              </li>
+            </ul>
+          </section>
+        </article>
+      </div>
+    </main>
+    <!-- website:footer:start -->
+    <!-- prettier-ignore -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>REA · Reverse Engineer Anything</p>
+        <div class="footer-links">
+          <a href="../faq/">FAQ</a
+          ><a href="../contributors/">Contributors</a
+          ><a href="https://github.com/morluto/rea">Source</a
+          ><a href="https://github.com/morluto/rea/blob/main/LICENSE">MIT license</a
+          ><a href="https://discord.gg/GkcryMnJDM">Join the community</a
+          ><a href="https://x.com/reatools">Follow us on X</a>
+        </div>
+      </div>
+    </footer>
+    <p class="sr-only" id="copy-status" role="status" aria-live="polite"></p>
+    <a class="back-to-top" href="#top" aria-label="Back to top">
+      <span aria-hidden="true">↑</span> Top
+    </a>
+    <!-- website:footer:end -->
+  </body>
+</html>

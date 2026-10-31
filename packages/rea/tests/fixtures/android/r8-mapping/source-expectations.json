@@ -1,0 +1,54 @@
+{
+  "basis": "Handwritten from the adjacent Java source; original DEX descriptors before minification. Residual names come only from the same R8 invocation's mapping and independently read DEX.",
+  "classes": [
+    {
+      "original_name": "DefaultPackage",
+      "fields": { "original": "Lfixture/mapping/Original;" },
+      "methods": {
+        "<init>": ["()V"],
+        "run": ["(I)I", "(Ljava/lang/String;)Ljava/lang/String;"],
+        "link": [
+          "(Lfixture/mapping/Original$Nested;)Lfixture/mapping/Original$Nested;"
+        ]
+      }
+    },
+    {
+      "original_name": "fixture.mapping.Original",
+      "fields": {
+        "count": "I",
+        "title": "Ljava/lang/String;",
+        "samples": "[I",
+        "nested": "Lfixture/mapping/Original$Nested;"
+      },
+      "methods": {
+        "<init>": ["()V"],
+        "choose": [
+          "(I)I",
+          "(Ljava/lang/String;)Ljava/lang/String;",
+          "(Lfixture/mapping/Original$Nested;)Lfixture/mapping/Original$Nested;",
+          "([Lfixture/mapping/Original$Nested;)[Lfixture/mapping/Original$Nested;"
+        ],
+        "計算": ["(J)J"]
+      }
+    },
+    {
+      "original_name": "fixture.mapping.Original$Nested",
+      "fields": { "owner": "Lfixture/mapping/Original;", "payload": "[B" },
+      "methods": {
+        "<init>": ["(Lfixture/mapping/Original;)V"],
+        "echo": ["(Lfixture/mapping/Original;)Lfixture/mapping/Original;"]
+      }
+    },
+    {
+      "original_name": "fixture.mapping.原名",
+      "fields": { "数量": "I" },
+      "methods": {
+        "<init>": ["()V"],
+        "方法": [
+          "(Ljava/lang/String;)Ljava/lang/String;",
+          "(Lfixture/mapping/Original$Nested;)Lfixture/mapping/Original$Nested;"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DebugType>none</DebugType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.NET.HostModel">
+      <HintPath>$(MSBuildSDKsPath)/../Microsoft.NET.HostModel.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

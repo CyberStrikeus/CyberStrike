@@ -1,0 +1,87 @@
+[
+  {
+    "file": "licenses/ghidra-12.1.4-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/NationalSecurityAgency/ghidra/Ghidra_12.1.4_build/LICENSE",
+    "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+  },
+  {
+    "file": "licenses/ghidra-12.1.4-NOTICE.txt",
+    "source": "https://raw.githubusercontent.com/NationalSecurityAgency/ghidra/Ghidra_12.1.4_build/NOTICE",
+    "sha256": "ad4b2bb6e75e908251226180081b5afa01c7161d7710e08b603d0c340a08a23f"
+  },
+  {
+    "file": "licenses/ghidra-12.1.4-DISCLAIMER.txt",
+    "source": "https://raw.githubusercontent.com/NationalSecurityAgency/ghidra/Ghidra_12.1.4_build/DISCLAIMER.md",
+    "sha256": "324f4544abe620362f7bc66fbd8ec3c90e62e1aeac249fb850aef67e71c8b24d"
+  },
+  {
+    "file": "licenses/dotnet-runtime-MIT.txt",
+    "source": "https://raw.githubusercontent.com/dotnet/runtime/a3b2d40328be0be3f8dd43f0e5cc925b8827b044/LICENSE.TXT",
+    "sha256": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+  },
+  {
+    "file": "licenses/cfworker-MIT.txt",
+    "source": "https://raw.githubusercontent.com/cfworker/cfworker/5409fdc2bd144f68e8b28c61c71fcb16600000a6/LICENSE.md",
+    "sha256": "376944252ab78ca6b41aee44ddea8894927ee67891e77e61eb9d59af63e35094"
+  },
+  {
+    "file": "licenses/xterm-MIT.txt",
+    "source": "https://raw.githubusercontent.com/xtermjs/xterm.js/f447274f430fd22513f6adbf9862d19524471c04/LICENSE",
+    "sha256": "b569f629d00f2626a8100df2a1798210535621e42164dfd426a6fe5aac7b0ccd"
+  },
+  {
+    "file": "licenses/Apache-2.0.txt",
+    "source": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+  },
+  {
+    "file": "licenses/MIT-template.txt",
+    "source": "https://raw.githubusercontent.com/spdx/license-list-data/main/text/MIT.txt",
+    "sha256": "b05785f9f18e6716bab63424b11454513b9943a222595b70411009202fc592b5"
+  },
+  {
+    "file": "licenses/MinGW-w64-runtime.txt",
+    "source": "https://raw.githubusercontent.com/mingw-w64/mingw-w64/v12.0.0/COPYING.MinGW-w64-runtime/COPYING.MinGW-w64-runtime.txt",
+    "sha256": "e9b2dc02451ea29092a1f25fa0f3c07207ed421f1807dffb0c4e6dce69dee7bd"
+  },
+  {
+    "file": "licenses/GPL-3.0.txt",
+    "source": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-14.2.0/COPYING3",
+    "sha256": "8ceb4b9ee5adedde47b31e975c1d90c73ad27b6b165a1dcd80c7c545eb65b903"
+  },
+  {
+    "file": "licenses/GCC-Runtime-Library-Exception-3.1.txt",
+    "source": "https://raw.githubusercontent.com/gcc-mirror/gcc/releases/gcc-14.2.0/COPYING.RUNTIME",
+    "sha256": "9d6b43ce4d8de0c878bf16b54d8e7a10d9bd42b75178153e3af6a815bdc90f74"
+  },
+  {
+    "file": "licenses/Node-22.19.0-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/nodejs/node/v22.19.0/LICENSE",
+    "sha256": "e991d81497a85bb24fc6bffae0a3637a6accd6c6bc5ce1f2c5698bd555cf9d49"
+  },
+  {
+    "file": "licenses/frida-17.23.2-COPYING.txt",
+    "source": "https://raw.githubusercontent.com/frida/frida/9adf8ed33ab6f1122b17399ee96dcbe101b941c9/COPYING",
+    "sha256": "5ea1544b51a28bc823b03159190d4108f9fb4f4ef912389f5137c6d295e175b2"
+  },
+  {
+    "file": "licenses/LGPL-2.0.txt",
+    "source": "https://www.gnu.org/licenses/old-licenses/lgpl-2.0.txt",
+    "sha256": "cc535c21133c895b56b374c8a1dc1eb948d99003ed2b47372069456b62f42b24"
+  },
+  {
+    "file": "licenses/protobuf-es-v2.16.0-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/bufbuild/protobuf-es/b3b232f7f466eda27c66e8f63c82f930578b6cc6/LICENSE",
+    "sha256": "c04b4216f1cd4c5a4f7fb2f2a1b0ae70d847e9e0cac7c9dee9bf8cc03177c449"
+  },
+  {
+    "file": "licenses/pefile-2024.8.26-LICENSE.txt",
+    "source": "https://raw.githubusercontent.com/erocarrera/pefile/4b3b1e2e568a88d4f1897d694d684f23d9e270c4/LICENSE",
+    "sha256": "b44409c067c6da52bfb54bb6624fb11a7b52157c3a13ae1400232f8196e86ad3"
+  },
+  {
+    "file": "licenses/microsoft-uf2-MIT.txt",
+    "source": "https://raw.githubusercontent.com/microsoft/uf2/cf3bd7f9c274b949528f8cd6a19eef2502a687d2/LICENSE.txt",
+    "sha256": "c581accf1e5449482b70ac5fcdfb171599317ccff559cf0794d771671486f800"
+  }
+]

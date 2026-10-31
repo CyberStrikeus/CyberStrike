@@ -1,0 +1,10 @@
+{
+  "namespace_prefixes": ["REA_", "HOPPER_"],
+  "additional_keys": [
+    "GHIDRA_INSTALL_DIR",
+    "JAVA_HOME",
+    "JAVA_TOOL_OPTIONS",
+    "JDK_JAVA_OPTIONS",
+    "_JAVA_OPTIONS"
+  ]
+}

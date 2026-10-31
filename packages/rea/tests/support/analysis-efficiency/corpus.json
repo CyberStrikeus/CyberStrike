@@ -1,0 +1,470 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "id": "sharex.dll",
+      "file": "ShareX.dll",
+      "bytes": 2162688,
+      "sha256": "191a191be964e434daf0f9d76d1e0d8ddce90d7e248cba2a6b5ac9577f288d53",
+      "provenance": {
+        "project": "ShareX",
+        "version": "19.0.2",
+        "upstreamFile": "ShareX-19.0.2-portable.zip",
+        "url": "https://github.com/ShareX/ShareX/releases/download/v19.0.2/ShareX-19.0.2-portable.zip",
+        "transport_sha256": "967b5d838df5ce25fb5fd7cbd16f1bd797427e2df16907b022b74a4bc0fb9d54",
+        "transport_bytes": 168796487,
+        "derivation": "selected regular ZIP member ShareX.dll"
+      }
+    },
+    {
+      "id": "sqlite.wasm",
+      "file": "sqlite3.wasm",
+      "bytes": 868907,
+      "sha256": "2ee8f3dab694532afc8840e07703127287662d08b74e6ff50491ce63f00d5752",
+      "provenance": {
+        "project": "SQLite Wasm",
+        "version": "3.53.4-build1",
+        "upstreamFile": "sqlite-wasm-3.53.4-build1.tgz",
+        "url": "https://registry.npmjs.org/@sqlite.org/sqlite-wasm/-/sqlite-wasm-3.53.4-build1.tgz",
+        "transport_sha256": "24f46db4ce5248fa8f8f24b67e81909ab1a9c152f42a4796a32c6d385a6fb62b",
+        "transport_bytes": 977616,
+        "transport_integrity": "sha512-U8pvL0patYHMgieD8JxxYJTlh9m1LUX8+BDYb7MiKQzBI89f2qbdmdcG/PvnPaLm9wsBbv4VlVG453ixnxBOnA==",
+        "derivation": "selected regular tar member package/dist/sqlite3.wasm"
+      }
+    },
+    {
+      "id": "obsidian.asar",
+      "file": "obsidian-1.14.4.asar",
+      "bytes": 27477966,
+      "sha256": "146ef8470d8cbb4a6db209bdc19bf2bad13350444186c0fd93c31087b142b92f",
+      "provenance": {
+        "project": "Obsidian",
+        "version": "1.14.4",
+        "upstreamFile": "obsidian-1.14.4.asar",
+        "transport": {
+          "file": "obsidian-1.14.4.asar.gz",
+          "url": "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.14.4/obsidian-1.14.4.asar.gz",
+          "sha256": "d1ed428c363968774f0f3906e67d8a53a058ece0b6cdd924b07865977b2ada21",
+          "bytes": 9200670
+        },
+        "derivation": "gzip decompression"
+      }
+    },
+    {
+      "id": "newpipe.apk",
+      "file": "NewPipe_v0.29.1.apk",
+      "bytes": 11507122,
+      "sha256": "18447bfb1e06d113edc88df93f471827280de06f6f3d4dc42f56f28b9c1bab79",
+      "provenance": {
+        "project": "NewPipe",
+        "version": "0.29.1",
+        "upstreamFile": "NewPipe_v0.29.1.apk",
+        "url": "https://github.com/TeamNewPipe/NewPipe/releases/download/v0.29.1/NewPipe_v0.29.1.apk"
+      }
+    },
+    {
+      "id": "jq",
+      "file": "jq-linux-amd64",
+      "bytes": 2267912,
+      "sha256": "b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f",
+      "provenance": {
+        "project": "jq",
+        "version": "1.8.2",
+        "upstreamFile": "jq-linux-amd64",
+        "url": "https://github.com/jqlang/jq/releases/download/jq-1.8.2/jq-linux-amd64"
+      }
+    },
+    {
+      "id": "openwrt.bin",
+      "file": "openwrt-25.12.5-ath79-generic-tplink_archer-c7-v5-squashfs-sysupgrade.bin",
+      "bytes": 7405862,
+      "sha256": "f15b16b36df7fce8a5cf1302320fdb428c3bb6fbc2949a4858afa257f4f364a2",
+      "provenance": {
+        "project": "OpenWrt Archer C7 v5",
+        "version": "25.12.5",
+        "upstreamFile": "openwrt-25.12.5-ath79-generic-tplink_archer-c7-v5-squashfs-sysupgrade.bin",
+        "url": "https://downloads.openwrt.org/releases/25.12.5/targets/ath79/generic/openwrt-25.12.5-ath79-generic-tplink_archer-c7-v5-squashfs-sysupgrade.bin"
+      }
+    },
+    {
+      "id": "weth.hex",
+      "file": "weth-published.hex",
+      "bytes": 6251,
+      "sha256": "eb67ea4da28b88358df0385358bad3a58b131317835b45b3ede85c61851335e4",
+      "provenance": {
+        "project": "Published historical WETH runtime code example",
+        "url": "https://ethereum.org/developers/docs/apis/json-rpc/",
+        "contract_address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "published_block": "0x5daf3b",
+        "transport_sha256": "98c131a1bd99a0c2051dd6d6716fd306c36cdd45995d5ffd559bd9c690569c0f",
+        "derivation": "Parse the named eth_getCode JSON result from the official published example and preserve the hex carrier with one trailing LF",
+        "authority": "published historical RPC example; live retrieval returned HTTP 403; deployment authenticity remains unverified"
+      }
+    },
+    {
+      "id": "sharex.helpers.dll",
+      "file": "ShareX.HelpersLib.dll",
+      "bytes": 1076224,
+      "sha256": "e91bd1ec904e2bb8a1add4bb6187443b878bf33d24fe9e27f0b799bfee9de33d",
+      "provenance": {
+        "project": "ShareX HelpersLib",
+        "version": "19.0.2",
+        "upstreamFile": "ShareX-19.0.2-portable.zip",
+        "url": "https://github.com/ShareX/ShareX/releases/download/v19.0.2/ShareX-19.0.2-portable.zip",
+        "transport_sha256": "967b5d838df5ce25fb5fd7cbd16f1bd797427e2df16907b022b74a4bc0fb9d54",
+        "transport_bytes": 168796487,
+        "derivation": "selected regular ZIP member ShareX.HelpersLib.dll; no target execution"
+      }
+    },
+    {
+      "id": "sharex.exe",
+      "file": "ShareX.exe",
+      "bytes": 198656,
+      "sha256": "46af1ccc514b395cb703633abb5a505a771942b7db9b1915f31aeea541b3685f",
+      "provenance": {
+        "project": "ShareX native executable component",
+        "version": "19.0.2",
+        "upstreamFile": "ShareX-19.0.2-portable.zip",
+        "url": "https://github.com/ShareX/ShareX/releases/download/v19.0.2/ShareX-19.0.2-portable.zip",
+        "transport_sha256": "967b5d838df5ce25fb5fd7cbd16f1bd797427e2df16907b022b74a4bc0fb9d54",
+        "transport_bytes": 168796487,
+        "derivation": "selected regular ZIP member ShareX.exe; PE32+ x86-64 with no CLR directory; no target execution"
+      }
+    },
+    {
+      "id": "freedos.edlin.exe",
+      "file": "EDLIN.EXE",
+      "bytes": 31492,
+      "sha256": "96b2b6d543e2d8bdc83e313756444e103339eb5ee2c1229abe3607539b31ad6e",
+      "provenance": {
+        "project": "FreeDOS EDLIN",
+        "version": "2.24",
+        "upstreamFile": "edlin.zip",
+        "url": "https://www.ibiblio.org/pub/micro/pc-stuff/freedos/files/repositories/1.4/base/edlin.zip",
+        "transport_sha256": "9db8a0b50bc4be5c2358cd0fa1fb6fc77342c6d5175a6b1084547c370e428f8a",
+        "transport_bytes": 377009,
+        "derivation": "selected regular ZIP member BIN/EDLIN.EXE; original UPX-compressed DOS MZ; APPINFO/EDLIN.LSM reports version; no execution or unpacking"
+      }
+    },
+    {
+      "id": "vscode.tree-sitter.wasm",
+      "file": "tree-sitter.wasm",
+      "bytes": 206218,
+      "sha256": "3a31af706ffdf4a7116b064cdd4988df6791823298615009fc5b6bccbd42909b",
+      "provenance": {
+        "project": "VS Code Tree-sitter published WASM package",
+        "version": "0.3.1",
+        "project_url": "https://github.com/microsoft/vscode-tree-sitter-wasm",
+        "upstreamFile": "tree-sitter-wasm-0.3.1.tgz",
+        "url": "https://registry.npmjs.org/@vscode/tree-sitter-wasm/-/tree-sitter-wasm-0.3.1.tgz",
+        "transport_sha256": "985684b2cfbe5e8f90499a9f36e37519887c7d4e2697d0457d0f1e923ce5184c",
+        "transport_bytes": 2053205,
+        "transport_integrity": "sha512-RJFoomET6FajjG511fmQxeBQfU6M24a0aFZPqpid+ttIxanWf1VGytBG0UmsGjt07qmIPJS8U31D+aecuCucsQ==",
+        "derivation": "selected regular tar member package/wasm/tree-sitter.wasm; no target execution"
+      }
+    },
+    {
+      "id": "vscode.tree-sitter-css.wasm",
+      "file": "tree-sitter-css.wasm",
+      "bytes": 128668,
+      "sha256": "8a23977fe271357cce6f254ef88c9bebf3854602d8046605aef6a45c02135c59",
+      "provenance": {
+        "project": "VS Code Tree-sitter published WASM package",
+        "version": "0.3.1",
+        "project_url": "https://github.com/microsoft/vscode-tree-sitter-wasm",
+        "upstreamFile": "tree-sitter-wasm-0.3.1.tgz",
+        "url": "https://registry.npmjs.org/@vscode/tree-sitter-wasm/-/tree-sitter-wasm-0.3.1.tgz",
+        "transport_sha256": "985684b2cfbe5e8f90499a9f36e37519887c7d4e2697d0457d0f1e923ce5184c",
+        "transport_bytes": 2053205,
+        "transport_integrity": "sha512-RJFoomET6FajjG511fmQxeBQfU6M24a0aFZPqpid+ttIxanWf1VGytBG0UmsGjt07qmIPJS8U31D+aecuCucsQ==",
+        "derivation": "selected regular tar member package/wasm/tree-sitter-css.wasm; no target execution"
+      }
+    },
+    {
+      "id": "uniswap-v3.factory.hex",
+      "file": "UniswapV3Factory.runtime.hex",
+      "bytes": 49073,
+      "sha256": "fb152cc9b597ef4e54e9d72e81dd72c202050aae5e98c63df139864274504276",
+      "decoded_bytes": 24535,
+      "decoded_sha256": "95c34fe1e6b26c79ae42800041a3e2bdb6a978d19297cd74001ac6b316a48d8d",
+      "provenance": {
+        "project": "Uniswap v3-core UniswapV3Factory",
+        "version": "1.0.1",
+        "url": "https://registry.npmjs.org/@uniswap/v3-core/-/v3-core-1.0.1.tgz",
+        "transport_bytes": 86371,
+        "transport_sha256": "141b001e2a376fff867cb24e0713b2834095cb1250c13aae263d9a646446d329",
+        "transport_integrity": "sha512-7pVk4hEm00j9tc71Y9+ssYpO6ytkeI0y7WE9P6UcmNzhxPePwyAxImuhVsTqWK9YFvzgtvzJHi64pBl4jUzKMQ==",
+        "archive_member": "package/artifacts/contracts/UniswapV3Factory.sol/UniswapV3Factory.json",
+        "compiler_artifact_bytes": 104076,
+        "compiler_artifact_sha256": "599479f60ebb056804aff7b2d05bdd0830ddbb1fdfaa0b6c62c02294ca7188b0",
+        "derivation": "Parse the exact published Hardhat deployedBytecode field and preserve its original hex carrier with one trailing LF; preserve template placeholders",
+        "authority": "Published compiler runtime template, not a live deployed instance; original placeholders/immutables preserved; no execution or chain lookup",
+        "published_abi_function_count": 7,
+        "deployed_link_references": {},
+        "immutable_references": {
+          "recorded": false,
+          "value": null
+        },
+        "immutable_scope": "Published Hardhat artifact does not record an immutable-reference map; absence is unknown, not proof of no immutables. Runtime template bytes remain exact."
+      }
+    },
+    {
+      "id": "uniswap-v3.pool.hex",
+      "file": "UniswapV3Pool.runtime.hex",
+      "bytes": 44287,
+      "sha256": "84d90218eb125074383287877cdc564eca3765241e3bf6f6afdd64a922fbed2b",
+      "decoded_bytes": 22142,
+      "decoded_sha256": "3ef71385c2a22b945bead7904f24b25db877de9db51d1401f2f9daea07ea5c0c",
+      "provenance": {
+        "project": "Uniswap v3-core UniswapV3Pool",
+        "version": "1.0.1",
+        "url": "https://registry.npmjs.org/@uniswap/v3-core/-/v3-core-1.0.1.tgz",
+        "transport_bytes": 86371,
+        "transport_sha256": "141b001e2a376fff867cb24e0713b2834095cb1250c13aae263d9a646446d329",
+        "transport_integrity": "sha512-7pVk4hEm00j9tc71Y9+ssYpO6ytkeI0y7WE9P6UcmNzhxPePwyAxImuhVsTqWK9YFvzgtvzJHi64pBl4jUzKMQ==",
+        "archive_member": "package/artifacts/contracts/UniswapV3Pool.sol/UniswapV3Pool.json",
+        "compiler_artifact_bytes": 111557,
+        "compiler_artifact_sha256": "204fb2fa7ad1a639b1df5601f035f9924b064b721b97adf60c7d5d4712643e34",
+        "derivation": "Parse the exact published Hardhat deployedBytecode field and preserve its original hex carrier with one trailing LF; preserve template placeholders",
+        "authority": "Published compiler runtime template, not a live deployed instance; original placeholders/immutables preserved; no execution or chain lookup",
+        "published_abi_function_count": 26,
+        "deployed_link_references": {},
+        "immutable_references": {
+          "recorded": false,
+          "value": null
+        },
+        "immutable_scope": "Published Hardhat artifact does not record an immutable-reference map; absence is unknown, not proof of no immutables. Runtime template bytes remain exact."
+      }
+    },
+    {
+      "id": "localsend-arm64.apk",
+      "file": "LocalSend-1.18.2-android-arm64v8.apk",
+      "bytes": 46558706,
+      "sha256": "82ec3568fba2aa5295b9aae8b76f701d7a4703d86b9f8bad749472038fbaeab3",
+      "provenance": {
+        "project": "LocalSend",
+        "version": "1.18.2",
+        "upstreamFile": "LocalSend-1.18.2-android-arm64v8.apk",
+        "url": "https://github.com/localsend/localsend/releases/download/v1.18.2/LocalSend-1.18.2-android-arm64v8.apk",
+        "transport_sha256": "82ec3568fba2aa5295b9aae8b76f701d7a4703d86b9f8bad749472038fbaeab3",
+        "transport_bytes": 46558706,
+        "derivation": "Official arm64 release APK, compared with GitHub release asset digest; byte-only analysis without execution"
+      }
+    },
+    {
+      "id": "qgis-world-map.gpkg",
+      "file": "qgis-world-map.gpkg",
+      "bytes": 12914688,
+      "sha256": "01d293159d1b77bd9212b5252587853f61aa9e25b2387135f34afaba8d057190",
+      "provenance": {
+        "project": "QGIS bundled world map",
+        "source_commit": "e1223b8e9e71fc50ee995ed556f711c54ccc101b",
+        "git_blob_sha1": "c9ff80228dff0de93c9acdef16a97545ba360244",
+        "url": "https://raw.githubusercontent.com/qgis/QGIS/e1223b8e9e71fc50ee995ed556f711c54ccc101b/resources/data/world_map.gpkg",
+        "derivation": "unmodified official resource file; streaming Git blob and SHA-256 verification"
+      }
+    },
+    {
+      "id": "wireshark-http.cap",
+      "file": "http.cap",
+      "bytes": 25803,
+      "sha256": "25a72bdf10339f2c29916920c8b9501d294923108de8f29b19aba7cc001ab60d",
+      "provenance": {
+        "project": "Wireshark public sample captures",
+        "source_page": "https://wiki.wireshark.org/SampleCaptures",
+        "url": "https://wiki.wireshark.org/uploads/27707187aeb30df68e70c8fb9d614981/http.cap",
+        "resolved_url": "https://gitlab.com/wireshark/wireshark/-/wikis/uploads/27707187aeb30df68e70c8fb9d614981/http.cap",
+        "upstream_expected_digest": null,
+        "derivation": "Unmodified capture published by official Wireshark wiki. Local digest pins downloaded bytes; no independently published upstream digest is claimed."
+      }
+    },
+    {
+      "id": "wireshark-http_redirects.pcapng",
+      "file": "http_redirects.pcapng",
+      "bytes": 47804,
+      "sha256": "ff432a6b71d06cd20720f7763e584014edd0a43c3b55981c682d1b7640207abc",
+      "provenance": {
+        "project": "Wireshark public sample captures",
+        "source_page": "https://wiki.wireshark.org/SampleCaptures",
+        "url": "https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/http_redirects.pcapng",
+        "resolved_url": "https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/http_redirects.pcapng",
+        "upstream_expected_digest": null,
+        "derivation": "Unmodified capture published by official Wireshark wiki. Local digest pins downloaded bytes; no independently published upstream digest is claimed."
+      }
+    },
+    {
+      "id": "wireshark-pgsql-jdbc.pcap",
+      "file": "pgsql-jdbc.pcap",
+      "bytes": 4906316,
+      "sha256": "6e68b8b792a0f4336092f98856abc7de8c54b55a29112854d28d676f9093c16b",
+      "provenance": {
+        "project": "Wireshark public sample captures",
+        "source_page": "https://wiki.wireshark.org/SampleCaptures",
+        "url": "https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/pgsql-jdbc.pcap.gz",
+        "resolved_url": "https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/pgsql-jdbc.pcap.gz",
+        "upstream_expected_digest": null,
+        "license": "not stated in inspected upstream catalogue",
+        "derivation": "Unmodified official saved sample; decompressed gzip where indicated. Local digest pins acquired bytes, not an upstream-published digest.",
+        "compressed_source": {
+          "name": "pgsql-jdbc.pcap.gz",
+          "bytes": 590093,
+          "sha256": "15b51bb4cc197753c1ac6b7dc3cf5697f22a81e3bb5d2e1d24d15de469c3a06b"
+        }
+      }
+    },
+    {
+      "id": "wireshark-dns.cap",
+      "file": "dns.cap",
+      "bytes": 4338,
+      "sha256": "041eeb6f98bb398f1ee8b09651b5b5a84f6a62639f95bf226f9e7b77355d9f28",
+      "provenance": {
+        "project": "Wireshark public sample captures",
+        "source_page": "https://wiki.wireshark.org/SampleCaptures",
+        "url": "https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/dns.cap",
+        "resolved_url": "https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/dns.cap",
+        "upstream_expected_digest": null,
+        "license": "not stated in inspected upstream catalogue",
+        "derivation": "Unmodified official saved sample; decompressed gzip where indicated. Local digest pins acquired bytes, not an upstream-published digest.",
+        "compressed_source": null
+      }
+    },
+    {
+      "id": "wireshark-dhcp.pcap",
+      "file": "dhcp.pcap",
+      "bytes": 1400,
+      "sha256": "2471b5420bdac826eecf8f61a2bbb4a3eb20dbfab7c02ff2be502f349f368214",
+      "provenance": {
+        "project": "Wireshark public sample captures",
+        "source_page": "https://wiki.wireshark.org/SampleCaptures",
+        "url": "https://wiki.wireshark.org/uploads/__moin_import__/attachments/SampleCaptures/dhcp.pcap",
+        "resolved_url": "https://gitlab.com/wireshark/wireshark/-/wikis/uploads/__moin_import__/attachments/SampleCaptures/dhcp.pcap",
+        "upstream_expected_digest": null,
+        "license": "not stated in inspected upstream catalogue",
+        "derivation": "Unmodified official saved sample; decompressed gzip where indicated. Local digest pins acquired bytes, not an upstream-published digest.",
+        "compressed_source": null
+      }
+    },
+    {
+      "id": "sigrok-uart-max3232e.sr",
+      "file": "uart-max3232e.sr",
+      "bytes": 12742,
+      "sha256": "f797d60d6b8e12d2a1549b9a5a499ef389f44cb9e870e8610af26b57c3b2be76",
+      "provenance": {
+        "project": "sigrok-dumps",
+        "version": "0ad13477abc959d37fc9a5acbd23901c371c9c76",
+        "upstreamFile": "uart/maxim_max3232e/max3232e_hello_world_57600_8n1.sr",
+        "url": "https://raw.githubusercontent.com/sigrokproject/sigrok-dumps/0ad13477abc959d37fc9a5acbd23901c371c9c76/uart/maxim_max3232e/max3232e_hello_world_57600_8n1.sr",
+        "git_blob_sha1": "52e47b3014819471a2f348a0d8c7694fe304e052",
+        "reference": "https://raw.githubusercontent.com/sigrokproject/sigrok-dumps/0ad13477abc959d37fc9a5acbd23901c371c9c76/uart/maxim_max3232e/README",
+        "license_scope": "Repository README declares dumps public domain unless otherwise noted; selected READMEs state no exception; decoder software licensing is separate."
+      }
+    },
+    {
+      "id": "sigrok-i2c-nunchuk.sr",
+      "file": "i2c-nunchuk.sr",
+      "bytes": 20373,
+      "sha256": "0fa6adb8297d7f3fe5ba19c94ee655c9b0f952a8b5e48a17aaa499a2f6d10d70",
+      "provenance": {
+        "project": "sigrok-dumps",
+        "version": "0ad13477abc959d37fc9a5acbd23901c371c9c76",
+        "upstreamFile": "i2c/wii_nunchuk/wii_nunchuk_init_reg_3xdata.sr",
+        "url": "https://raw.githubusercontent.com/sigrokproject/sigrok-dumps/0ad13477abc959d37fc9a5acbd23901c371c9c76/i2c/wii_nunchuk/wii_nunchuk_init_reg_3xdata.sr",
+        "git_blob_sha1": "a7232fce7b54e68e2be44e15946c90a3c756e8e9",
+        "reference": "https://raw.githubusercontent.com/sigrokproject/sigrok-dumps/0ad13477abc959d37fc9a5acbd23901c371c9c76/i2c/wii_nunchuk/README",
+        "license_scope": "Repository README declares dumps public domain unless otherwise noted; selected READMEs state no exception; decoder software licensing is separate."
+      }
+    },
+    {
+      "id": "xbox-clear_nomp.saz",
+      "file": "clear_nomp.saz",
+      "bytes": 43515,
+      "sha256": "3e808663a99cbb9160186f7419633248200fbc6863d2c897f5d4d9972dde0375",
+      "provenance": {
+        "project": "Microsoft Xbox Live Trace Analyzer",
+        "version": "ad880ff00b26c4cae5e3c8864d3df438a03890ba",
+        "url": "https://raw.githubusercontent.com/microsoft/xbox-live-trace-analyzer/ad880ff00b26c4cae5e3c8864d3df438a03890ba/Source/TestData/CertWarnings/clear_nomp.saz",
+        "git_blob": "2f1ba66dacb8f8bac290cab59dff8fe750a46ce7",
+        "license": "MIT; upstream LICENSE.md",
+        "producer_archive_comment": "Fiddler (v4.5.1.2) Session Archive. See http://fiddler2.com"
+      },
+      "saz_question": {
+        "record_ordinals": [12, 0, 6],
+        "total_records": 13,
+        "members": 42,
+        "expanded_bytes": 62609
+      }
+    },
+    {
+      "id": "xbox-clear_mp_cs10.saz",
+      "file": "clear_mp_cs10.saz",
+      "bytes": 5223519,
+      "sha256": "4021b201848e4feea3402c380fda5d2df43fd0bf1c72ea550e60f2da3b3d5b44",
+      "provenance": {
+        "project": "Microsoft Xbox Live Trace Analyzer",
+        "version": "ad880ff00b26c4cae5e3c8864d3df438a03890ba",
+        "url": "https://raw.githubusercontent.com/microsoft/xbox-live-trace-analyzer/ad880ff00b26c4cae5e3c8864d3df438a03890ba/Source/TestData/CertWarnings/clear_mp_cs10.saz",
+        "git_blob": "dac534d625594c7a1d57b0b12ed12ea9c6cb6a5b",
+        "license": "MIT; upstream LICENSE.md",
+        "producer_archive_comment": "Fiddler (v4.6.2.0) Session Archive. See https://fiddler2.com"
+      },
+      "saz_question": {
+        "record_ordinals": [1310, 0, 655],
+        "total_records": 1311,
+        "members": 3939,
+        "expanded_bytes": 9223820
+      }
+    },
+    {
+      "id": "xbox-x49_mp_cs21.saz",
+      "file": "x49_mp_cs21.saz",
+      "bytes": 572224,
+      "sha256": "97cdca8b0608e3f11995fd64b64390b9fd8d8e3efcac89f517f24b44968047f6",
+      "provenance": {
+        "project": "Microsoft Xbox Live Trace Analyzer",
+        "version": "ad880ff00b26c4cae5e3c8864d3df438a03890ba",
+        "url": "https://raw.githubusercontent.com/microsoft/xbox-live-trace-analyzer/ad880ff00b26c4cae5e3c8864d3df438a03890ba/Source/TestData/CertWarnings/x49_mp_cs21.saz",
+        "git_blob": "e7794c44892ca4fa1729fa012e698e8284337f15",
+        "license": "MIT; upstream LICENSE.md",
+        "producer_archive_comment": "Fiddler (v4.6.2.26757) Session Archive. See https://fiddler2.com"
+      },
+      "saz_question": {
+        "record_ordinals": [102, 0, 51],
+        "total_records": 103,
+        "members": 315,
+        "expanded_bytes": 1301927
+      }
+    },
+    {
+      "id": "alpine-ripgrep-rust",
+      "file": "ripgrep",
+      "bytes": 3416168,
+      "sha256": "78387bbe12b2110df8d2ce364390a00c190f4543a2f40b8279e49f6c5c85af9c",
+      "provenance": {
+        "project": "ripgrep",
+        "version": "14.1.1-r0",
+        "upstreamFile": "ripgrep-14.1.1-r0.apk",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86_64/ripgrep-14.1.1-r0.apk",
+        "transport_sha256": "213dd0b047163f6627cc2fdd6fbfe205009476eb4fc48c352a3f5b9ab647f6d4",
+        "transport_bytes": 1422830,
+        "aports_revision": "4e899d119e4c983a938436d6f397a509521225d1",
+        "derivation": "selected regular APK tar member usr/bin/rg; read-only static inspection; never executed"
+      }
+    },
+    {
+      "id": "alpine-zellij-rust",
+      "file": "zellij",
+      "bytes": 17151864,
+      "sha256": "9a86e9ca47902a869fdf1886f4cf17714f4fa5655427128beadff498cfb392db",
+      "provenance": {
+        "project": "zellij",
+        "version": "0.40.0-r0",
+        "upstreamFile": "zellij-0.40.0-r0.apk",
+        "url": "https://dl-cdn.alpinelinux.org/alpine/v3.21/community/x86_64/zellij-0.40.0-r0.apk",
+        "transport_sha256": "575075945415b221857563e19c5f4c661af9f98bbba54f0994c7385c0e432432",
+        "transport_bytes": 6722129,
+        "aports_revision": "3be26a3a26e76e1bf3eff784bffe3956d29d77a0",
+        "derivation": "selected regular APK tar member usr/bin/zellij; read-only static inspection; never executed"
+      }
+    }
+  ]
+}

@@ -1,0 +1,2641 @@
+{
+  "base_revision": "c7f6b8bad1a34d5efb30ff2a017672dea1fcdabb",
+  "scope": "Static shipped Electron artifact processing applicability and retained Evidence, shared CLI/MCP application boundary; no application/native-provider execution",
+  "runtime": {
+    "platform": "Linux x64",
+    "node": "24.18.0",
+    "npm": "11.16.0",
+    "tokenizer": "cl100k_base",
+    "tiktoken": "0.12.0"
+  },
+  "input": {
+    "application": "Joplin v3.7.21 Linux AppImage",
+    "acquisition_reference": "https://github.com/morluto/rea/blob/c7f6b8bad1a34d5efb30ff2a017672dea1fcdabb/docs/verification/javascript-native-handoff-identity-2026-10-15.md",
+    "appimage_sha256": "5d202dcaca31e14206826aa3f04125e7c218dbc3dc3d98479d811efbd6b856c1",
+    "asar_sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a",
+    "keytar_sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+    "inventory_files": 6324,
+    "unpacked_entries": 46,
+    "native_companions_staged": 3,
+    "other_unpacked_entries_not_staged": 43,
+    "source_paths": [
+      "ElectronAppWrapper.js",
+      "ElectronAppWrapper.js.map",
+      "index.html",
+      "package.json",
+      "node_modules/keytar/build/Release/keytar.node"
+    ]
+  },
+  "implementation": {
+    "owner": "Application artifact analysis produces applicable scope/authority and interruption status; graph consumes these facts. Metadata-only native needs no post-inventory source-processing phase.",
+    "statuses": {
+      "interrupted": "Processing phase entered, including worker startup; does not establish completed parsing.",
+      "not-started": "Interruption prevented phase entry."
+    },
+    "cleanup": "Removed AST-only unavailable helper; corrected normal package/JSON/map gap authority and native caller-exclusion scope; metadata progress consumes same scope owner. No parser resumes after interruption.",
+    "failure_sharing": "At most5 applicable phase entries per interruption; no persistent cache or freshness assumption.",
+    "public_contract": "Existing CLI/MCP inputs, selection, schemas and effects retained. analysis_status is an additive graph-observation property; corrected provenance/phase values and removal of false native scopes change derived Evidence identities.",
+    "semantic_applicability": "Semantic projection recordUnavailableFile owns JavaScript applicability for full and incremental callers; non-JavaScript files add no semantic nodes, limits or unknowns."
+  },
+  "baseline_source_sha256": {
+    "docs/javascript-artifact-reconstruction.md": "78208db9ec08778d78be295fff7038eeabcd9451f2f9adfc415e7f308614e8d4",
+    "scripts/verify/javascript/native-handoffs.mjs": "bfdc235cc38a519a39e8b2e772d55259f371ccb15058e6fd241ee5ac05dfef82",
+    "src/application/javascript/JavaScriptArtifactAnalysis.ts": "ffcd4d42c320a37b5d657cb1cf99f389ed4420befd5c5680dc0032fa4136d458",
+    "src/application/javascript/JavaScriptArtifactAnalysisTypes.ts": "c6aef4c60cac2016116e620bd960f10c05a8b3287cb2f9df1e16e2dd665c829f",
+    "src/application/javascript/JavaScriptArtifactGraphContext.ts": "3398e7af6a0414f4532a6c8ac78f3deadf69816b9b95262d8c5c51e378ea7047",
+    "src/application/javascript/JavaScriptArtifactGraphEvidence.ts": "54c9196c7d7adf945325eb4a08a234624731a4d1b2550983fe06ddb36711def0",
+    "src/application/javascript/JavaScriptArtifactGraphStructure.ts": "1afdeda88a998133eb2de2cb26cbcffdd51c85f302c2797158e2944874326449",
+    "src/application/javascript/JavaScriptArtifactReconstruction.ts": "24108a0365ae106e8aca3657f1d88fee7cfa1a2e3ddd379dc2982505382d0d92",
+    "tests/acceptance/applications/javascriptAnalysisLimits.test.ts": "2001849b4917ab7198025bdd17929ad3e4c18fa250408b4d2cd50a2a2fdb0fc4",
+    "tests/boundary/filesystem/javascriptArtifactReconstruction.test.ts": "b6a4059f4079cfb1e288fb51a50d79364ea22af0c70681b73e2eff1cd275cc07",
+    "tests/boundary/javascript/javascriptApplicationCancellation.test.ts": "4af48d06f4f78ace504ea441f3e049db67268af72b25b2689c11ae3672798178",
+    "src/application/javascript/JavaScriptSemanticGraphBuilder.ts": "6efe0f4695b76722c6d446dcb88a5cbcef3ba762fa553215473359ef4021cc88",
+    "tests/boundary/filesystem/javascript-applications/javascriptArtifactReconstruction.test.ts": "c14e443a5d7d0dd58de86041cada09da070bbb1b3c572f6e2768b8be0482e8e1"
+  },
+  "baseline_execution_driver_sources": {
+    "revision": "c7f6b8bad1a34d5efb30ff2a017672dea1fcdabb",
+    "sha256": {
+      "scripts/verify/javascript/native-handoffs.mjs": "ff59d57db7ae6b484508dd84637dc2ad789a8604bf85331421a5e4a99a64ef20",
+      "tests/acceptance/applications/javascriptAnalysisLimits.test.ts": "6d491015ce6edf6e249dc28964e82e9bcdd605328286e8d00bddf411ee8810c8",
+      "src/application/javascript/JavaScriptArtifactAnalysis.ts": "ffcd4d42c320a37b5d657cb1cf99f389ed4420befd5c5680dc0032fa4136d458",
+      "src/application/javascript/JavaScriptArtifactAnalysisTypes.ts": "c6aef4c60cac2016116e620bd960f10c05a8b3287cb2f9df1e16e2dd665c829f",
+      "src/application/javascript/JavaScriptArtifactGraphContext.ts": "3398e7af6a0414f4532a6c8ac78f3deadf69816b9b95262d8c5c51e378ea7047",
+      "src/application/javascript/JavaScriptArtifactGraphEvidence.ts": "54c9196c7d7adf945325eb4a08a234624731a4d1b2550983fe06ddb36711def0",
+      "src/application/javascript/JavaScriptArtifactGraphStructure.ts": "1afdeda88a998133eb2de2cb26cbcffdd51c85f302c2797158e2944874326449"
+    },
+    "verifier_v2_export_validation_sha256": "5a1556ce1904fba7b9430492b4c17973ec1e792b109c386ac067946df6b20d34",
+    "oracle_correction_source_sha256": {
+      "tests/acceptance/applications/javascriptAnalysisLimits.test.ts": "6d491015ce6edf6e249dc28964e82e9bcdd605328286e8d00bddf411ee8810c8",
+      "tests/boundary/javascript/javascriptApplicationCancellation.test.ts": "20efdb536709a2c46feb25b4edf55f65f1585a81f56d2afc73d5db93446907b6"
+    }
+  },
+  "final_source_sha256": {
+    "docs/javascript-artifact-reconstruction.md": "58c472f61537f7aeca477440712a44a12dc020554f966cfdf7d5c1ea71166895",
+    "scripts/verify/javascript/native-handoffs.mjs": "1795c183370ed8289eb961da470073530ccbdbb46599d4a8966881639b219155",
+    "src/application/javascript/JavaScriptArtifactAnalysis.ts": "6d895f0efb37225e9b7f74ab824729e8cf6de3151a7fe4ae9fd599bedfffdd94",
+    "src/application/javascript/JavaScriptArtifactAnalysisTypes.ts": "4569780dcaff8e783b3169770473373d202e3a8d558e5ea03df88cd3f6853bf7",
+    "src/application/javascript/JavaScriptArtifactGraphContext.ts": "b1e486b5b29f15466b033464780fc57d5619506aad94f4c5053e1882c4bd30d2",
+    "src/application/javascript/JavaScriptArtifactGraphEvidence.ts": "4ac2d6c95011ee6a86ef79b3477557fd296df1ebb84e57ebb3d359848ca92cc3",
+    "src/application/javascript/JavaScriptArtifactGraphStructure.ts": "167be12f869088aeab0e521d6e85ee11348b40f15d5a24dff3030d8dec39b8a3",
+    "src/application/javascript/JavaScriptArtifactReconstruction.ts": "583e14e34c5f4d2d6118f2dc750862b86f656bf2d98cca5b28fad2620168308c",
+    "tests/acceptance/applications/javascriptAnalysisLimits.test.ts": "25ea7addf365c3ab992d1f24d65d57b02655033e28b2b100406c9c90712064c7",
+    "tests/boundary/filesystem/javascriptArtifactReconstruction.test.ts": "bdb6dc9fd8a9921e956d01017ac9d32a499b3815f0611929185add7e42c5ba37",
+    "tests/boundary/javascript/javascriptApplicationCancellation.test.ts": "c604554072e6f848c24926b8630a738b9247ccd04b337374e8060cfb6a0a069f",
+    "scripts/lib/javascript-file-scope-oracle.mjs": "e36f0aa114c7c2d2a2e9657f5ef7119f179d7bd6ba4ef899d0fc9ee67b4b7b07",
+    "scripts/lib/javascript-file-scope-oracle.d.mts": "f3ac21ce936613d650fa6d610b9905406ae02a0afa97afd677b5b11377369134",
+    "tests/boundary/process/javascriptVerifierScopeOracle.test.ts": "e94c3659b660482aaf75652a60440916f58921c97c4b9bc3182e647a505a2b6b",
+    "src/application/javascript/JavaScriptSemanticGraphBuilder.ts": "b9e4d45f01ec1dfdf492dbcbdda4fa957d4e8941e1faeff489dadc582d7bd094",
+    "tests/boundary/filesystem/javascript-applications/javascriptArtifactReconstruction.test.ts": "26993f5cbd2ff862e134f9d364779bbd9432f3cc7be9ddaf1a64fcdb50b54a71"
+  },
+  "preprogress_source_sha256": {
+    "docs/javascript-artifact-reconstruction.md": "e826a5d17f43a70915326c35cadcd236cb7155c596baefb230b9bc033bd81c74",
+    "scripts/verify/javascript/native-handoffs.mjs": "10335e8f8a87d01302a314af2ebd23505cb53af892984f89e376f158199e6f13",
+    "src/application/javascript/JavaScriptArtifactAnalysis.ts": "dc0cc638ac7e8163efbe779f97bd9e945ef43688f71dc2c365de6439cc1823e6",
+    "src/application/javascript/JavaScriptArtifactAnalysisTypes.ts": "4569780dcaff8e783b3169770473373d202e3a8d558e5ea03df88cd3f6853bf7",
+    "src/application/javascript/JavaScriptArtifactGraphContext.ts": "b1e486b5b29f15466b033464780fc57d5619506aad94f4c5053e1882c4bd30d2",
+    "src/application/javascript/JavaScriptArtifactGraphEvidence.ts": "4ac2d6c95011ee6a86ef79b3477557fd296df1ebb84e57ebb3d359848ca92cc3",
+    "src/application/javascript/JavaScriptArtifactGraphStructure.ts": "167be12f869088aeab0e521d6e85ee11348b40f15d5a24dff3030d8dec39b8a3",
+    "tests/acceptance/applications/javascriptAnalysisLimits.test.ts": "c2a188b82fb90df9ef7b9e2c6d49027c77a3e0a4bd2a5eaeeb1dc3d1ff99496f",
+    "tests/boundary/filesystem/javascriptArtifactReconstruction.test.ts": "bdb6dc9fd8a9921e956d01017ac9d32a499b3815f0611929185add7e42c5ba37",
+    "tests/boundary/javascript/javascriptApplicationCancellation.test.ts": "8880abb141b808767e5c70156fb2908333b00a6cedd2b583ce7603afcf6881bb"
+  },
+  "cohorts": {
+    "baseline": {
+      "timeout": {
+        "result": {
+          "scope": "Real shipped-ASAR native identity through public CLI/stdio MCP; simulated native Evidence only, no provider/application executed",
+          "artifact": {
+            "path": "/tmp/rea-native-handoff-20261015/cases/available/app.asar",
+            "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+          },
+          "addon_path": "node_modules/keytar/build/Release/keytar.node",
+          "companion_sha256_observed": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "source_paths": [
+            "ElectronAppWrapper.js",
+            "ElectronAppWrapper.js.map",
+            "index.html",
+            "package.json",
+            "node_modules/keytar/build/Release/keytar.node"
+          ],
+          "preparation_outcome": "provider_timeout",
+          "analysis_timeout_ms": 1,
+          "parent_evidence_id": "ev_d5dbad729d69cb9cb442e1e1f9df807bc55dc47bd6e00fede791bea9fa784896",
+          "trace_evidence_id": "ev_4e763bb77e98e7b2d324cea75dade7bd92d019d08eb4d7a153bbb36e99d03a1c",
+          "trace_subject": null,
+          "preparation_ms": 35691.510259,
+          "samples": [
+            {
+              "round": 0,
+              "elapsed_ms": 145.09717000000092,
+              "structured_reply_bytes": 13234,
+              "full_tool_reply_bytes": 27641
+            },
+            {
+              "round": 1,
+              "elapsed_ms": 101.57486900000367,
+              "structured_reply_bytes": 13234,
+              "full_tool_reply_bytes": 27641
+            },
+            {
+              "round": 2,
+              "elapsed_ms": 95.30256999999983,
+              "structured_reply_bytes": 13234,
+              "full_tool_reply_bytes": 27641
+            }
+          ],
+          "safe_identity": true,
+          "safe_applicability": false,
+          "native_analysis_scopes": [
+            {
+              "node_id": "jag_node_753686f61d8539b808cabb867b152b07c73e34be67f28c01c5487ee4a30c8931",
+              "label": "node_modules/keytar/build/Release/keytar.node parse scope",
+              "source_map_reference": null,
+              "properties": {
+                "path": "node_modules/keytar/build/Release/keytar.node",
+                "operation": "analyze-javascript-source",
+                "limitation": "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application",
+                "analysis_failure": {
+                  "code": "provider_timeout",
+                  "category": "timeout",
+                  "message": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues.",
+                  "retryable": true,
+                  "remediation": {
+                    "action": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues."
+                  },
+                  "details": {
+                    "operation": "analyze_javascript_application",
+                    "timeout_ms": 1,
+                    "captured_output": {
+                      "stdout": "",
+                      "stderr": "",
+                      "truncated": false,
+                      "stderr_bytes": 0,
+                      "exit_code": null,
+                      "signal": null
+                    }
+                  }
+                }
+              },
+              "evidence": {
+                "authority": "ast-static-analysis",
+                "state": "unavailable",
+                "confidence": "unknown",
+                "artifact": {
+                  "available": true,
+                  "artifact_id": "art_0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+                  "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+                },
+                "location": {
+                  "available": true,
+                  "value": {
+                    "kind": "artifact-path",
+                    "path": "node_modules/keytar/build/Release/keytar.node"
+                  }
+                },
+                "extractor": {
+                  "name": "rea-javascript-artifact-reconstruction",
+                  "version": "1",
+                  "operation": "analyze-javascript-source",
+                  "executable_sha256": null
+                },
+                "coverage": {
+                  "status": "partial",
+                  "truncated": false,
+                  "omitted_count": null,
+                  "limits": [
+                    {
+                      "name": "javascript_analysis_worker_timeout_ms",
+                      "value": 1,
+                      "unit": "milliseconds"
+                    }
+                  ]
+                },
+                "limitations": [
+                  "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application"
+                ],
+                "evidence_ids": []
+              },
+              "observation_id": "jag_observation_0648539f0a1147667a79e1169b3421f085850e775e299313bbe6783702f8d84a",
+              "identifier_strategy": {
+                "strategy": "semantic-content-sha256",
+                "stability": "observation-exact"
+              }
+            }
+          ],
+          "structured_scopes": [
+            {
+              "path": "ElectronAppWrapper.js.map",
+              "scopes": [
+                {
+                  "node_id": "jag_node_2361c5ae8ec571bdd480605526fc5b38900fa7fb94571c5f940fcfdfe3594c25",
+                  "label": "ElectronAppWrapper.js.map parse scope",
+                  "source_map_reference": null,
+                  "properties": {
+                    "path": "ElectronAppWrapper.js.map",
+                    "operation": "analyze-javascript-source",
+                    "limitation": "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application",
+                    "analysis_failure": {
+                      "code": "provider_timeout",
+                      "category": "timeout",
+                      "message": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues.",
+                      "retryable": true,
+                      "remediation": {
+                        "action": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues."
+                      },
+                      "details": {
+                        "operation": "analyze_javascript_application",
+                        "timeout_ms": 1,
+                        "captured_output": {
+                          "stdout": "",
+                          "stderr": "",
+                          "truncated": false,
+                          "stderr_bytes": 0,
+                          "exit_code": null,
+                          "signal": null
+                        }
+                      }
+                    }
+                  },
+                  "evidence": {
+                    "authority": "ast-static-analysis",
+                    "state": "unavailable",
+                    "confidence": "unknown",
+                    "artifact": {
+                      "available": true,
+                      "artifact_id": "art_825d88385763ad9562a1c901561e263c8cac51a41d8866432d206037cc362bd4",
+                      "sha256": "825d88385763ad9562a1c901561e263c8cac51a41d8866432d206037cc362bd4"
+                    },
+                    "location": {
+                      "available": true,
+                      "value": {
+                        "kind": "artifact-path",
+                        "path": "ElectronAppWrapper.js.map"
+                      }
+                    },
+                    "extractor": {
+                      "name": "rea-javascript-artifact-reconstruction",
+                      "version": "1",
+                      "operation": "analyze-javascript-source",
+                      "executable_sha256": null
+                    },
+                    "coverage": {
+                      "status": "partial",
+                      "truncated": false,
+                      "omitted_count": null,
+                      "limits": [
+                        {
+                          "name": "javascript_analysis_worker_timeout_ms",
+                          "value": 1,
+                          "unit": "milliseconds"
+                        }
+                      ]
+                    },
+                    "limitations": [
+                      "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application"
+                    ],
+                    "evidence_ids": []
+                  },
+                  "observation_id": "jag_observation_8ea415abaec186c5434fb4c6f10f4d3da2cbe4f762bc22a5e73a139c7d3f67af",
+                  "identifier_strategy": {
+                    "strategy": "semantic-content-sha256",
+                    "stability": "observation-exact"
+                  }
+                }
+              ],
+              "evidence_id": "ev_ca6cd9d1d390d2a7dec04f2622b20d8c8dc0cb00559fe9ed80667b95a942f372",
+              "source_coverage": {
+                "status": "partial",
+                "source_graph_status": "partial",
+                "total_seed_matches": 3
+              },
+              "graph_coverage": {
+                "status": "partial",
+                "truncated": false,
+                "omitted_count": null,
+                "limits": [
+                  {
+                    "name": "javascript_analysis_worker_timeout_ms",
+                    "value": 1,
+                    "unit": "milliseconds"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "index.html",
+              "scopes": [
+                {
+                  "node_id": "jag_node_50b5fa0fa18dcdbba24db324118105d6e47155d571709a0f4a6d21c6212b6efb",
+                  "label": "index.html parse scope",
+                  "source_map_reference": null,
+                  "properties": {
+                    "path": "index.html",
+                    "operation": "analyze-javascript-source",
+                    "limitation": "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application",
+                    "analysis_failure": {
+                      "code": "provider_timeout",
+                      "category": "timeout",
+                      "message": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues.",
+                      "retryable": true,
+                      "remediation": {
+                        "action": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues."
+                      },
+                      "details": {
+                        "operation": "analyze_javascript_application",
+                        "timeout_ms": 1,
+                        "captured_output": {
+                          "stdout": "",
+                          "stderr": "",
+                          "truncated": false,
+                          "stderr_bytes": 0,
+                          "exit_code": null,
+                          "signal": null
+                        }
+                      }
+                    }
+                  },
+                  "evidence": {
+                    "authority": "ast-static-analysis",
+                    "state": "unavailable",
+                    "confidence": "unknown",
+                    "artifact": {
+                      "available": true,
+                      "artifact_id": "art_a083a1d8a8065872fb74c381730e5b05958a041af717643e2eaeaec8557f6c81",
+                      "sha256": "a083a1d8a8065872fb74c381730e5b05958a041af717643e2eaeaec8557f6c81"
+                    },
+                    "location": {
+                      "available": true,
+                      "value": {
+                        "kind": "artifact-path",
+                        "path": "index.html"
+                      }
+                    },
+                    "extractor": {
+                      "name": "rea-javascript-artifact-reconstruction",
+                      "version": "1",
+                      "operation": "analyze-javascript-source",
+                      "executable_sha256": null
+                    },
+                    "coverage": {
+                      "status": "partial",
+                      "truncated": false,
+                      "omitted_count": null,
+                      "limits": [
+                        {
+                          "name": "javascript_analysis_worker_timeout_ms",
+                          "value": 1,
+                          "unit": "milliseconds"
+                        }
+                      ]
+                    },
+                    "limitations": [
+                      "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application"
+                    ],
+                    "evidence_ids": []
+                  },
+                  "observation_id": "jag_observation_71d35b3cbaa72f3af99a9735fe9ca4742d3edd84bede8b8be35473c91fc94d03",
+                  "identifier_strategy": {
+                    "strategy": "semantic-content-sha256",
+                    "stability": "observation-exact"
+                  }
+                }
+              ],
+              "evidence_id": "ev_cd8d60ea15721644a33b1e3cfa55ad2d93b7cdd60203c2018d99bd91872a523f",
+              "source_coverage": {
+                "status": "partial",
+                "source_graph_status": "partial",
+                "total_seed_matches": 3
+              },
+              "graph_coverage": {
+                "status": "partial",
+                "truncated": false,
+                "omitted_count": null,
+                "limits": [
+                  {
+                    "name": "javascript_analysis_worker_timeout_ms",
+                    "value": 1,
+                    "unit": "milliseconds"
+                  }
+                ]
+              }
+            },
+            {
+              "path": "package.json",
+              "scopes": [
+                {
+                  "node_id": "jag_node_524ca9edbac1bbf330eb875d57ea59ff058bdb16ff6679e3bc4e3dc643979f78",
+                  "label": "package.json parse scope",
+                  "source_map_reference": null,
+                  "properties": {
+                    "path": "package.json",
+                    "operation": "analyze-javascript-source",
+                    "limitation": "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application",
+                    "analysis_failure": {
+                      "code": "provider_timeout",
+                      "category": "timeout",
+                      "message": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues.",
+                      "retryable": true,
+                      "remediation": {
+                        "action": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues."
+                      },
+                      "details": {
+                        "operation": "analyze_javascript_application",
+                        "timeout_ms": 1,
+                        "captured_output": {
+                          "stdout": "",
+                          "stderr": "",
+                          "truncated": false,
+                          "stderr_bytes": 0,
+                          "exit_code": null,
+                          "signal": null
+                        }
+                      }
+                    }
+                  },
+                  "evidence": {
+                    "authority": "ast-static-analysis",
+                    "state": "unavailable",
+                    "confidence": "unknown",
+                    "artifact": {
+                      "available": true,
+                      "artifact_id": "art_2caf6a44c578054124684c6ec441eff90e434c09319ea5dd74c69ac1109c1119",
+                      "sha256": "2caf6a44c578054124684c6ec441eff90e434c09319ea5dd74c69ac1109c1119"
+                    },
+                    "location": {
+                      "available": true,
+                      "value": {
+                        "kind": "artifact-path",
+                        "path": "package.json"
+                      }
+                    },
+                    "extractor": {
+                      "name": "rea-javascript-artifact-reconstruction",
+                      "version": "1",
+                      "operation": "analyze-javascript-source",
+                      "executable_sha256": null
+                    },
+                    "coverage": {
+                      "status": "partial",
+                      "truncated": false,
+                      "omitted_count": null,
+                      "limits": [
+                        {
+                          "name": "javascript_analysis_worker_timeout_ms",
+                          "value": 1,
+                          "unit": "milliseconds"
+                        }
+                      ]
+                    },
+                    "limitations": [
+                      "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application"
+                    ],
+                    "evidence_ids": []
+                  },
+                  "observation_id": "jag_observation_f7a3e40649477744a67fc32c3519afd553d49edfe3814056458cc395b0568e80",
+                  "identifier_strategy": {
+                    "strategy": "semantic-content-sha256",
+                    "stability": "observation-exact"
+                  }
+                }
+              ],
+              "evidence_id": "ev_75dc5c53368e0994d515f17f68f7729031bfff977dc5d05d05a426439c39298a",
+              "source_coverage": {
+                "status": "partial",
+                "source_graph_status": "partial",
+                "total_seed_matches": 3
+              },
+              "graph_coverage": {
+                "status": "partial",
+                "truncated": false,
+                "omitted_count": null,
+                "limits": [
+                  {
+                    "name": "javascript_analysis_worker_timeout_ms",
+                    "value": 1,
+                    "unit": "milliseconds"
+                  }
+                ]
+              }
+            }
+          ],
+          "node": {
+            "node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+            "identity": {
+              "strategy": "content-digest",
+              "stability": "global-exact",
+              "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+            },
+            "unavailable_observed": false,
+            "basis": [
+              {
+                "authority": "artifact-bytes",
+                "state": "observed",
+                "confidence": "exact",
+                "artifact": {
+                  "available": true,
+                  "artifact_id": "art_0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+                  "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+                },
+                "location": {
+                  "available": true,
+                  "value": {
+                    "kind": "artifact-path",
+                    "path": "node_modules/keytar/build/Release/keytar.node"
+                  }
+                }
+              }
+            ]
+          },
+          "native_handoffs": [
+            {
+              "native_node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+              "artifact_sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+              "artifact_path": "node_modules/keytar/build/Release/keytar.node",
+              "export_node_ids": [],
+              "requested_exports": [],
+              "status": "evidence-linked",
+              "providers": [
+                {
+                  "id": "ghidra",
+                  "name": "Ghidra",
+                  "version": "simulated"
+                }
+              ],
+              "evidence_ids": [
+                "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+              ],
+              "recommended_tools": [
+                "open_binary",
+                "binary_overview",
+                "search_procedures",
+                "analyze_function",
+                "xrefs"
+              ]
+            }
+          ],
+          "evidence_links": [
+            "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7",
+            "ev_d5dbad729d69cb9cb442e1e1f9df807bc55dc47bd6e00fede791bea9fa784896"
+          ],
+          "source_coverage": {
+            "status": "partial",
+            "source_graph_status": "partial",
+            "total_seed_matches": 3
+          },
+          "graph_coverage": {
+            "status": "partial",
+            "truncated": false,
+            "omitted_count": null,
+            "limits": [
+              {
+                "name": "javascript_analysis_worker_timeout_ms",
+                "value": 1,
+                "unit": "milliseconds"
+              }
+            ]
+          },
+          "facts_sha256": "77bfc90608098983f646d78a9f49d62adf61f50d6b8871a50597c78b95f6e493",
+          "cli_parity": {
+            "exact_cli_mcp_trace_parity": true,
+            "evidence_id": "ev_4e763bb77e98e7b2d324cea75dade7bd92d019d08eb4d7a153bbb36e99d03a1c"
+          },
+          "token_costs": {
+            "tokenizer": "cl100k_base",
+            "tiktoken_version": "0.12.0",
+            "selected_catalog": 5570,
+            "full_catalog": 195522,
+            "requests": 903,
+            "structured_replies": 14663,
+            "full_tool_replies": 29995,
+            "selected_catalog_structured_task": 21136,
+            "full_catalog_structured_task": 211088,
+            "selected_catalog_full_reply_task": 36468,
+            "full_catalog_full_reply_task": 226420
+          },
+          "conditions": "Fresh MCP session, selected analysis followed by retained traces. Task token counts include one analysis summary or parsed timeout error, one native trace and each requested structured-path trace, with name/description/inputSchema catalog projections. Structured Evidence/parsed error and complete-tool-reply projections are alternatives, not billing. Repeated native rounds, export, CLI parity and tokenizer are validation overhead outside task tokens but inside total resource receipts. Filesystem/build caches uncontrolled. Incorrect identity/applicability is not a successful equivalent task or efficiency credit."
+        },
+        "resources": {
+          "elapsed_seconds": 60.738,
+          "cpu_seconds": 60.289464,
+          "peak_cgroup_bytes": 3092045824,
+          "payload_exit_code": 0,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      },
+      "control": {
+        "result": {
+          "scope": "Real shipped-ASAR native identity through public CLI/stdio MCP; simulated native Evidence only, no provider/application executed",
+          "artifact": {
+            "path": "/tmp/rea-native-handoff-20261015/cases/available/app.asar",
+            "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+          },
+          "addon_path": "node_modules/keytar/build/Release/keytar.node",
+          "companion_sha256_observed": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "source_paths": [
+            "ElectronAppWrapper.js",
+            "ElectronAppWrapper.js.map",
+            "index.html",
+            "package.json",
+            "node_modules/keytar/build/Release/keytar.node"
+          ],
+          "preparation_outcome": "completed",
+          "analysis_timeout_ms": null,
+          "parent_evidence_id": "ev_b1f947f72911e1a8c7faaca4fd70e084279b791ba3bf4d63bf0cfe87f2c63ed4",
+          "trace_evidence_id": "ev_515f07a2fc0d4bde44e0e3fb6e83072103dbda12b3653d7e84c3d566e0201e9b",
+          "trace_subject": null,
+          "preparation_ms": 38655.830385,
+          "samples": [
+            {
+              "round": 0,
+              "elapsed_ms": 152.85529600000154,
+              "structured_reply_bytes": 9835,
+              "full_tool_reply_bytes": 20513
+            },
+            {
+              "round": 1,
+              "elapsed_ms": 98.97723499999847,
+              "structured_reply_bytes": 9835,
+              "full_tool_reply_bytes": 20513
+            },
+            {
+              "round": 2,
+              "elapsed_ms": 98.40282499999739,
+              "structured_reply_bytes": 9835,
+              "full_tool_reply_bytes": 20513
+            }
+          ],
+          "safe_identity": true,
+          "safe_applicability": true,
+          "native_analysis_scopes": [],
+          "structured_scopes": [
+            {
+              "source": "exported-parent-validation",
+              "path": "ElectronAppWrapper.js.map",
+              "scopes": [],
+              "source_evidence_id": "ev_b1f947f72911e1a8c7faaca4fd70e084279b791ba3bf4d63bf0cfe87f2c63ed4",
+              "retained_matching_nodes": 1,
+              "graph_coverage": {
+                "limits": [],
+                "omitted_count": null,
+                "status": "partial",
+                "truncated": false
+              }
+            },
+            {
+              "source": "exported-parent-validation",
+              "path": "index.html",
+              "scopes": [],
+              "source_evidence_id": "ev_b1f947f72911e1a8c7faaca4fd70e084279b791ba3bf4d63bf0cfe87f2c63ed4",
+              "retained_matching_nodes": 1,
+              "graph_coverage": {
+                "limits": [],
+                "omitted_count": null,
+                "status": "partial",
+                "truncated": false
+              }
+            },
+            {
+              "source": "exported-parent-validation",
+              "path": "package.json",
+              "scopes": [],
+              "source_evidence_id": "ev_b1f947f72911e1a8c7faaca4fd70e084279b791ba3bf4d63bf0cfe87f2c63ed4",
+              "retained_matching_nodes": 2,
+              "graph_coverage": {
+                "limits": [],
+                "omitted_count": null,
+                "status": "partial",
+                "truncated": false
+              }
+            }
+          ],
+          "modeled_structured_trace_count": 0,
+          "node": {
+            "node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+            "identity": {
+              "strategy": "content-digest",
+              "stability": "global-exact",
+              "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+            },
+            "unavailable_observed": false,
+            "basis": [
+              {
+                "authority": "artifact-bytes",
+                "state": "observed",
+                "confidence": "exact",
+                "artifact": {
+                  "available": true,
+                  "artifact_id": "art_0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+                  "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+                },
+                "location": {
+                  "available": true,
+                  "value": {
+                    "kind": "artifact-path",
+                    "path": "node_modules/keytar/build/Release/keytar.node"
+                  }
+                }
+              }
+            ]
+          },
+          "native_handoffs": [
+            {
+              "native_node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+              "artifact_sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+              "artifact_path": "node_modules/keytar/build/Release/keytar.node",
+              "export_node_ids": [],
+              "requested_exports": [],
+              "status": "evidence-linked",
+              "providers": [
+                {
+                  "id": "ghidra",
+                  "name": "Ghidra",
+                  "version": "simulated"
+                }
+              ],
+              "evidence_ids": [
+                "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+              ],
+              "recommended_tools": [
+                "open_binary",
+                "binary_overview",
+                "search_procedures",
+                "analyze_function",
+                "xrefs"
+              ]
+            }
+          ],
+          "evidence_links": [
+            "ev_b1f947f72911e1a8c7faaca4fd70e084279b791ba3bf4d63bf0cfe87f2c63ed4",
+            "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+          ],
+          "source_coverage": {
+            "status": "partial",
+            "source_graph_status": "partial",
+            "total_seed_matches": 2
+          },
+          "graph_coverage": {
+            "status": "partial",
+            "truncated": false,
+            "omitted_count": null,
+            "limits": []
+          },
+          "facts_sha256": "9380df397cad9764c435870af56ff6eb91aa33b5b6c32a30a5e5d932f27c84bc",
+          "cli_parity": {
+            "exact_cli_mcp_trace_parity": true,
+            "evidence_id": "ev_515f07a2fc0d4bde44e0e3fb6e83072103dbda12b3653d7e84c3d566e0201e9b"
+          },
+          "token_costs": {
+            "tokenizer": "cl100k_base",
+            "tiktoken_version": "0.12.0",
+            "selected_catalog": 5570,
+            "full_catalog": 195522,
+            "requests": 627,
+            "structured_replies": 5579,
+            "full_tool_replies": 11541,
+            "selected_catalog_structured_task": 11776,
+            "full_catalog_structured_task": 201728,
+            "selected_catalog_full_reply_task": 17738,
+            "full_catalog_full_reply_task": 207690
+          },
+          "conditions": "Fresh MCP session, selected analysis followed by retained traces. Task token counts include one analysis summary or parsed timeout error, one native trace and each requested structured-path trace, with name/description/inputSchema catalog projections. Structured Evidence/parsed error and complete-tool-reply projections are alternatives, not billing. Repeated native rounds, export, CLI parity and tokenizer are validation overhead outside task tokens but inside total resource receipts. Filesystem/build caches uncontrolled. Incorrect identity/applicability is not a successful equivalent task or efficiency credit."
+        },
+        "resources": {
+          "elapsed_seconds": 61.542,
+          "cpu_seconds": 61.135522,
+          "peak_cgroup_bytes": 2808336384,
+          "payload_exit_code": 0,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      }
+    },
+    "final": {
+      "timeout": {
+        "result": {
+          "scope": "Real shipped-ASAR native identity through public CLI/stdio MCP; simulated native Evidence only, no provider/application executed",
+          "artifact": {
+            "path": "/tmp/rea-native-handoff-20261015/cases/available/app.asar",
+            "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+          },
+          "addon_path": "node_modules/keytar/build/Release/keytar.node",
+          "companion_sha256_observed": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "source_paths": [
+            "ElectronAppWrapper.js",
+            "ElectronAppWrapper.js.map",
+            "index.html",
+            "package.json",
+            "node_modules/keytar/build/Release/keytar.node"
+          ],
+          "preparation_outcome": "provider_timeout",
+          "analysis_timeout_ms": 1,
+          "parent_evidence_id": "ev_ba7919ad7d538a41c183dfb5e27bb9dff6058a01b83fb583beebf4205c7c9939",
+          "trace_evidence_id": "ev_c95f2477bbc503d71094288ca11354fbb5bb0d8c86d26c7ea2b373a98458587f",
+          "trace_subject": null,
+          "preparation_ms": 34866.233877,
+          "samples": [
+            {
+              "round": 0,
+              "elapsed_ms": 153.571864000005,
+              "structured_reply_bytes": 9654,
+              "full_tool_reply_bytes": 20161
+            },
+            {
+              "round": 1,
+              "elapsed_ms": 96.07862699999532,
+              "structured_reply_bytes": 9654,
+              "full_tool_reply_bytes": 20161
+            },
+            {
+              "round": 2,
+              "elapsed_ms": 92.27811600000132,
+              "structured_reply_bytes": 9654,
+              "full_tool_reply_bytes": 20161
+            }
+          ],
+          "safe_identity": true,
+          "safe_applicability": true,
+          "native_analysis_scopes": [],
+          "structured_scopes": [
+            {
+              "source": "retained-feature-trace",
+              "path": "ElectronAppWrapper.js.map",
+              "scopes": [
+                {
+                  "node_id": "jag_node_82fcfceda6e334ca0bfdbddf79306a11a5b958e2c65570a1d862dc001e27bbbc",
+                  "label": "ElectronAppWrapper.js.map parse scope",
+                  "source_map_reference": null,
+                  "properties": {
+                    "analysis_status": "not-started",
+                    "path": "ElectronAppWrapper.js.map",
+                    "operation": "parse-local-source-map",
+                    "limitation": "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application",
+                    "analysis_failure": {
+                      "code": "provider_timeout",
+                      "category": "timeout",
+                      "message": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues.",
+                      "retryable": true,
+                      "remediation": {
+                        "action": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues."
+                      },
+                      "details": {
+                        "operation": "analyze_javascript_application",
+                        "timeout_ms": 1,
+                        "captured_output": {
+                          "stdout": "",
+                          "stderr": "",
+                          "truncated": false,
+                          "stderr_bytes": 0,
+                          "exit_code": null,
+                          "signal": null
+                        }
+                      }
+                    }
+                  },
+                  "evidence": {
+                    "authority": "artifact-bytes",
+                    "state": "unavailable",
+                    "confidence": "unknown",
+                    "artifact": {
+                      "available": true,
+                      "artifact_id": "art_825d88385763ad9562a1c901561e263c8cac51a41d8866432d206037cc362bd4",
+                      "sha256": "825d88385763ad9562a1c901561e263c8cac51a41d8866432d206037cc362bd4"
+                    },
+                    "location": {
+                      "available": true,
+                      "value": {
+                        "kind": "artifact-path",
+                        "path": "ElectronAppWrapper.js.map"
+                      }
+                    },
+                    "extractor": {
+                      "name": "rea-javascript-artifact-reconstruction",
+                      "version": "1",
+                      "operation": "parse-local-source-map",
+                      "executable_sha256": null
+                    },
+                    "coverage": {
+                      "status": "partial",
+                      "truncated": false,
+                      "omitted_count": null,
+                      "limits": [
+                        {
+                          "name": "javascript_analysis_worker_timeout_ms",
+                          "value": 1,
+                          "unit": "milliseconds"
+                        }
+                      ]
+                    },
+                    "limitations": [
+                      "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application"
+                    ],
+                    "evidence_ids": []
+                  },
+                  "observation_id": "jag_observation_4b04b2982325de96322efd493507386b986aca57309e959870831dbd6dffd4fd",
+                  "identifier_strategy": {
+                    "strategy": "semantic-content-sha256",
+                    "stability": "observation-exact"
+                  }
+                }
+              ],
+              "evidence_id": "ev_bd1433b6c29798e4fab50fc2ceab69468f688f49dd89b3e34c2e7150c7bf0173",
+              "source_coverage": {
+                "status": "partial",
+                "source_graph_status": "partial",
+                "total_seed_matches": 3
+              },
+              "graph_coverage": {
+                "status": "partial",
+                "truncated": false,
+                "omitted_count": null,
+                "limits": [
+                  {
+                    "name": "javascript_analysis_worker_timeout_ms",
+                    "value": 1,
+                    "unit": "milliseconds"
+                  }
+                ]
+              }
+            },
+            {
+              "source": "retained-feature-trace",
+              "path": "index.html",
+              "scopes": [
+                {
+                  "node_id": "jag_node_6b9579c90a2499e7e799ede95e32f4c3a4f36d4ac205725bcfdb335aa7b77535",
+                  "label": "index.html parse scope",
+                  "source_map_reference": null,
+                  "properties": {
+                    "analysis_status": "not-started",
+                    "path": "index.html",
+                    "operation": "parse-html-script-references",
+                    "limitation": "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application",
+                    "analysis_failure": {
+                      "code": "provider_timeout",
+                      "category": "timeout",
+                      "message": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues.",
+                      "retryable": true,
+                      "remediation": {
+                        "action": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues."
+                      },
+                      "details": {
+                        "operation": "analyze_javascript_application",
+                        "timeout_ms": 1,
+                        "captured_output": {
+                          "stdout": "",
+                          "stderr": "",
+                          "truncated": false,
+                          "stderr_bytes": 0,
+                          "exit_code": null,
+                          "signal": null
+                        }
+                      }
+                    }
+                  },
+                  "evidence": {
+                    "authority": "artifact-bytes",
+                    "state": "unavailable",
+                    "confidence": "unknown",
+                    "artifact": {
+                      "available": true,
+                      "artifact_id": "art_a083a1d8a8065872fb74c381730e5b05958a041af717643e2eaeaec8557f6c81",
+                      "sha256": "a083a1d8a8065872fb74c381730e5b05958a041af717643e2eaeaec8557f6c81"
+                    },
+                    "location": {
+                      "available": true,
+                      "value": {
+                        "kind": "artifact-path",
+                        "path": "index.html"
+                      }
+                    },
+                    "extractor": {
+                      "name": "rea-javascript-artifact-reconstruction",
+                      "version": "1",
+                      "operation": "parse-html-script-references",
+                      "executable_sha256": null
+                    },
+                    "coverage": {
+                      "status": "partial",
+                      "truncated": false,
+                      "omitted_count": null,
+                      "limits": [
+                        {
+                          "name": "javascript_analysis_worker_timeout_ms",
+                          "value": 1,
+                          "unit": "milliseconds"
+                        }
+                      ]
+                    },
+                    "limitations": [
+                      "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application"
+                    ],
+                    "evidence_ids": []
+                  },
+                  "observation_id": "jag_observation_f432dffb800852a9d28d2f85c17ae6b5d83b7b2ae5780021169506a8d08f0d35",
+                  "identifier_strategy": {
+                    "strategy": "semantic-content-sha256",
+                    "stability": "observation-exact"
+                  }
+                }
+              ],
+              "evidence_id": "ev_63d3f7670ea3030c3b105d8b265e056306bbb8cd1269bf6f7d90d024d2664fb1",
+              "source_coverage": {
+                "status": "partial",
+                "source_graph_status": "partial",
+                "total_seed_matches": 3
+              },
+              "graph_coverage": {
+                "status": "partial",
+                "truncated": false,
+                "omitted_count": null,
+                "limits": [
+                  {
+                    "name": "javascript_analysis_worker_timeout_ms",
+                    "value": 1,
+                    "unit": "milliseconds"
+                  }
+                ]
+              }
+            },
+            {
+              "source": "retained-feature-trace",
+              "path": "package.json",
+              "scopes": [
+                {
+                  "node_id": "jag_node_b7c192d0ca620104077a3e4991c8e7615b3098a96e3b78fdea80e5bf3149dc13",
+                  "label": "package.json parse scope",
+                  "source_map_reference": null,
+                  "properties": {
+                    "analysis_status": "not-started",
+                    "path": "package.json",
+                    "operation": "parse-package-json",
+                    "limitation": "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application",
+                    "analysis_failure": {
+                      "code": "provider_timeout",
+                      "category": "timeout",
+                      "message": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues.",
+                      "retryable": true,
+                      "remediation": {
+                        "action": "Analysis took too long. Try a smaller request, then run `rea doctor` if it continues."
+                      },
+                      "details": {
+                        "operation": "analyze_javascript_application",
+                        "timeout_ms": 1,
+                        "captured_output": {
+                          "stdout": "",
+                          "stderr": "",
+                          "truncated": false,
+                          "stderr_bytes": 0,
+                          "exit_code": null,
+                          "signal": null
+                        }
+                      }
+                    }
+                  },
+                  "evidence": {
+                    "authority": "artifact-bytes",
+                    "state": "unavailable",
+                    "confidence": "unknown",
+                    "artifact": {
+                      "available": true,
+                      "artifact_id": "art_2caf6a44c578054124684c6ec441eff90e434c09319ea5dd74c69ac1109c1119",
+                      "sha256": "2caf6a44c578054124684c6ec441eff90e434c09319ea5dd74c69ac1109c1119"
+                    },
+                    "location": {
+                      "available": true,
+                      "value": {
+                        "kind": "artifact-path",
+                        "path": "package.json"
+                      }
+                    },
+                    "extractor": {
+                      "name": "rea-javascript-artifact-reconstruction",
+                      "version": "1",
+                      "operation": "parse-package-json",
+                      "executable_sha256": null
+                    },
+                    "coverage": {
+                      "status": "partial",
+                      "truncated": false,
+                      "omitted_count": null,
+                      "limits": [
+                        {
+                          "name": "javascript_analysis_worker_timeout_ms",
+                          "value": 1,
+                          "unit": "milliseconds"
+                        }
+                      ]
+                    },
+                    "limitations": [
+                      "Source analysis was interrupted: Analysis operation timed out after 1ms: analyze_javascript_application"
+                    ],
+                    "evidence_ids": []
+                  },
+                  "observation_id": "jag_observation_5dae4759fcf36b25470467347515c95207d69d7ececfc17a1d90ecfbbea4dc79",
+                  "identifier_strategy": {
+                    "strategy": "semantic-content-sha256",
+                    "stability": "observation-exact"
+                  }
+                }
+              ],
+              "evidence_id": "ev_695a324bc600e2a81a36259c8798bcbaa4a38f75abc82adad55f2dc6dec2e473",
+              "source_coverage": {
+                "status": "partial",
+                "source_graph_status": "partial",
+                "total_seed_matches": 3
+              },
+              "graph_coverage": {
+                "status": "partial",
+                "truncated": false,
+                "omitted_count": null,
+                "limits": [
+                  {
+                    "name": "javascript_analysis_worker_timeout_ms",
+                    "value": 1,
+                    "unit": "milliseconds"
+                  }
+                ]
+              }
+            }
+          ],
+          "modeled_structured_trace_count": 3,
+          "node": {
+            "node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+            "identity": {
+              "strategy": "content-digest",
+              "stability": "global-exact",
+              "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+            },
+            "unavailable_observed": false,
+            "basis": [
+              {
+                "authority": "artifact-bytes",
+                "state": "observed",
+                "confidence": "exact",
+                "artifact": {
+                  "available": true,
+                  "artifact_id": "art_0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+                  "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+                },
+                "location": {
+                  "available": true,
+                  "value": {
+                    "kind": "artifact-path",
+                    "path": "node_modules/keytar/build/Release/keytar.node"
+                  }
+                }
+              }
+            ]
+          },
+          "native_handoffs": [
+            {
+              "native_node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+              "artifact_sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+              "artifact_path": "node_modules/keytar/build/Release/keytar.node",
+              "export_node_ids": [],
+              "requested_exports": [],
+              "status": "evidence-linked",
+              "providers": [
+                {
+                  "id": "ghidra",
+                  "name": "Ghidra",
+                  "version": "simulated"
+                }
+              ],
+              "evidence_ids": [
+                "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+              ],
+              "recommended_tools": [
+                "open_binary",
+                "binary_overview",
+                "search_procedures",
+                "analyze_function",
+                "xrefs"
+              ]
+            }
+          ],
+          "evidence_links": [
+            "ev_ba7919ad7d538a41c183dfb5e27bb9dff6058a01b83fb583beebf4205c7c9939",
+            "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+          ],
+          "source_coverage": {
+            "status": "partial",
+            "source_graph_status": "partial",
+            "total_seed_matches": 2
+          },
+          "graph_coverage": {
+            "status": "partial",
+            "truncated": false,
+            "omitted_count": null,
+            "limits": [
+              {
+                "name": "javascript_analysis_worker_timeout_ms",
+                "value": 1,
+                "unit": "milliseconds"
+              }
+            ]
+          },
+          "facts_sha256": "70adc49dd7b9e13136c9ba3616a9a7210e86c2bacba734c329274f911e38458d",
+          "cli_parity": {
+            "exact_cli_mcp_trace_parity": true,
+            "evidence_id": "ev_c95f2477bbc503d71094288ca11354fbb5bb0d8c86d26c7ea2b373a98458587f"
+          },
+          "token_costs": {
+            "tokenizer": "cl100k_base",
+            "tiktoken_version": "0.12.0",
+            "selected_catalog": 5570,
+            "full_catalog": 195522,
+            "requests": 911,
+            "structured_replies": 13680,
+            "full_tool_replies": 27990,
+            "selected_catalog_structured_task": 20161,
+            "full_catalog_structured_task": 210113,
+            "selected_catalog_full_reply_task": 34471,
+            "full_catalog_full_reply_task": 224423
+          },
+          "conditions": "Fresh MCP session, selected analysis followed by retained traces. Task token counts include one analysis summary or parsed timeout error, one native trace and each requested structured-path trace, with name/description/inputSchema catalog projections. Structured Evidence/parsed error and complete-tool-reply projections are alternatives, not billing. Repeated native rounds, export, CLI parity and tokenizer are validation overhead outside task tokens but inside total resource receipts. Filesystem/build caches uncontrolled. Incorrect identity/applicability is not a successful equivalent task or efficiency credit."
+        },
+        "resources": {
+          "elapsed_seconds": 57.515,
+          "cpu_seconds": 57.089883,
+          "peak_cgroup_bytes": 2763276288,
+          "payload_exit_code": 0,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      },
+      "control": {
+        "result": {
+          "scope": "Real shipped-ASAR native identity through public CLI/stdio MCP; simulated native Evidence only, no provider/application executed",
+          "artifact": {
+            "path": "/tmp/rea-native-handoff-20261015/cases/available/app.asar",
+            "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+          },
+          "addon_path": "node_modules/keytar/build/Release/keytar.node",
+          "companion_sha256_observed": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "source_paths": [
+            "ElectronAppWrapper.js",
+            "ElectronAppWrapper.js.map",
+            "index.html",
+            "package.json",
+            "node_modules/keytar/build/Release/keytar.node"
+          ],
+          "preparation_outcome": "completed",
+          "analysis_timeout_ms": null,
+          "parent_evidence_id": "ev_11a21c98651e2f165e0a2a223734ceafb44ca8dcc0dd691647053237661b732a",
+          "trace_evidence_id": "ev_c70e3df14722c16822221309a873d064cb5772f644f0c537d6b3ec3dcee7e3ce",
+          "trace_subject": null,
+          "preparation_ms": 143205.272422,
+          "samples": [
+            {
+              "round": 0,
+              "elapsed_ms": 634.3961899999995,
+              "structured_reply_bytes": 9835,
+              "full_tool_reply_bytes": 20513
+            },
+            {
+              "round": 1,
+              "elapsed_ms": 783.5708970000269,
+              "structured_reply_bytes": 9835,
+              "full_tool_reply_bytes": 20513
+            },
+            {
+              "round": 2,
+              "elapsed_ms": 966.7669149999856,
+              "structured_reply_bytes": 9835,
+              "full_tool_reply_bytes": 20513
+            }
+          ],
+          "safe_identity": true,
+          "safe_applicability": true,
+          "native_analysis_scopes": [],
+          "structured_scopes": [
+            {
+              "source": "exported-parent-validation",
+              "path": "ElectronAppWrapper.js.map",
+              "scopes": [],
+              "source_evidence_id": "ev_11a21c98651e2f165e0a2a223734ceafb44ca8dcc0dd691647053237661b732a",
+              "retained_matching_nodes": 1,
+              "graph_coverage": {
+                "limits": [],
+                "omitted_count": null,
+                "status": "partial",
+                "truncated": false
+              }
+            },
+            {
+              "source": "exported-parent-validation",
+              "path": "index.html",
+              "scopes": [],
+              "source_evidence_id": "ev_11a21c98651e2f165e0a2a223734ceafb44ca8dcc0dd691647053237661b732a",
+              "retained_matching_nodes": 1,
+              "graph_coverage": {
+                "limits": [],
+                "omitted_count": null,
+                "status": "partial",
+                "truncated": false
+              }
+            },
+            {
+              "source": "exported-parent-validation",
+              "path": "package.json",
+              "scopes": [],
+              "source_evidence_id": "ev_11a21c98651e2f165e0a2a223734ceafb44ca8dcc0dd691647053237661b732a",
+              "retained_matching_nodes": 2,
+              "graph_coverage": {
+                "limits": [],
+                "omitted_count": null,
+                "status": "partial",
+                "truncated": false
+              }
+            }
+          ],
+          "modeled_structured_trace_count": 0,
+          "node": {
+            "node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+            "identity": {
+              "strategy": "content-digest",
+              "stability": "global-exact",
+              "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+            },
+            "unavailable_observed": false,
+            "basis": [
+              {
+                "authority": "artifact-bytes",
+                "state": "observed",
+                "confidence": "exact",
+                "artifact": {
+                  "available": true,
+                  "artifact_id": "art_0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+                  "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+                },
+                "location": {
+                  "available": true,
+                  "value": {
+                    "kind": "artifact-path",
+                    "path": "node_modules/keytar/build/Release/keytar.node"
+                  }
+                }
+              }
+            ]
+          },
+          "native_handoffs": [
+            {
+              "native_node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+              "artifact_sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+              "artifact_path": "node_modules/keytar/build/Release/keytar.node",
+              "export_node_ids": [],
+              "requested_exports": [],
+              "status": "evidence-linked",
+              "providers": [
+                {
+                  "id": "ghidra",
+                  "name": "Ghidra",
+                  "version": "simulated"
+                }
+              ],
+              "evidence_ids": [
+                "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+              ],
+              "recommended_tools": [
+                "open_binary",
+                "binary_overview",
+                "search_procedures",
+                "analyze_function",
+                "xrefs"
+              ]
+            }
+          ],
+          "evidence_links": [
+            "ev_11a21c98651e2f165e0a2a223734ceafb44ca8dcc0dd691647053237661b732a",
+            "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+          ],
+          "source_coverage": {
+            "status": "partial",
+            "source_graph_status": "partial",
+            "total_seed_matches": 2
+          },
+          "graph_coverage": {
+            "status": "partial",
+            "truncated": false,
+            "omitted_count": null,
+            "limits": []
+          },
+          "facts_sha256": "1ddcb621546636066ceea7f24b493ea1e2d2578f941ad96ba01bd11e98a673b4",
+          "cli_parity": {
+            "exact_cli_mcp_trace_parity": true,
+            "evidence_id": "ev_c70e3df14722c16822221309a873d064cb5772f644f0c537d6b3ec3dcee7e3ce"
+          },
+          "token_costs": {
+            "tokenizer": "cl100k_base",
+            "tiktoken_version": "0.12.0",
+            "selected_catalog": 5570,
+            "full_catalog": 195522,
+            "requests": 621,
+            "structured_replies": 5529,
+            "full_tool_replies": 11441,
+            "selected_catalog_structured_task": 11720,
+            "full_catalog_structured_task": 201672,
+            "selected_catalog_full_reply_task": 17632,
+            "full_catalog_full_reply_task": 207584
+          },
+          "conditions": "Fresh MCP session, selected analysis followed by retained traces. Task token counts include one analysis summary or parsed timeout error, one native trace and each requested structured-path trace, with name/description/inputSchema catalog projections. Structured Evidence/parsed error and complete-tool-reply projections are alternatives, not billing. Repeated native rounds, export, CLI parity and tokenizer are validation overhead outside task tokens but inside total resource receipts. Filesystem/build caches uncontrolled. Incorrect identity/applicability is not a successful equivalent task or efficiency credit."
+        },
+        "resources": {
+          "elapsed_seconds": 186.085,
+          "cpu_seconds": 142.3711,
+          "peak_cgroup_bytes": 2959585280,
+          "payload_exit_code": 0,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      }
+    }
+  },
+  "prior_postfix_controls": {
+    "timeout_initial": {
+      "result_equivalent_to": "cohorts.final.timeout.result except preparation_ms and sample elapsed_ms",
+      "parent_evidence_id": "ev_ba7919ad7d538a41c183dfb5e27bb9dff6058a01b83fb583beebf4205c7c9939",
+      "trace_evidence_id": "ev_c95f2477bbc503d71094288ca11354fbb5bb0d8c86d26c7ea2b373a98458587f",
+      "facts_sha256": "70adc49dd7b9e13136c9ba3616a9a7210e86c2bacba734c329274f911e38458d",
+      "preparation_ms": 115261.093735,
+      "samples": [
+        {
+          "round": 0,
+          "elapsed_ms": 145.1469300000026,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        },
+        {
+          "round": 1,
+          "elapsed_ms": 101.51045399998839,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        },
+        {
+          "round": 2,
+          "elapsed_ms": 97.06579300000158,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        }
+      ],
+      "resources": {
+        "elapsed_seconds": 150.173,
+        "cpu_seconds": 119.468013,
+        "peak_cgroup_bytes": 3019853824,
+        "payload_exit_code": 0,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    "timeout_repeat": {
+      "result_equivalent_to": "cohorts.final.timeout.result except preparation_ms and sample elapsed_ms",
+      "parent_evidence_id": "ev_ba7919ad7d538a41c183dfb5e27bb9dff6058a01b83fb583beebf4205c7c9939",
+      "trace_evidence_id": "ev_c95f2477bbc503d71094288ca11354fbb5bb0d8c86d26c7ea2b373a98458587f",
+      "facts_sha256": "70adc49dd7b9e13136c9ba3616a9a7210e86c2bacba734c329274f911e38458d",
+      "preparation_ms": 35470.4775,
+      "samples": [
+        {
+          "round": 0,
+          "elapsed_ms": 144.9189419999966,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        },
+        {
+          "round": 1,
+          "elapsed_ms": 103.62069399999746,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        },
+        {
+          "round": 2,
+          "elapsed_ms": 101.42204499999934,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        }
+      ],
+      "resources": {
+        "elapsed_seconds": 58.827,
+        "cpu_seconds": 58.482996,
+        "peak_cgroup_bytes": 3098058752,
+        "payload_exit_code": 0,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    "control": {
+      "result_equivalent_to": "cohorts.final.control.result except preparation_ms and sample elapsed_ms",
+      "parent_evidence_id": "ev_11a21c98651e2f165e0a2a223734ceafb44ca8dcc0dd691647053237661b732a",
+      "trace_evidence_id": "ev_c70e3df14722c16822221309a873d064cb5772f644f0c537d6b3ec3dcee7e3ce",
+      "facts_sha256": "1ddcb621546636066ceea7f24b493ea1e2d2578f941ad96ba01bd11e98a673b4",
+      "preparation_ms": 39951.481265,
+      "samples": [
+        {
+          "round": 0,
+          "elapsed_ms": 163.74327900000208,
+          "structured_reply_bytes": 9835,
+          "full_tool_reply_bytes": 20513
+        },
+        {
+          "round": 1,
+          "elapsed_ms": 112.51611199999752,
+          "structured_reply_bytes": 9835,
+          "full_tool_reply_bytes": 20513
+        },
+        {
+          "round": 2,
+          "elapsed_ms": 99.61466400000063,
+          "structured_reply_bytes": 9835,
+          "full_tool_reply_bytes": 20513
+        }
+      ],
+      "resources": {
+        "elapsed_seconds": 66.135,
+        "cpu_seconds": 65.681493,
+        "peak_cgroup_bytes": 3229392896,
+        "payload_exit_code": 0,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    }
+  },
+  "comparisons": {
+    "timeout": "Artifact/native identity, known-byte provenance, source selection, handoff targets/provider Evidence and nullable trace subject preserved. Corrected global provenance changes parent/trace identities; CLI/MCP parity is exact within each run. Source partial coverage preserved.",
+    "control": "Artifact/native identity, known-byte provenance, source selection, handoff targets/provider Evidence and nullable trace subject preserved. Corrected global provenance changes parent/trace identities; CLI/MCP parity is exact within each run. Source partial coverage preserved."
+  },
+  "validation": {
+    "base_public": "Final public timeout case and cancellation case failed on native AST scopes;21 other cases passed. Corrected cancellation oracle then independently reproduced false native AST scope and phantom semantic module,16 controls passed.",
+    "review_oracle": "Six new passing cases use the actual retained Joplin baseline/final source-map snapshots and counterexamples: wrong metadata operation, entered instead of unvisited status, missing status, missing/empty/mixed scopes, and malformed explicit expectations. No production phase map is imported. 55 distinct passing cases across9files including original49; production source unchanged since pre_review_revision.",
+    "post_review_static_docs": "Passed on the strict verifier/helper/test changes, including5 consistency tests.",
+    "shared_boundary_focused": "78 distinct cases across10files passed after centralizing semantic applicability:9file run65/65 and original root reconstruction file13/13. Includes both full/incremental producer paths, all original49cases, six oracle regressions and23cases in the alternate-builder owning test file. No test deadline changed.",
+    "shared_boundary_static_docs": "Passed including5 consistency tests",
+    "initial_focused": "49 distinct passing cases across8files through documented invocations; first preprogress7file selection44/44; final7file selection43pass/1testdeadline, unchangednative+CLIcancellation rerun7/7 withone already-passed overlap. No test deadline raised.",
+    "final_focused": "78 distinct cases across10files passed after centralizing semantic applicability:9file run65/65 and original root reconstruction file13/13. Includes both full/incremental producer paths, all original49cases, six oracle regressions and23cases in the alternate-builder owning test file. No test deadline changed.",
+    "initial_static_docs": "Passed including5 consistency tests",
+    "static_docs": "Passed including5 consistency tests"
+  },
+  "validation_resources": {
+    "preprogress_focused_44": {
+      "elapsed_seconds": 158.266,
+      "cpu_seconds": 156.15273,
+      "peak_cgroup_bytes": 3255263232,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "final_seven_files_43_pass_one_timeout": {
+      "elapsed_seconds": 286.914,
+      "cpu_seconds": 238.435334,
+      "peak_cgroup_bytes": 3164958720,
+      "payload_exit_code": 1,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "final_native_cli_cancellation_seven": {
+      "elapsed_seconds": 31.936,
+      "cpu_seconds": 31.543796,
+      "peak_cgroup_bytes": 1380851712,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "public_baseline_two_fail_21_pass": {
+      "elapsed_seconds": 56.508,
+      "cpu_seconds": 56.00798,
+      "peak_cgroup_bytes": 1448239104,
+      "payload_exit_code": 1,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "corrected_cancellation_baseline_one_fail_16_pass": {
+      "elapsed_seconds": 17.238,
+      "cpu_seconds": 16.905674,
+      "peak_cgroup_bytes": 675725312,
+      "payload_exit_code": 1,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "initial_public_baseline_one_fail_five_pass": {
+      "elapsed_seconds": 87.361,
+      "cpu_seconds": 70.256744,
+      "peak_cgroup_bytes": 1455607808,
+      "payload_exit_code": 1,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "npm_ci": {
+      "elapsed_seconds": 15.33,
+      "cpu_seconds": 15.091731,
+      "peak_cgroup_bytes": 1635868672,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "baseline_build": {
+      "elapsed_seconds": 41.23,
+      "cpu_seconds": 40.907387,
+      "peak_cgroup_bytes": 3223269376,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "initial_static_lint_length": {
+      "elapsed_seconds": 52.295,
+      "cpu_seconds": 36.748379,
+      "peak_cgroup_bytes": 2142298112,
+      "payload_exit_code": 1,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "assertion_cleanup_public": {
+      "elapsed_seconds": 40.818,
+      "cpu_seconds": 40.423137,
+      "peak_cgroup_bytes": 1475428352,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "final_static_docs": {
+      "elapsed_seconds": 165.553,
+      "cpu_seconds": 150.247257,
+      "peak_cgroup_bytes": 4232491008,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "review_oracle_six": {
+      "elapsed_seconds": 1.732,
+      "cpu_seconds": 1.541615,
+      "peak_cgroup_bytes": 209133568,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "post_review_static_docs": {
+      "elapsed_seconds": 111.395,
+      "cpu_seconds": 110.97971,
+      "peak_cgroup_bytes": 4347125760,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "full_builder_baseline_failure": {
+      "elapsed_seconds": 4.753,
+      "cpu_seconds": 4.55027,
+      "peak_cgroup_bytes": 490741760,
+      "payload_exit_code": 1,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "shared_boundary_focused": {
+      "elapsed_seconds": 260.67,
+      "cpu_seconds": 222.352926,
+      "peak_cgroup_bytes": 3058573312,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "shared_boundary_original_root_tests": {
+      "elapsed_seconds": 16.735,
+      "cpu_seconds": 15.157791,
+      "peak_cgroup_bytes": 692125696,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "shared_boundary_static_docs": {
+      "elapsed_seconds": 117.636,
+      "cpu_seconds": 117.194118,
+      "peak_cgroup_bytes": 4263153664,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    }
+  },
+  "attempts": [
+    {
+      "kind": "verifier-assumption failure",
+      "detail": "Initial real timeout verifier assumed trace.subject was non-null; partial Evidence legitimately preserved null. Removed this assumption and verified exported parent root_artifact_sha256. Not a product reproduction.",
+      "resources": {
+        "elapsed_seconds": 41.725,
+        "cpu_seconds": 41.52975,
+        "peak_cgroup_bytes": 1564684288,
+        "payload_exit_code": 1,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    {
+      "kind": "preliminary structured-only timeout",
+      "detail": "Native path was outside caller source_paths, so native interruption was not reproduced; selected map/HTML/package AST misattribution was observed. Native-selected primary baseline is separate.",
+      "source_paths": [
+        "ElectronAppWrapper.js",
+        "ElectronAppWrapper.js.map",
+        "index.html",
+        "package.json"
+      ],
+      "observed_native_interruption_scope_count": 0,
+      "resources": {
+        "elapsed_seconds": 79.507,
+        "cpu_seconds": 70.78951,
+        "peak_cgroup_bytes": 2725289984,
+        "payload_exit_code": 0,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    {
+      "kind": "oracle correction",
+      "detail": "Cancellation semantic nodes use identity.module_path. Initial top-level lookup was an invalid absence check; corrected before runtime edits. Corrected baseline proves both false native AST scope and phantom semantic module; actual first-JavaScript facts remain."
+    },
+    {
+      "kind": "metadata trace delivery failure",
+      "detail": "Default source analysis completed, then the package.json outgoing trace exceeded stdio admission. This is not a completed equivalent task. Reproduced twice with identical parent/trace IDs and budget. Follow-up #4190.",
+      "resources": {
+        "elapsed_seconds": 53.594,
+        "cpu_seconds": 53.334504,
+        "peak_cgroup_bytes": 1640468480,
+        "payload_exit_code": 1,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      },
+      "repeat_resources": {
+        "elapsed_seconds": 53.904,
+        "cpu_seconds": 53.665117,
+        "peak_cgroup_bytes": 1750102016,
+        "payload_exit_code": 1,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      },
+      "public_reproduction": {
+        "runtime": {
+          "built_revision": "c7f6b8bad1a34d5efb30ff2a017672dea1fcdabb",
+          "js_files": 1627,
+          "dist_js_tree_sha256": "1aaa381d4ca46cf3ccf17904d7abcfee10f386a70f6d9c8344cc75a5557cd918",
+          "entry_sha256": "369813033dee10571a83c0656d90b5c8493270556896ddd079afb1bbe4b385ca",
+          "package_sha256": "cdb2fb0fd3a88790d921aadb560cac382fa360c821a2c3f6960bf75eff292ee8",
+          "verifier_sha256": "10335e8f8a87d01302a314af2ebd23505cb53af892984f89e376f158199e6f13"
+        },
+        "query": {
+          "name": "trace_application_feature",
+          "arguments": {
+            "application": {
+              "kind": "retained-evidence",
+              "evidence_id": "ev_b1f947f72911e1a8c7faaca4fd70e084279b791ba3bf4d63bf0cfe87f2c63ed4"
+            },
+            "native_observations": [],
+            "seed": {
+              "kind": "string",
+              "value": "package.json",
+              "match": "exact",
+              "case_sensitive": true
+            },
+            "direction": "outgoing"
+          }
+        },
+        "error": {
+          "code": "resource_constraint",
+          "category": "resource_constraint",
+          "message": "The operation completed, but its complete MCP response exceeds the stdio response budget. The analysis result was not truncated. Export retained evidence to consume the complete analysis, or use complete CLI JSON output.",
+          "retryable": false,
+          "remediation": {
+            "action": "Discover retained records with get_evidence_bundle and detail: summary, then inspect compatible records through inspect_analysis_view using an exact Evidence reference. Export complete retained session evidence through export_evidence_bundle to a caller-selected path, or use complete CLI JSON output. The connection remains usable."
+          },
+          "details": {
+            "operation": "trace_application_feature",
+            "resource": "transport",
+            "reason": "The operation completed, but its complete MCP response exceeds the stdio response budget. The analysis result was not truncated. Export retained evidence to consume the complete analysis, or use complete CLI JSON output.",
+            "reported_limits": {
+              "boundary": "mcp-response",
+              "default_receive_buffer_bytes": 10485760,
+              "result_budget_bytes": 10484736,
+              "max_string_code_units": 536869864,
+              "response_bytes_at_least": 10587373,
+              "response_code_units_at_least": 10587373,
+              "constraint": "receive-buffer",
+              "evidence_id": "ev_64903e99c2a09d15abd0955b8ddcab0dd4fb01b5a6721c64d2308b3a105df5ac",
+              "evidence_reference": {
+                "kind": "retained-evidence",
+                "evidence_id": "ev_64903e99c2a09d15abd0955b8ddcab0dd4fb01b5a6721c64d2308b3a105df5ac"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "kind": "test deadline",
+      "detail": "Final seven-file selection passed43 and hit the unchanged30s test deadline in the existing missing-companion native identity case. Same source/test deadline rerun passed both native cases and five CLI cancellation cases; final coverage49 distinct cases across8files. Original failure is retained."
+    },
+    {
+      "kind": "static test-length failure",
+      "detail": "First full check stopped at lint: new public callback172lines exceeded150. Extracted a named Evidence assertion helper and consolidated scope observation lookup, retaining/strengthening assertions. Runtime/driver unchanged; targeted six-case file rerun and full gates recorded separately.",
+      "resources": {
+        "elapsed_seconds": 52.295,
+        "cpu_seconds": 36.748379,
+        "peak_cgroup_bytes": 2142298112,
+        "payload_exit_code": 1,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    {
+      "kind": "test command rejected before execution",
+      "detail": "The development wrapper rejected built-project local mode or unsupported -t filter; no tests ran. The exact Vitest runner then reproduced the baseline on already-built runtime323fae8cb.",
+      "resources": {
+        "elapsed_seconds": 0.633,
+        "cpu_seconds": 0.390636,
+        "peak_cgroup_bytes": 42291200,
+        "payload_exit_code": 1,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    {
+      "kind": "test command rejected before execution",
+      "detail": "The development wrapper rejected built-project local mode or unsupported -t filter; no tests ran. The exact Vitest runner then reproduced the baseline on already-built runtime323fae8cb.",
+      "resources": {
+        "elapsed_seconds": 0.422,
+        "cpu_seconds": 0.225054,
+        "peak_cgroup_bytes": 46489600,
+        "payload_exit_code": 1,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    }
+  ],
+  "cost_interpretation": {
+    "timeout_task": "One expected typed-timeout preparation plus one native and three structured-path inline retained traces, known paths/prior native Evidence supplied. Baseline wrong applicability is not successful task or efficiency credit.",
+    "control_task": "One default-deadline summary plus one inline native trace. Structured-path correctness additionally checked from complete private exported parent; this diagnostic work is outside modeled native-task tokens and inside total verifier resources. Do not compare this control cost to the four-query timeout task.",
+    "token_projection": "Count name/description/inputSchema catalog, requests and structured Evidence or parsed text error; complete-tool-reply alternative includes MCP text+structured duplication. Export/CLI parity/tokenizer/repeated native rounds are validation overhead outside the modeled task tokens, inside resources. Host output schemas/rendering/replay, notifications, model reasoning/final answers and billing unmeasured.",
+    "timing": "First preprogress fixed timeout150.173s wall/119.468013s CPU, exact repeat58.827s/58.482996s with identical non-timing facts/Evidence/BPE. Retain all runs. Cache/scheduler causes not established; no speedup or performance-equivalence claim. Final control186.085s wall/142.371100s CPU also repeated at62.651s/62.240964s with identical non-timing results. The slow final row remains reported; repeats do not replace it.",
+    "cache_conditions": "Each fresh MCP process follows stream hashing of the input, warming file cache. Build/OS caches and shared-host scheduling uncontrolled. Fresh process does not establish OS-cold conditions. First/repeated retained-query samples separately recorded; query CPU/memory unmeasured."
+  },
+  "resource_policy": {
+    "hard_bytes": 8589934592,
+    "early_stop_bytes": 6442450944,
+    "cpu_quota_percent": 100,
+    "cpu_affinity": [15],
+    "pids_max": 192,
+    "swap": "disabled by observer scope",
+    "memory": "Process-family cgroup peak includes charged file cache, not summed RSS.",
+    "accounting": "Counters at payload exit while observer remains alive; not final whole-scope counters. Total verifier includes input hashing, preparation, repeated queries, export/CLI parity and tokenization. All completed receipts verify owned cleanup; no OOM."
+  },
+  "observer_sources_sha256": {
+    "resource-run.py": "7728862171415e7dee2c11af2ead2b9a54265fccaf82a7113956d36b29065e33",
+    "resource_payload.py": "6f089e645459eba80c5d73e39c21606c78173a44daf49fabc3b88c4631ce51c6"
+  },
+  "remaining_limits": [
+    "Runtime Electron/application execution and real native-provider behavior NOT_ENOUGH_INFO; simulated Evidence is explicitly marked.",
+    "Windows/macOS runtime behavior and hosted-agent/model costs NOT_ENOUGH_INFO.",
+    "Normal broad metadata trace delivery remains #4190; complete export remains available.",
+    "Original applications and large Evidence are regenerable and are not archived."
+  ],
+  "final_control_repeat": {
+    "result_equivalent_to": "cohorts.final.control.result except preparation_ms and sample elapsed_ms",
+    "parent_evidence_id": "ev_11a21c98651e2f165e0a2a223734ceafb44ca8dcc0dd691647053237661b732a",
+    "trace_evidence_id": "ev_c70e3df14722c16822221309a873d064cb5772f644f0c537d6b3ec3dcee7e3ce",
+    "preparation_ms": 39787.412041999996,
+    "samples": [
+      {
+        "round": 0,
+        "elapsed_ms": 155.13823799999955,
+        "structured_reply_bytes": 9835,
+        "full_tool_reply_bytes": 20513
+      },
+      {
+        "round": 1,
+        "elapsed_ms": 97.110689000001,
+        "structured_reply_bytes": 9835,
+        "full_tool_reply_bytes": 20513
+      },
+      {
+        "round": 2,
+        "elapsed_ms": 94.64593900000182,
+        "structured_reply_bytes": 9835,
+        "full_tool_reply_bytes": 20513
+      }
+    ],
+    "resources": {
+      "elapsed_seconds": 62.651,
+      "cpu_seconds": 62.240964,
+      "peak_cgroup_bytes": 2751827968,
+      "payload_exit_code": 0,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    }
+  },
+  "selected_test_files": [
+    "tests/acceptance/applications/javascriptAnalysisLimits.test.ts",
+    "tests/boundary/javascript/javascriptApplicationCancellation.test.ts",
+    "tests/boundary/filesystem/javascriptArtifactReconstruction.test.ts",
+    "tests/boundary/filesystem/javascriptArtifactGraphObservationLookup.test.ts",
+    "tests/acceptance/applications/javascriptSourceSelectionCli.test.ts",
+    "tests/boundary/mcp/javascriptNativeHandoffIdentity.test.ts",
+    "tests/boundary/mcp/javascriptAnalysisResources.test.ts",
+    "tests/acceptance/applications/javascriptCancellationCli.test.ts",
+    "tests/boundary/process/javascriptVerifierScopeOracle.test.ts",
+    "tests/boundary/filesystem/javascript-applications/javascriptArtifactReconstruction.test.ts"
+  ],
+  "pre_review_revision": "04ca36ad86831e2d3639141bf41cd6994d8575d7",
+  "pre_review_source_sha256": {
+    "docs/javascript-artifact-reconstruction.md": "58c472f61537f7aeca477440712a44a12dc020554f966cfdf7d5c1ea71166895",
+    "scripts/verify/javascript/native-handoffs.mjs": "10335e8f8a87d01302a314af2ebd23505cb53af892984f89e376f158199e6f13",
+    "src/application/javascript/JavaScriptArtifactAnalysis.ts": "dc0cc638ac7e8163efbe779f97bd9e945ef43688f71dc2c365de6439cc1823e6",
+    "src/application/javascript/JavaScriptArtifactAnalysisTypes.ts": "4569780dcaff8e783b3169770473373d202e3a8d558e5ea03df88cd3f6853bf7",
+    "src/application/javascript/JavaScriptArtifactGraphContext.ts": "b1e486b5b29f15466b033464780fc57d5619506aad94f4c5053e1882c4bd30d2",
+    "src/application/javascript/JavaScriptArtifactGraphEvidence.ts": "4ac2d6c95011ee6a86ef79b3477557fd296df1ebb84e57ebb3d359848ca92cc3",
+    "src/application/javascript/JavaScriptArtifactGraphStructure.ts": "167be12f869088aeab0e521d6e85ee11348b40f15d5a24dff3030d8dec39b8a3",
+    "src/application/javascript/JavaScriptArtifactReconstruction.ts": "583e14e34c5f4d2d6118f2dc750862b86f656bf2d98cca5b28fad2620168308c",
+    "tests/acceptance/applications/javascriptAnalysisLimits.test.ts": "25ea7addf365c3ab992d1f24d65d57b02655033e28b2b100406c9c90712064c7",
+    "tests/boundary/filesystem/javascriptArtifactReconstruction.test.ts": "bdb6dc9fd8a9921e956d01017ac9d32a499b3815f0611929185add7e42c5ba37",
+    "tests/boundary/javascript/javascriptApplicationCancellation.test.ts": "c604554072e6f848c24926b8630a738b9247ccd04b337374e8060cfb6a0a069f"
+  },
+  "post_review_strict_controls": {
+    "timeout": {
+      "result_equivalent_to": "cohorts.final.timeout.result except timing and the newly recorded independent structured_expectations input",
+      "structured_expectations": {
+        "ElectronAppWrapper.js.map": {
+          "operation": "parse-local-source-map",
+          "analysis_status": "not-started"
+        },
+        "index.html": {
+          "operation": "parse-html-script-references",
+          "analysis_status": "not-started"
+        },
+        "package.json": {
+          "operation": "parse-package-json",
+          "analysis_status": "not-started"
+        }
+      },
+      "parent_evidence_id": "ev_ba7919ad7d538a41c183dfb5e27bb9dff6058a01b83fb583beebf4205c7c9939",
+      "trace_evidence_id": "ev_c95f2477bbc503d71094288ca11354fbb5bb0d8c86d26c7ea2b373a98458587f",
+      "facts_sha256": "70adc49dd7b9e13136c9ba3616a9a7210e86c2bacba734c329274f911e38458d",
+      "safe_identity": true,
+      "safe_applicability": true,
+      "preparation_ms": 126809.012247,
+      "samples": [
+        {
+          "round": 0,
+          "elapsed_ms": 140.7263250000251,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        },
+        {
+          "round": 1,
+          "elapsed_ms": 89.8889719999861,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        },
+        {
+          "round": 2,
+          "elapsed_ms": 87.59898199999589,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        }
+      ],
+      "resources": {
+        "elapsed_seconds": 162.645,
+        "cpu_seconds": 125.876114,
+        "peak_cgroup_bytes": 2809643008,
+        "payload_exit_code": 0,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    "control": {
+      "result_equivalent_to": "cohorts.final.control.result except timing and the newly recorded independent structured_expectations input",
+      "structured_expectations": {
+        "ElectronAppWrapper.js.map": {
+          "operation": "parse-local-source-map",
+          "analysis_status": "not-started"
+        },
+        "index.html": {
+          "operation": "parse-html-script-references",
+          "analysis_status": "not-started"
+        },
+        "package.json": {
+          "operation": "parse-package-json",
+          "analysis_status": "not-started"
+        }
+      },
+      "parent_evidence_id": "ev_11a21c98651e2f165e0a2a223734ceafb44ca8dcc0dd691647053237661b732a",
+      "trace_evidence_id": "ev_c70e3df14722c16822221309a873d064cb5772f644f0c537d6b3ec3dcee7e3ce",
+      "facts_sha256": "1ddcb621546636066ceea7f24b493ea1e2d2578f941ad96ba01bd11e98a673b4",
+      "safe_identity": true,
+      "safe_applicability": true,
+      "preparation_ms": 38557.169505,
+      "samples": [
+        {
+          "round": 0,
+          "elapsed_ms": 145.8823429999975,
+          "structured_reply_bytes": 9835,
+          "full_tool_reply_bytes": 20513
+        },
+        {
+          "round": 1,
+          "elapsed_ms": 96.55243199999677,
+          "structured_reply_bytes": 9835,
+          "full_tool_reply_bytes": 20513
+        },
+        {
+          "round": 2,
+          "elapsed_ms": 96.86316200000147,
+          "structured_reply_bytes": 9835,
+          "full_tool_reply_bytes": 20513
+        }
+      ],
+      "resources": {
+        "elapsed_seconds": 61.367,
+        "cpu_seconds": 60.970077,
+        "peak_cgroup_bytes": 2526949376,
+        "payload_exit_code": 0,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    }
+  },
+  "review_oracle": {
+    "thread": "https://github.com/morluto/rea/pull/4207#discussion_r4287026723",
+    "root_cause": "The real verifier previously rejected JavaScript operation names but accepted any other metadata operation and ignored analysis_status. That could falsely accept the wrong metadata phase.",
+    "correction": "Scenario supplies independent per-path exact operation/status expectations. Every retained gap must also have artifact-bytes authority, unavailable state and unknown confidence. Missing expectations, empty gap sets and any conflicting observation fail.",
+    "runtime_change": "None in this review correction. Original analytical observations, identities, coverage, token projections and CLI/MCP parity match exactly in both strict reruns; timing receipts are additional runs and do not replace the slower original rows.",
+    "initial_ci_failure": "At pre_review_revision,36 checks succeeded; Apple fixture hdiutil create failed before REA verification, causing aggregate CI required failure. Apple fixture/workflow code is unchanged; no Apple coverage pass claimed for that attempt."
+  },
+  "pre_shared_boundary_revision": "323fae8cbf3e36677bcb7b22ba31fa1a7e3c5cd4",
+  "pre_shared_boundary_source_sha256": {
+    "docs/javascript-artifact-reconstruction.md": "58c472f61537f7aeca477440712a44a12dc020554f966cfdf7d5c1ea71166895",
+    "scripts/verify/javascript/native-handoffs.mjs": "1795c183370ed8289eb961da470073530ccbdbb46599d4a8966881639b219155",
+    "src/application/javascript/JavaScriptArtifactAnalysis.ts": "dc0cc638ac7e8163efbe779f97bd9e945ef43688f71dc2c365de6439cc1823e6",
+    "src/application/javascript/JavaScriptArtifactAnalysisTypes.ts": "4569780dcaff8e783b3169770473373d202e3a8d558e5ea03df88cd3f6853bf7",
+    "src/application/javascript/JavaScriptArtifactGraphContext.ts": "b1e486b5b29f15466b033464780fc57d5619506aad94f4c5053e1882c4bd30d2",
+    "src/application/javascript/JavaScriptArtifactGraphEvidence.ts": "4ac2d6c95011ee6a86ef79b3477557fd296df1ebb84e57ebb3d359848ca92cc3",
+    "src/application/javascript/JavaScriptArtifactGraphStructure.ts": "167be12f869088aeab0e521d6e85ee11348b40f15d5a24dff3030d8dec39b8a3",
+    "src/application/javascript/JavaScriptArtifactReconstruction.ts": "583e14e34c5f4d2d6118f2dc750862b86f656bf2d98cca5b28fad2620168308c",
+    "tests/acceptance/applications/javascriptAnalysisLimits.test.ts": "25ea7addf365c3ab992d1f24d65d57b02655033e28b2b100406c9c90712064c7",
+    "tests/boundary/filesystem/javascriptArtifactReconstruction.test.ts": "bdb6dc9fd8a9921e956d01017ac9d32a499b3815f0611929185add7e42c5ba37",
+    "tests/boundary/javascript/javascriptApplicationCancellation.test.ts": "c604554072e6f848c24926b8630a738b9247ccd04b337374e8060cfb6a0a069f",
+    "scripts/lib/javascript-file-scope-oracle.mjs": "e36f0aa114c7c2d2a2e9657f5ef7119f179d7bd6ba4ef899d0fc9ee67b4b7b07",
+    "scripts/lib/javascript-file-scope-oracle.d.mts": "f3ac21ce936613d650fa6d610b9905406ae02a0afa97afd677b5b11377369134",
+    "tests/boundary/process/javascriptVerifierScopeOracle.test.ts": "e94c3659b660482aaf75652a60440916f58921c97c4b9bc3182e647a505a2b6b"
+  },
+  "post_shared_boundary_controls": {
+    "timeout": {
+      "result_equivalent_to": "cohorts.final.timeout.result except timing and the explicit structured_expectations oracle input",
+      "structured_expectations": {
+        "ElectronAppWrapper.js.map": {
+          "operation": "parse-local-source-map",
+          "analysis_status": "not-started"
+        },
+        "index.html": {
+          "operation": "parse-html-script-references",
+          "analysis_status": "not-started"
+        },
+        "package.json": {
+          "operation": "parse-package-json",
+          "analysis_status": "not-started"
+        }
+      },
+      "parent_evidence_id": "ev_ba7919ad7d538a41c183dfb5e27bb9dff6058a01b83fb583beebf4205c7c9939",
+      "trace_evidence_id": "ev_c95f2477bbc503d71094288ca11354fbb5bb0d8c86d26c7ea2b373a98458587f",
+      "facts_sha256": "70adc49dd7b9e13136c9ba3616a9a7210e86c2bacba734c329274f911e38458d",
+      "safe_identity": true,
+      "safe_applicability": true,
+      "preparation_ms": 36108.770459,
+      "samples": [
+        {
+          "round": 0,
+          "elapsed_ms": 145.29439700000512,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        },
+        {
+          "round": 1,
+          "elapsed_ms": 93.87837699999363,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        },
+        {
+          "round": 2,
+          "elapsed_ms": 93.54142800000409,
+          "structured_reply_bytes": 9654,
+          "full_tool_reply_bytes": 20161
+        }
+      ],
+      "resources": {
+        "elapsed_seconds": 60.443,
+        "cpu_seconds": 59.970344,
+        "peak_cgroup_bytes": 3078295552,
+        "payload_exit_code": 0,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    "control": {
+      "result_equivalent_to": "cohorts.final.control.result except timing and the explicit structured_expectations oracle input",
+      "structured_expectations": {
+        "ElectronAppWrapper.js.map": {
+          "operation": "parse-local-source-map",
+          "analysis_status": "not-started"
+        },
+        "index.html": {
+          "operation": "parse-html-script-references",
+          "analysis_status": "not-started"
+        },
+        "package.json": {
+          "operation": "parse-package-json",
+          "analysis_status": "not-started"
+        }
+      },
+      "parent_evidence_id": "ev_11a21c98651e2f165e0a2a223734ceafb44ca8dcc0dd691647053237661b732a",
+      "trace_evidence_id": "ev_c70e3df14722c16822221309a873d064cb5772f644f0c537d6b3ec3dcee7e3ce",
+      "facts_sha256": "1ddcb621546636066ceea7f24b493ea1e2d2578f941ad96ba01bd11e98a673b4",
+      "safe_identity": true,
+      "safe_applicability": true,
+      "preparation_ms": 39018.51578,
+      "samples": [
+        {
+          "round": 0,
+          "elapsed_ms": 155.72985699999845,
+          "structured_reply_bytes": 9835,
+          "full_tool_reply_bytes": 20513
+        },
+        {
+          "round": 1,
+          "elapsed_ms": 96.90781799999968,
+          "structured_reply_bytes": 9835,
+          "full_tool_reply_bytes": 20513
+        },
+        {
+          "round": 2,
+          "elapsed_ms": 94.82594799999788,
+          "structured_reply_bytes": 9835,
+          "full_tool_reply_bytes": 20513
+        }
+      ],
+      "resources": {
+        "elapsed_seconds": 63.574,
+        "cpu_seconds": 63.177884,
+        "peak_cgroup_bytes": 3189719040,
+        "payload_exit_code": 0,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    }
+  },
+  "measurement_source_ownership": {
+    "cohorts.baseline": "base_revision runtime; baseline_execution_driver_sources identifies supplied verifier versions",
+    "cohorts.final": "pre_review_revision runtime and pre_review_source_sha256",
+    "post_review_strict_controls": "pre_shared_boundary_revision; pre_shared_boundary_source_sha256",
+    "post_shared_boundary_controls": "Current final_source_sha256, after the shared semantic boundary correction"
+  },
+  "shared_semantic_boundary_review": {
+    "thread": "https://github.com/morluto/rea/pull/4207#discussion_r4287280551",
+    "observed_baseline": "Actual artifact reader + full analysis + application/semantic graph builders with source_paths=[a.js] created semantic modules for five excluded non-JavaScript kinds: native-addon, JSON, HTML, package-json and source-map. Selected a.js and excluded b.js are positive controls. Baseline regression failed with all7 paths instead of only2 JavaScript paths.",
+    "root_cause": "Incremental callers guarded semantic applicability individually; the full builder called the same projection without that guard.",
+    "structural_fix": "The semantic projection recordUnavailableFile entry point now ignores non-JavaScript file kinds before retaining limits, nodes, roots or unknowns. Both construction paths use it; removed3 duplicate caller-side checks. Actual excluded JavaScript continues to produce partial semantic coverage and source-bound unknowns.",
+    "verification_limits": "Real Joplin controls exercise public incremental CLI/MCP workflows. The alternate full-builder path is verified through the actual filesystem producer boundary, not a separately measured full-builder real-app workflow."
+  },
+  "intermediate_ci": {
+    "revision": "323fae8cbf3e36677bcb7b22ba31fa1a7e3c5cd4",
+    "successful_checks": 39,
+    "apple_fixture": "Passed without Apple code/workflow changes; initial04ca attempt remains recorded",
+    "final_revision_checks": "Pending after shared semantic boundary correction"
+  }
+}

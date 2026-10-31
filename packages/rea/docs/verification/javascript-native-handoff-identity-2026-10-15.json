@@ -1,0 +1,1052 @@
+{
+  "base_revision": "9f8659e0536e4e50a438f5b9d5661f3c9624f6ac",
+  "scope": "Canonical native byte identity for actionable feature-trace handoffs; static shipped Joplin, not native provider/application behavior",
+  "runtime": {
+    "platform": "Linux x64",
+    "node": "24.18.0",
+    "npm": "11.16.0",
+    "tiktoken": "0.12.0",
+    "tokenizer": "cl100k_base"
+  },
+  "acquisition": {
+    "repository": "laurent22/joplin",
+    "tag": "v3.7.21",
+    "published_at": "2026-09-25T21:31:12Z",
+    "url": "https://github.com/laurent22/joplin/releases/download/v3.7.21/Joplin-3.7.21.AppImage",
+    "asset_bytes": 201462481,
+    "asset_sha256": "5d202dcaca31e14206826aa3f04125e7c218dbc3dc3d98479d811efbd6b856c1",
+    "extraction": "7z 26.02 read-only selected extraction; no application/provider executed; AppImage SquashFS at offset 944632; one trailing-data warning, exit 0",
+    "files": [
+      {
+        "path": "app.asar",
+        "bytes": 233575014,
+        "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+      },
+      {
+        "path": "app.asar.unpacked/node_modules/keytar/build/Release/keytar.node",
+        "bytes": 76960,
+        "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+      },
+      {
+        "path": "app.asar.unpacked/node_modules/onnxruntime-node/bin/napi-v6/linux/x64/onnxruntime_binding.node",
+        "bytes": 384040,
+        "sha256": "a7191fbfe8045d4d5d312e5ecd8f5dd6970e804dd340c98be8a0af8daf7908cc"
+      },
+      {
+        "path": "app.asar.unpacked/node_modules/sqlite3/lib/binding/napi-v6-linux-glibc-x64/node_sqlite3.node",
+        "bytes": 2158008,
+        "sha256": "1f8cc72dfb50f0c54b04dd7a709ef5ef89b2b1f3b063270646bd12c81173b2e8"
+      }
+    ]
+  },
+  "inventory_header_observation": {
+    "files": 6324,
+    "unpacked_entries": 46,
+    "unpacked_native_addons": 3,
+    "selected_static_sources": ["package.json"],
+    "native_companions_staged_for_available_control": 3,
+    "other_unpacked_entries_not_staged": 43,
+    "application_execution": false,
+    "native_provider_execution": false
+  },
+  "baseline_source_sha256": {
+    "package.json": "56ecf79edad7f36f425288d80dee14247c7f24e3c7eeec40f95d9b8a62b0880d",
+    "src/domain/javascript/javascriptNativeHandoff.ts": "ce46a23c936940f1b57cf3c79082438ac7ba95652d671ff1befecbc24a6a2d7a",
+    "src/domain/javascript/javascriptFeatureTrace.ts": "b2122e4ae026e176dca775351101ad2ce876e3bf804f39554a2d9344d8fe1fd1",
+    "src/application/javascript/JavaScriptArtifactGraphStructure.ts": "1afdeda88a998133eb2de2cb26cbcffdd51c85f302c2797158e2944874326449",
+    "src/domain/javascript/javascriptApplicationEvidenceSchemas.ts": "b5229e409aa0b2a9e1470254ca93ab987ca26f1bc9e9f94ab44e89c749df59ca",
+    "src/domain/evidence.ts": "81e434981572df8c5af1dd5add04bcafc1fbfbf7b9a8dcc5a4b18bbd121cb3c4"
+  },
+  "baseline_verifier_and_regression_source": {
+    "base_revision": "9f8659e0536e4e50a438f5b9d5661f3c9624f6ac",
+    "source_sha256": {
+      "scripts/verify/javascript/native-handoffs.mjs": "9950693500d94aa28b01b2e7e8b8e3e799064f3fc53eef10a65d129f4c6c1f54",
+      "tests/boundary/mcp/javascriptNativeHandoffIdentity.test.ts": "ff247a8fb2189bf40cab604af23fc792eee939ff93f6c0f8e153a28405b3bdd9",
+      "src/domain/javascript/javascriptNativeHandoff.ts": "ce46a23c936940f1b57cf3c79082438ac7ba95652d671ff1befecbc24a6a2d7a",
+      "src/domain/javascript/javascriptFeatureTrace.ts": "b2122e4ae026e176dca775351101ad2ce876e3bf804f39554a2d9344d8fe1fd1",
+      "src/application/javascript/JavaScriptArtifactGraphStructure.ts": "1afdeda88a998133eb2de2cb26cbcffdd51c85f302c2797158e2944874326449"
+    },
+    "verifier_optional_architecture_correction": {
+      "current_sha256": "bfdc235cc38a519a39e8b2e772d55259f371ccb15058e6fd241ee5ac05dfef82",
+      "explanation": "Omitted the internal factory optional architecture field instead of passing null. All four real-case normalized simulated Evidence records proved byte-identical; runtime tool requests/results unchanged.",
+      "normalized_input_equivalence": [
+        {
+          "mode": "available",
+          "kind": "container",
+          "evidence_id": "ev_a67558e076894c3b7d339257765f22d66987cbcef411bf92d1dc50db2f4521ca",
+          "normalized_bytes_identical": true
+        },
+        {
+          "mode": "available",
+          "kind": "native",
+          "evidence_id": "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7",
+          "normalized_bytes_identical": true
+        },
+        {
+          "mode": "missing",
+          "kind": "container",
+          "evidence_id": "ev_a67558e076894c3b7d339257765f22d66987cbcef411bf92d1dc50db2f4521ca",
+          "normalized_bytes_identical": true
+        },
+        {
+          "mode": "missing",
+          "kind": "native",
+          "evidence_id": "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7",
+          "normalized_bytes_identical": true
+        }
+      ]
+    }
+  },
+  "final_source_sha256": {
+    "package.json": "cdb2fb0fd3a88790d921aadb560cac382fa360c821a2c3f6960bf75eff292ee8",
+    "src/domain/javascript/javascriptNativeHandoff.ts": "6a0c6277dcbd7a5b79bf926d2191afe69af79993bb30c8823c833ccfd946c68c",
+    "src/domain/javascript/javascriptFeatureTrace.ts": "b2122e4ae026e176dca775351101ad2ce876e3bf804f39554a2d9344d8fe1fd1",
+    "src/application/javascript/JavaScriptArtifactGraphStructure.ts": "1afdeda88a998133eb2de2cb26cbcffdd51c85f302c2797158e2944874326449",
+    "src/domain/javascript/javascriptApplicationEvidenceSchemas.ts": "b5229e409aa0b2a9e1470254ca93ab987ca26f1bc9e9f94ab44e89c749df59ca",
+    "src/domain/evidence.ts": "81e434981572df8c5af1dd5add04bcafc1fbfbf7b9a8dcc5a4b18bbd121cb3c4",
+    "scripts/verify/javascript/native-handoffs.mjs": "bfdc235cc38a519a39e8b2e772d55259f371ccb15058e6fd241ee5ac05dfef82",
+    "tests/boundary/mcp/javascriptNativeHandoffIdentity.test.ts": "fe216875d7bc080ddcc72a3ae3da38d0120f918ad1d6d5caa2b41edbc4796ddb"
+  },
+  "cohorts": {
+    "baseline": {
+      "available": {
+        "result": {
+          "artifact": {
+            "path": "/tmp/rea-native-handoff-20261015/cases/available/app.asar",
+            "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+          },
+          "addon_path": "node_modules/keytar/build/Release/keytar.node",
+          "companion_sha256_observed": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "source_paths": ["package.json"],
+          "parent_evidence_id": "ev_7d6754f5db07c44889b44ba2a14d235db79b94e9967c8ad36fe6b759615d0b7b",
+          "trace_evidence_id": "ev_2b1e20e64bf4aef770a556032dd72d70339baba21dc4f4ef8b34601b5ab55051",
+          "preparation_ms": 38140.725152,
+          "samples": [
+            {
+              "round": 0,
+              "elapsed_ms": 150.19293800000014,
+              "structured_reply_bytes": 12372,
+              "full_tool_reply_bytes": 25845
+            },
+            {
+              "round": 1,
+              "elapsed_ms": 108.26803500000096,
+              "structured_reply_bytes": 12372,
+              "full_tool_reply_bytes": 25845
+            },
+            {
+              "round": 2,
+              "elapsed_ms": 93.04797500000132,
+              "structured_reply_bytes": 12372,
+              "full_tool_reply_bytes": 25845
+            }
+          ],
+          "safe_identity": true,
+          "node": {
+            "node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+            "identity": {
+              "strategy": "content-digest",
+              "stability": "global-exact",
+              "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+            },
+            "unavailable_observed": false,
+            "basis": [
+              {
+                "authority": "artifact-bytes",
+                "state": "observed",
+                "confidence": "exact",
+                "artifact": {
+                  "available": true,
+                  "artifact_id": "art_0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+                  "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+                },
+                "location": {
+                  "available": true,
+                  "value": {
+                    "kind": "artifact-path",
+                    "path": "node_modules/keytar/build/Release/keytar.node"
+                  }
+                }
+              }
+            ]
+          },
+          "native_handoffs": [
+            {
+              "native_node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+              "artifact_sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+              "artifact_path": "node_modules/keytar/build/Release/keytar.node",
+              "export_node_ids": [],
+              "requested_exports": [],
+              "status": "evidence-linked",
+              "providers": [
+                {
+                  "id": "ghidra",
+                  "name": "Ghidra",
+                  "version": "simulated"
+                }
+              ],
+              "evidence_ids": [
+                "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+              ],
+              "recommended_tools": [
+                "open_binary",
+                "binary_overview",
+                "search_procedures",
+                "analyze_function",
+                "xrefs"
+              ]
+            }
+          ],
+          "evidence_links": [
+            "ev_7d6754f5db07c44889b44ba2a14d235db79b94e9967c8ad36fe6b759615d0b7b",
+            "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+          ],
+          "source_coverage": {
+            "status": "partial",
+            "source_graph_status": "partial",
+            "total_seed_matches": 3
+          },
+          "graph_coverage": {
+            "status": "partial",
+            "truncated": false,
+            "omitted_count": null,
+            "limits": []
+          },
+          "facts_sha256": "539049c79671407c82040fd9ce443141c78fca5403daadbaf5ca82678fd0c933",
+          "cli_parity": {
+            "exact_cli_mcp_trace_parity": true,
+            "evidence_id": "ev_2b1e20e64bf4aef770a556032dd72d70339baba21dc4f4ef8b34601b5ab55051"
+          },
+          "token_costs": {
+            "tokenizer": "cl100k_base",
+            "tiktoken_version": "0.12.0",
+            "selected_catalog": 5570,
+            "full_catalog": 195522,
+            "requests": 601,
+            "structured_replies": 6169,
+            "full_tool_replies": 12735,
+            "selected_catalog_structured_task": 12340,
+            "full_catalog_structured_task": 202292,
+            "selected_catalog_full_reply_task": 18906,
+            "full_catalog_full_reply_task": 208858
+          }
+        },
+        "resources": {
+          "elapsed_seconds": 60.369,
+          "cpu_seconds": 59.80667,
+          "peak_cgroup_bytes": 2662629376,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      },
+      "missing": {
+        "result": {
+          "artifact": {
+            "path": "/tmp/rea-native-handoff-20261015/cases/missing/app.asar",
+            "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+          },
+          "addon_path": "node_modules/keytar/build/Release/keytar.node",
+          "companion_sha256_observed": null,
+          "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "source_paths": ["package.json"],
+          "parent_evidence_id": "ev_ac00ab67200361a181e08d358b591983616044f39c972ee81e65e49a0d8a0536",
+          "trace_evidence_id": "ev_7bc771bc1fc4b3eb1a666107bd9a49daddcfd7c90f048414f11862a3ca5f3f84",
+          "preparation_ms": 36053.453958,
+          "samples": [
+            {
+              "round": 0,
+              "elapsed_ms": 145.345276,
+              "structured_reply_bytes": 10008,
+              "full_tool_reply_bytes": 20875
+            },
+            {
+              "round": 1,
+              "elapsed_ms": 99.91117400000076,
+              "structured_reply_bytes": 10008,
+              "full_tool_reply_bytes": 20875
+            },
+            {
+              "round": 2,
+              "elapsed_ms": 89.61581300000398,
+              "structured_reply_bytes": 10008,
+              "full_tool_reply_bytes": 20875
+            }
+          ],
+          "safe_identity": false,
+          "node": {
+            "node_id": "jag_node_dedeb2467dfe8cf75eee6588ce33416450e2c02cd67fb8ddff784449a2ec67f0",
+            "identity": {
+              "strategy": "canonical-path",
+              "stability": "artifact-version",
+              "artifact_sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a",
+              "path": "node_modules/keytar/build/Release/keytar.node"
+            },
+            "unavailable_observed": true,
+            "basis": [
+              {
+                "authority": "artifact-bytes",
+                "state": "observed",
+                "confidence": "exact",
+                "artifact": {
+                  "available": true,
+                  "artifact_id": "art_767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a",
+                  "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+                },
+                "location": {
+                  "available": true,
+                  "value": {
+                    "kind": "artifact-path",
+                    "path": "node_modules/keytar/build/Release/keytar.node"
+                  }
+                }
+              }
+            ]
+          },
+          "native_handoffs": [
+            {
+              "native_node_id": "jag_node_dedeb2467dfe8cf75eee6588ce33416450e2c02cd67fb8ddff784449a2ec67f0",
+              "artifact_sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a",
+              "artifact_path": "node_modules/keytar/build/Release/keytar.node",
+              "export_node_ids": [],
+              "requested_exports": [],
+              "status": "evidence-linked",
+              "providers": [
+                {
+                  "id": "ghidra",
+                  "name": "Ghidra",
+                  "version": "simulated"
+                }
+              ],
+              "evidence_ids": [
+                "ev_a67558e076894c3b7d339257765f22d66987cbcef411bf92d1dc50db2f4521ca"
+              ],
+              "recommended_tools": [
+                "open_binary",
+                "binary_overview",
+                "search_procedures",
+                "analyze_function",
+                "xrefs"
+              ]
+            }
+          ],
+          "evidence_links": [
+            "ev_a67558e076894c3b7d339257765f22d66987cbcef411bf92d1dc50db2f4521ca",
+            "ev_ac00ab67200361a181e08d358b591983616044f39c972ee81e65e49a0d8a0536"
+          ],
+          "source_coverage": {
+            "status": "partial",
+            "source_graph_status": "partial",
+            "total_seed_matches": 2
+          },
+          "graph_coverage": {
+            "status": "partial",
+            "truncated": false,
+            "omitted_count": null,
+            "limits": []
+          },
+          "facts_sha256": "992f22f9f4979b07bd17ca5ef6c000d31ab6bab8dcbd52d330214bc92b8456b4",
+          "cli_parity": {
+            "exact_cli_mcp_trace_parity": true,
+            "evidence_id": "ev_7bc771bc1fc4b3eb1a666107bd9a49daddcfd7c90f048414f11862a3ca5f3f84"
+          },
+          "token_costs": {
+            "tokenizer": "cl100k_base",
+            "tiktoken_version": "0.12.0",
+            "selected_catalog": 5570,
+            "full_catalog": 195522,
+            "requests": 594,
+            "structured_replies": 5208,
+            "full_tool_replies": 10789,
+            "selected_catalog_structured_task": 11372,
+            "full_catalog_structured_task": 201324,
+            "selected_catalog_full_reply_task": 16953,
+            "full_catalog_full_reply_task": 206905
+          }
+        },
+        "resources": {
+          "elapsed_seconds": 57.93,
+          "cpu_seconds": 57.479109,
+          "peak_cgroup_bytes": 2719457280,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      }
+    },
+    "final": {
+      "available": {
+        "result": {
+          "artifact": {
+            "path": "/tmp/rea-native-handoff-20261015/cases/available/app.asar",
+            "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+          },
+          "addon_path": "node_modules/keytar/build/Release/keytar.node",
+          "companion_sha256_observed": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "source_paths": ["package.json"],
+          "parent_evidence_id": "ev_7d6754f5db07c44889b44ba2a14d235db79b94e9967c8ad36fe6b759615d0b7b",
+          "trace_evidence_id": "ev_2b1e20e64bf4aef770a556032dd72d70339baba21dc4f4ef8b34601b5ab55051",
+          "preparation_ms": 116767.19654199999,
+          "samples": [
+            {
+              "round": 0,
+              "elapsed_ms": 1120.7472280000075,
+              "structured_reply_bytes": 12372,
+              "full_tool_reply_bytes": 25845
+            },
+            {
+              "round": 1,
+              "elapsed_ms": 1173.7802859999938,
+              "structured_reply_bytes": 12372,
+              "full_tool_reply_bytes": 25845
+            },
+            {
+              "round": 2,
+              "elapsed_ms": 1782.2942279999988,
+              "structured_reply_bytes": 12372,
+              "full_tool_reply_bytes": 25845
+            }
+          ],
+          "safe_identity": true,
+          "node": {
+            "node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+            "identity": {
+              "strategy": "content-digest",
+              "stability": "global-exact",
+              "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+            },
+            "unavailable_observed": false,
+            "basis": [
+              {
+                "authority": "artifact-bytes",
+                "state": "observed",
+                "confidence": "exact",
+                "artifact": {
+                  "available": true,
+                  "artifact_id": "art_0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+                  "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+                },
+                "location": {
+                  "available": true,
+                  "value": {
+                    "kind": "artifact-path",
+                    "path": "node_modules/keytar/build/Release/keytar.node"
+                  }
+                }
+              }
+            ]
+          },
+          "native_handoffs": [
+            {
+              "native_node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+              "artifact_sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+              "artifact_path": "node_modules/keytar/build/Release/keytar.node",
+              "export_node_ids": [],
+              "requested_exports": [],
+              "status": "evidence-linked",
+              "providers": [
+                {
+                  "id": "ghidra",
+                  "name": "Ghidra",
+                  "version": "simulated"
+                }
+              ],
+              "evidence_ids": [
+                "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+              ],
+              "recommended_tools": [
+                "open_binary",
+                "binary_overview",
+                "search_procedures",
+                "analyze_function",
+                "xrefs"
+              ]
+            }
+          ],
+          "evidence_links": [
+            "ev_7d6754f5db07c44889b44ba2a14d235db79b94e9967c8ad36fe6b759615d0b7b",
+            "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+          ],
+          "source_coverage": {
+            "status": "partial",
+            "source_graph_status": "partial",
+            "total_seed_matches": 3
+          },
+          "graph_coverage": {
+            "status": "partial",
+            "truncated": false,
+            "omitted_count": null,
+            "limits": []
+          },
+          "facts_sha256": "539049c79671407c82040fd9ce443141c78fca5403daadbaf5ca82678fd0c933",
+          "cli_parity": {
+            "exact_cli_mcp_trace_parity": true,
+            "evidence_id": "ev_2b1e20e64bf4aef770a556032dd72d70339baba21dc4f4ef8b34601b5ab55051"
+          },
+          "token_costs": {
+            "tokenizer": "cl100k_base",
+            "tiktoken_version": "0.12.0",
+            "selected_catalog": 5570,
+            "full_catalog": 195522,
+            "requests": 601,
+            "structured_replies": 6169,
+            "full_tool_replies": 12735,
+            "selected_catalog_structured_task": 12340,
+            "full_catalog_structured_task": 202292,
+            "selected_catalog_full_reply_task": 18906,
+            "full_catalog_full_reply_task": 208858
+          }
+        },
+        "resources": {
+          "elapsed_seconds": 258.885,
+          "cpu_seconds": 106.221003,
+          "peak_cgroup_bytes": 2678456320,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      },
+      "missing": {
+        "result": {
+          "artifact": {
+            "path": "/tmp/rea-native-handoff-20261015/cases/missing/app.asar",
+            "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+          },
+          "addon_path": "node_modules/keytar/build/Release/keytar.node",
+          "companion_sha256_observed": null,
+          "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+          "source_paths": ["package.json"],
+          "parent_evidence_id": "ev_ac00ab67200361a181e08d358b591983616044f39c972ee81e65e49a0d8a0536",
+          "trace_evidence_id": "ev_3931e0874b0cffffa10cfe0124d218f09e6b7edbdda789591a7593060afd6450",
+          "preparation_ms": 36650.457516,
+          "samples": [
+            {
+              "round": 0,
+              "elapsed_ms": 156.684454000002,
+              "structured_reply_bytes": 9298,
+              "full_tool_reply_bytes": 19401
+            },
+            {
+              "round": 1,
+              "elapsed_ms": 100.968246000004,
+              "structured_reply_bytes": 9298,
+              "full_tool_reply_bytes": 19401
+            },
+            {
+              "round": 2,
+              "elapsed_ms": 90.89984700000059,
+              "structured_reply_bytes": 9298,
+              "full_tool_reply_bytes": 19401
+            }
+          ],
+          "safe_identity": true,
+          "node": {
+            "node_id": "jag_node_dedeb2467dfe8cf75eee6588ce33416450e2c02cd67fb8ddff784449a2ec67f0",
+            "identity": {
+              "strategy": "canonical-path",
+              "stability": "artifact-version",
+              "artifact_sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a",
+              "path": "node_modules/keytar/build/Release/keytar.node"
+            },
+            "unavailable_observed": true,
+            "basis": [
+              {
+                "authority": "artifact-bytes",
+                "state": "observed",
+                "confidence": "exact",
+                "artifact": {
+                  "available": true,
+                  "artifact_id": "art_767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a",
+                  "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+                },
+                "location": {
+                  "available": true,
+                  "value": {
+                    "kind": "artifact-path",
+                    "path": "node_modules/keytar/build/Release/keytar.node"
+                  }
+                }
+              }
+            ]
+          },
+          "native_handoffs": [],
+          "evidence_links": [
+            "ev_ac00ab67200361a181e08d358b591983616044f39c972ee81e65e49a0d8a0536"
+          ],
+          "source_coverage": {
+            "status": "partial",
+            "source_graph_status": "partial",
+            "total_seed_matches": 2
+          },
+          "graph_coverage": {
+            "status": "partial",
+            "truncated": false,
+            "omitted_count": null,
+            "limits": []
+          },
+          "facts_sha256": "aae3c060eb63eb75816c4fb6e552eac6055c8195ae4d1e5e9d4c5125618ce2a0",
+          "cli_parity": {
+            "exact_cli_mcp_trace_parity": true,
+            "evidence_id": "ev_3931e0874b0cffffa10cfe0124d218f09e6b7edbdda789591a7593060afd6450"
+          },
+          "token_costs": {
+            "tokenizer": "cl100k_base",
+            "tiktoken_version": "0.12.0",
+            "selected_catalog": 5570,
+            "full_catalog": 195522,
+            "requests": 594,
+            "structured_replies": 4939,
+            "full_tool_replies": 10237,
+            "selected_catalog_structured_task": 11103,
+            "full_catalog_structured_task": 201055,
+            "selected_catalog_full_reply_task": 16401,
+            "full_catalog_full_reply_task": 206353
+          }
+        },
+        "resources": {
+          "elapsed_seconds": 59.738,
+          "cpu_seconds": 59.254776,
+          "peak_cgroup_bytes": 2571235328,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      }
+    }
+  },
+  "resource_policy": {
+    "hard_bytes": 8589934592,
+    "early_stop_bytes": 6442450944,
+    "cpu_quota_percent": 100,
+    "cpu_affinity": [15],
+    "memory_accounting": "Cgroup family peak includes charged file cache; not summed RSS. Counters at payload exit while observer remains alive, not final whole-scope counters.",
+    "cache_conditions": "Input is stream-hashed before analysis, warming its file cache. Builds and OS caches uncontrolled; fresh MCP process is not an OS-cold run.",
+    "performance_scope": "Whole verifier includes input hashing, preparation, repeated queries, export, CLI parity and tokenization. Per-query samples are wall times only; isolated query CPU/memory and hosted-model costs unmeasured. Final available control258.885s wall/106.221003s CPU is substantially slower than baseline60.369s/59.806670s; final missing control59.738s/59.254776s and prior postfix controls are separately preserved. Timing/resource variability is unresolved, not attributed to this native consumer change. No speedup or performance-equivalence claim."
+  },
+  "observer_sources_sha256": {
+    "resource-run.py": "7728862171415e7dee2c11af2ead2b9a54265fccaf82a7113956d36b29065e33",
+    "resource_payload.py": "6f089e645459eba80c5d73e39c21606c78173a44daf49fabc3b88c4631ce51c6"
+  },
+  "validation": {
+    "harness_attempt": "Initial CLI trace input incorrectly used the MCP inline selector wrapper; both cases rejected before identity assertions. Corrected to the CLI complete-Evidence contract. Not a product reproduction.",
+    "baseline_public": "Missing-companion failed / available-byte control passed. Both adapters and both native-observation selections executed before identity assertions.",
+    "initial_focused": "24 passed in four files including public CLI/stdio MCP, workflow/graph, missing companion imports and erased TypeScript native bindings.",
+    "first_static": "Other static gates passed, typecheck rejected architecture:null in test factory. Omitted optional field; all four real-case normalized simulated Evidence inputs proved byte-identical. No product behavior change.",
+    "final_public": "2/2 public CLI/stdio MCP cases passed after named summary parsing and optional architecture correction; overlaps initial 24-case selection.",
+    "final_static_docs": "npm run check && npm run docs:check passed on integration base62bf098 plus this final change; typecheck, lint, format, knip, metadata, architecture/module boundaries and docs checks passed, including5 consistency tests. Prior static attempt/failure retained separately.",
+    "synced_cli_workflows": "34 passed in tests/acceptance/applications/applicationWorkflowCli.test.ts after sync to62bf098; adds a fifth file and34 distinct cases to initial24 (58 total distinct focused cases)."
+  },
+  "interpretation": "Unavailable case previously returned a successful transport response with incorrect identity/linkage; this is not a successful equivalent analyst task and earns no efficiency credit. Available case is the valid completed-equivalence control. Reduced missing-case bytes/tokens reflect removal of unsupported claims, not an independent efficiency gain.",
+  "verifier_conditions": "Fresh MCP session, one selected analysis followed by repeated identical retained traces. Filesystem/build caches uncontrolled. Task token counts include one analysis summary and one trace with name/description/inputSchema catalog projections; structured and complete-tool-reply projections are alternatives, not billing. Repeated rounds, export, CLI parity and tokenizer are validation overhead outside that one-task token count but inside total resource receipts. A wrong-identity baseline is not a successful equivalent task or efficiency credit.",
+  "verifier_scope": "Real shipped-ASAR native identity through public CLI/stdio MCP; simulated native Evidence only, no provider/application executed",
+  "integration_base_revision": "62bf09809ef7bb224028916424f8f07652a20f4f",
+  "upstream_sync": "Fast-forwarded to reviewed main62bf098. Six upstream commits change CLI acceptance plus Apple, browser type-import parsing, reference JSON resolution and Kuna caching; no owned/key native source files overlap. Native source hashes unchanged. Updated public workflow acceptance34/34 passed; both real controls repeated on this integration base. Final static/docs gates recorded separately.",
+  "prior_postfix_controls": {
+    "available": {
+      "result": {
+        "artifact": {
+          "path": "/tmp/rea-native-handoff-20261015/cases/available/app.asar",
+          "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+        },
+        "addon_path": "node_modules/keytar/build/Release/keytar.node",
+        "companion_sha256_observed": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+        "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+        "source_paths": ["package.json"],
+        "parent_evidence_id": "ev_7d6754f5db07c44889b44ba2a14d235db79b94e9967c8ad36fe6b759615d0b7b",
+        "trace_evidence_id": "ev_2b1e20e64bf4aef770a556032dd72d70339baba21dc4f4ef8b34601b5ab55051",
+        "preparation_ms": 37729.472507,
+        "samples": [
+          {
+            "round": 0,
+            "elapsed_ms": 157.96848200000386,
+            "structured_reply_bytes": 12372,
+            "full_tool_reply_bytes": 25845
+          },
+          {
+            "round": 1,
+            "elapsed_ms": 114.56066299999657,
+            "structured_reply_bytes": 12372,
+            "full_tool_reply_bytes": 25845
+          },
+          {
+            "round": 2,
+            "elapsed_ms": 99.90600200000335,
+            "structured_reply_bytes": 12372,
+            "full_tool_reply_bytes": 25845
+          }
+        ],
+        "safe_identity": true,
+        "node": {
+          "node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+          "identity": {
+            "strategy": "content-digest",
+            "stability": "global-exact",
+            "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+          },
+          "unavailable_observed": false,
+          "basis": [
+            {
+              "authority": "artifact-bytes",
+              "state": "observed",
+              "confidence": "exact",
+              "artifact": {
+                "available": true,
+                "artifact_id": "art_0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+                "sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a"
+              },
+              "location": {
+                "available": true,
+                "value": {
+                  "kind": "artifact-path",
+                  "path": "node_modules/keytar/build/Release/keytar.node"
+                }
+              }
+            }
+          ]
+        },
+        "native_handoffs": [
+          {
+            "native_node_id": "jag_node_98ccdef0e85d67cba9cc843193c5ba877f0a73ba3fa7d3581f6db0396a707b2d",
+            "artifact_sha256": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+            "artifact_path": "node_modules/keytar/build/Release/keytar.node",
+            "export_node_ids": [],
+            "requested_exports": [],
+            "status": "evidence-linked",
+            "providers": [
+              {
+                "id": "ghidra",
+                "name": "Ghidra",
+                "version": "simulated"
+              }
+            ],
+            "evidence_ids": [
+              "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+            ],
+            "recommended_tools": [
+              "open_binary",
+              "binary_overview",
+              "search_procedures",
+              "analyze_function",
+              "xrefs"
+            ]
+          }
+        ],
+        "evidence_links": [
+          "ev_7d6754f5db07c44889b44ba2a14d235db79b94e9967c8ad36fe6b759615d0b7b",
+          "ev_c1bf000c14a18445db1f834b1c6019ae04725dd948951d5b5079184b4524e8d7"
+        ],
+        "source_coverage": {
+          "status": "partial",
+          "source_graph_status": "partial",
+          "total_seed_matches": 3
+        },
+        "graph_coverage": {
+          "status": "partial",
+          "truncated": false,
+          "omitted_count": null,
+          "limits": []
+        },
+        "facts_sha256": "539049c79671407c82040fd9ce443141c78fca5403daadbaf5ca82678fd0c933",
+        "cli_parity": {
+          "exact_cli_mcp_trace_parity": true,
+          "evidence_id": "ev_2b1e20e64bf4aef770a556032dd72d70339baba21dc4f4ef8b34601b5ab55051"
+        },
+        "token_costs": {
+          "tokenizer": "cl100k_base",
+          "tiktoken_version": "0.12.0",
+          "selected_catalog": 5570,
+          "full_catalog": 195522,
+          "requests": 601,
+          "structured_replies": 6169,
+          "full_tool_replies": 12735,
+          "selected_catalog_structured_task": 12340,
+          "full_catalog_structured_task": 202292,
+          "selected_catalog_full_reply_task": 18906,
+          "full_catalog_full_reply_task": 208858
+        }
+      },
+      "resources": {
+        "elapsed_seconds": 61.657,
+        "cpu_seconds": 61.135962,
+        "peak_cgroup_bytes": 3146776576,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    "missing": {
+      "result": {
+        "artifact": {
+          "path": "/tmp/rea-native-handoff-20261015/cases/missing/app.asar",
+          "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+        },
+        "addon_path": "node_modules/keytar/build/Release/keytar.node",
+        "companion_sha256_observed": null,
+        "prior_native_sha256_supplied": "0700016bcd761cbe02d275f2046c7cc42f39f730a50d66e3d3307aa9d413373a",
+        "source_paths": ["package.json"],
+        "parent_evidence_id": "ev_ac00ab67200361a181e08d358b591983616044f39c972ee81e65e49a0d8a0536",
+        "trace_evidence_id": "ev_3931e0874b0cffffa10cfe0124d218f09e6b7edbdda789591a7593060afd6450",
+        "preparation_ms": 51944.249193999996,
+        "samples": [
+          {
+            "round": 0,
+            "elapsed_ms": 140.67567200000485,
+            "structured_reply_bytes": 9298,
+            "full_tool_reply_bytes": 19401
+          },
+          {
+            "round": 1,
+            "elapsed_ms": 105.40526200000022,
+            "structured_reply_bytes": 9298,
+            "full_tool_reply_bytes": 19401
+          },
+          {
+            "round": 2,
+            "elapsed_ms": 88.52443199999834,
+            "structured_reply_bytes": 9298,
+            "full_tool_reply_bytes": 19401
+          }
+        ],
+        "safe_identity": true,
+        "node": {
+          "node_id": "jag_node_dedeb2467dfe8cf75eee6588ce33416450e2c02cd67fb8ddff784449a2ec67f0",
+          "identity": {
+            "strategy": "canonical-path",
+            "stability": "artifact-version",
+            "artifact_sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a",
+            "path": "node_modules/keytar/build/Release/keytar.node"
+          },
+          "unavailable_observed": true,
+          "basis": [
+            {
+              "authority": "artifact-bytes",
+              "state": "observed",
+              "confidence": "exact",
+              "artifact": {
+                "available": true,
+                "artifact_id": "art_767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a",
+                "sha256": "767df409b18effe60421fbefcca873de237c7e813eac744ecdeebbc5e825a33a"
+              },
+              "location": {
+                "available": true,
+                "value": {
+                  "kind": "artifact-path",
+                  "path": "node_modules/keytar/build/Release/keytar.node"
+                }
+              }
+            }
+          ]
+        },
+        "native_handoffs": [],
+        "evidence_links": [
+          "ev_ac00ab67200361a181e08d358b591983616044f39c972ee81e65e49a0d8a0536"
+        ],
+        "source_coverage": {
+          "status": "partial",
+          "source_graph_status": "partial",
+          "total_seed_matches": 2
+        },
+        "graph_coverage": {
+          "status": "partial",
+          "truncated": false,
+          "omitted_count": null,
+          "limits": []
+        },
+        "facts_sha256": "aae3c060eb63eb75816c4fb6e552eac6055c8195ae4d1e5e9d4c5125618ce2a0",
+        "cli_parity": {
+          "exact_cli_mcp_trace_parity": true,
+          "evidence_id": "ev_3931e0874b0cffffa10cfe0124d218f09e6b7edbdda789591a7593060afd6450"
+        },
+        "token_costs": {
+          "tokenizer": "cl100k_base",
+          "tiktoken_version": "0.12.0",
+          "selected_catalog": 5570,
+          "full_catalog": 195522,
+          "requests": 594,
+          "structured_replies": 4939,
+          "full_tool_replies": 10237,
+          "selected_catalog_structured_task": 11103,
+          "full_catalog_structured_task": 201055,
+          "selected_catalog_full_reply_task": 16401,
+          "full_catalog_full_reply_task": 206353
+        }
+      },
+      "resources": {
+        "elapsed_seconds": 74.956,
+        "cpu_seconds": 60.352428,
+        "peak_cgroup_bytes": 3124801536,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    }
+  },
+  "prior_postfix_controls_note": "Executed before upstream sync, on base9f8659e plus this native fix. Retained, not asserted as a final-integration measurement.",
+  "validation_resources": {
+    "synced_cli_34": {
+      "elapsed_seconds": 240.873,
+      "cpu_seconds": 141.092204,
+      "peak_cgroup_bytes": 3220983808,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "initial_focused_24": {
+      "elapsed_seconds": 86.733,
+      "cpu_seconds": 85.48165,
+      "peak_cgroup_bytes": 3216478208,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "final_public_2": {
+      "elapsed_seconds": 78.183,
+      "cpu_seconds": 32.274966,
+      "peak_cgroup_bytes": 1365196800,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "prior_static_docs": {
+      "elapsed_seconds": 169.015,
+      "cpu_seconds": 119.713,
+      "peak_cgroup_bytes": 4265230336,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "final_integration_static_docs": {
+      "elapsed_seconds": 128.732,
+      "cpu_seconds": 115.51892,
+      "peak_cgroup_bytes": 4301684736,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    }
+  },
+  "integration_equivalence": "Final controls on62bf098 preserve all recorded available-case artifact, identity, facts, Evidence, coverage and token fields from baseline; missing-case parent/node/provenance/coverage unchanged, handoff/container link removed. Both exactly equal the earlier postfix controls in all recorded non-timing contract fields.",
+  "boundary_audit": "Unavailable native producer owns canonical-path identity and archive-backed observations; native handoff derivation now consumes only its content-digest identity. Feature trace is the only production caller. Application-version matching/content comparison already consume canonical identity rather than a supporting observation digest; no duplicate fallback found there. CLI/MCP use the same application workflow."
+}

@@ -1,0 +1,4 @@
+fixture [arm64]:
+    -imports:
+      0x0000  _puts  (from libSystem)
+      0x0001  _fixture_weak  (from <weak-def-coalesce>)

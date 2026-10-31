@@ -1,0 +1,14 @@
+{
+  "source": "https://www.rfc-editor.org/rfc/rfc6238.html#appendix-B",
+  "public_test_key_ascii": "12345678901234567890",
+  "algorithm": "HMAC-SHA1",
+  "period_seconds": 30,
+  "vectors": [
+    { "seconds": 59, "sha1": "94287082" },
+    { "seconds": 1111111109, "sha1": "07081804" },
+    { "seconds": 1111111111, "sha1": "14050471" },
+    { "seconds": 1234567890, "sha1": "89005924" },
+    { "seconds": 2000000000, "sha1": "69279037" },
+    { "seconds": 20000000000, "sha1": "65353130" }
+  ]
+}

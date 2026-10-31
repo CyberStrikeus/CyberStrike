@@ -1,0 +1,5 @@
+fixture [arm64]:
+    -exports:
+        offset      symbol
+        [re-export] _foo_renamed (_foo from libfoo)
+        0x00000308  _own

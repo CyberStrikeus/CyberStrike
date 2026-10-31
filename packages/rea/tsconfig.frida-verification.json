@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": [
+    "src/frida/frida-bindings.d.ts",
+    "scripts/verify/fridaBindingsCompatibility.ts"
+  ],
+  "include": []
+}

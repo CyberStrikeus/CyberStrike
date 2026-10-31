@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1774" height="887" viewBox="0 0 1774 887" role="img" aria-labelledby="title desc">
+  <title id="title">REA investigation flow</title>
+  <desc id="desc">Ask a question about a local target. REA inspects and traces through local analysis adapters, returns evidence, and supports follow-up questions as your agent explains, implements and tests.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M1 1 L8 5 L1 9" fill="none" stroke="#5b6570" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></marker>
+    <marker id="blue-arrow" markerWidth="12" markerHeight="12" refX="9" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L9 6 L1 11" fill="none" stroke="#294f82" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></marker>
+  </defs>
+<style>
+@media (prefers-color-scheme: dark){
+svg{background-color:#181825}
+[fill="#20252b"]{fill:#cdd6f4}
+[fill="#294f82"]{fill:#89b4fa}
+[stroke="#294f82"]{stroke:#89b4fa}
+[fill="#5b6570"]{fill:#a6adc8}
+[stroke="#5b6570"]{stroke:#a6adc8}
+[stroke="#87929e"]{stroke:#7f849c}
+[fill="#ffffff"]{fill:#181825}
+}
+</style>
+  <rect width="1774" height="887" fill="#ffffff"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#20252b">
+    <text x="40" y="96" font-size="68" font-weight="700">REA investigation flow</text>
+    <g fill="none" stroke="#87929e" stroke-width="3.5">
+      <rect x="28" y="282" width="384" height="255" rx="15"/>
+      <rect x="477" y="282" width="377" height="255" rx="15" stroke="#294f82"/>
+      <rect x="919" y="282" width="380" height="255" rx="15"/>
+      <rect x="1364" y="282" width="382" height="255" rx="15"/>
+      <rect x="453" y="617" width="425" height="205" rx="15"/>
+    </g>
+    <g text-anchor="middle">
+      <text x="220" y="365" font-size="50" font-weight="700">1. Ask</text>
+      <text x="220" y="435" font-size="31" fill="#5b6570">Your agent + local target</text>
+      <text x="220" y="496" font-size="31" fill="#5b6570">App / binary / browser</text>
+      <text x="665" y="357" font-size="37" font-weight="700">2. Inspect &amp; trace</text>
+      <text x="665" y="454" font-size="80" font-weight="700" fill="#294f82">REA</text>
+      <text x="665" y="508" font-size="35" fill="#5b6570">CLI / MCP</text>
+      <text x="1109" y="363" font-size="35" font-weight="700">3. Read the evidence</text>
+      <text x="1109" y="438" font-size="32" fill="#5b6570">Code / references /</text>
+      <text x="1109" y="480" font-size="32" fill="#5b6570">unknowns</text>
+      <text x="1555" y="362" font-size="34" font-weight="700">4. Use what you learn</text>
+      <text x="1555" y="440" font-size="53" font-weight="700">Your agent</text>
+      <text x="1555" y="496" font-size="30" fill="#5b6570">Explain / implement / test</text>
+      <text x="665" y="690" font-size="42" font-weight="700">Analysis tools</text>
+      <text x="665" y="755" font-size="32" fill="#5b6570">Local analysis adapters</text>
+      <text x="1118" y="199" font-size="33" font-weight="700" fill="#294f82">Follow-up question</text>
+    </g>
+  </g>
+  <g fill="none" stroke="#5b6570" stroke-width="4" marker-end="url(#arrow)">
+    <path d="M414 410 H469"/>
+    <path d="M856 410 H911"/>
+    <path d="M1301 410 H1356"/>
+    <path d="M665 615 V545"/>
+  </g>
+  <path d="M1555 280 V248 Q1555 217 1524 217 H696 Q665 217 665 248 V273" fill="none" stroke="#294f82" stroke-width="4" marker-end="url(#blue-arrow)"/>
+</svg>

@@ -1,0 +1,8 @@
+fixture [arm64]:
+    -exports:
+        offset      symbol
+        0x00000000  __mh_execute_header
+        0x00000042  _fixture_absolute [absolute]
+        0x00000468  _fixture_export
+        0x00000460  _fixture_weak [weak-def]
+        0x00000470  _main

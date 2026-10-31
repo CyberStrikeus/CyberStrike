@@ -1,0 +1,10 @@
+Executable=/Applications/Fixture.app/Contents/MacOS/Fixture
+Identifier=com.example.fixture
+Format=app bundle with Mach-O thin (arm64)
+CodeDirectory v=20500 size=500 flags=0x10000(runtime) hashes=10+7 location=embedded
+Hash choices=sha256
+CDHash=abcdef0123456789
+Signature size=9000
+Authority=Developer ID Application: Example
+TeamIdentifier=TEAM12345
+Timestamp=Jul 12, 2026 at 12:00:00
