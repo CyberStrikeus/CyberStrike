@@ -189,7 +189,7 @@ export { detectionRules } from "./rules/detection"
 export const baselineCorpusRules = [...accessRules, ...headerCorpusRules, ...chainRules.map(compileChain), ...compileAggregates(aggregateRules), ...advancedCorpusRules]
 export { chainRules } from "./rules/chains"
 export { aggregateRules } from "./rules/aggregates"
-export { advancedCorpusRules } from "./rules/corpus-advanced"
+export { advancedCorpusRules, privilegeEscalation, methodConfusion, inconsistentAuth, cacheableAuth, headerDifferential } from "./rules/corpus-advanced"
 export { advancedActiveRules } from "./rules/active-advanced"
 export { errorForcingRules } from "./rules/error-forcing"
 export type { Technique, TechPlaybook } from "./playbook"
