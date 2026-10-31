@@ -84,6 +84,8 @@ describe("ingest → Vortex (real route wiring, #15 slice 1 parity)", () => {
           "strict-transport-security": "max-age=63072000",
           "x-frame-options": "DENY",
           "x-content-type-options": "nosniff",
+          "referrer-policy": "no-referrer",
+          "permissions-policy": "geolocation=()",
         },
         body: "<html><body>welcome</body></html>",
       }

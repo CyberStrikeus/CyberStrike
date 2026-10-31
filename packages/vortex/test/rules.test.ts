@@ -46,6 +46,8 @@ describe("missing-security-headers (detect-once, per-host — #87)", () => {
         h("strict-transport-security", "max-age=31536000"),
         h("content-security-policy", "default-src 'none'; frame-ancestors 'none'"),
         h("x-content-type-options", "nosniff"),
+        h("referrer-policy", "no-referrer"),
+        h("permissions-policy", "geolocation=()"),
       ]),
     ])
     expect(s).toHaveLength(0)
