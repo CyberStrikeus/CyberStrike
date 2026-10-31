@@ -7,7 +7,7 @@ const state = (kind: "starting" | "ready" | "failed" | "stopped"): WslServersSta
   installed: [],
   online: [],
   distroProbes: {},
-  opencodeChecks: {},
+  cliChecks: {},
   pendingRestart: false,
   job: null,
   servers: [
@@ -19,7 +19,7 @@ const state = (kind: "starting" | "ready" | "failed" | "stopped"): WslServersSta
 })
 
 function runtime(kind: "starting" | "ready" | "failed" | "stopped") {
-  if (kind === "ready") return { kind, url: "http://127.0.0.1:4096", username: "opencode", password: "secret" }
+  if (kind === "ready") return { kind, url: "http://127.0.0.1:4096", username: "cyberstrike", password: "secret" }
   if (kind === "failed") return { kind, message: "boom" }
   return { kind }
 }
