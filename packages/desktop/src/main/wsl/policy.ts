@@ -10,10 +10,10 @@ export function clearWslDistroState(
   distro: string,
 ) {
   const nextDistroProbes = { ...distroProbes }
-  const nextOpencodeChecks = { ...cliChecks }
+  const next = { ...cliChecks }
   delete nextDistroProbes[distro]
-  delete nextOpencodeChecks[distro]
-  return { distroProbes: nextDistroProbes, cliChecks: nextOpencodeChecks }
+  delete next[distro]
+  return { distroProbes: nextDistroProbes, cliChecks: next }
 }
 
 export function wslTerminalArgs(distro?: string | null) {

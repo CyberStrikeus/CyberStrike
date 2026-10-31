@@ -1,4 +1,4 @@
-import type { OpenCodeEvent } from "@cyberstrike-io/client/promise"
+import type { CyberStrikeEvent } from "@cyberstrike-io/client/promise"
 import type { Event } from "@cyberstrike-io/sdk/v2/client"
 import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
@@ -18,14 +18,14 @@ const isAbortError = (error: unknown) =>
   error !== null && typeof error === "object" && "name" in error && error.name === "AbortError"
 
 const isStreamClosed = (error: unknown, signal?: AbortSignal) => isAbortError(error) || signal?.aborted === true
-export type ServerEvent = Event & { id?: string; current?: OpenCodeEvent }
+export type ServerEvent = Event & { id?: string; current?: CyberStrikeEvent }
 type QueuedServerEvent = { directory: string; payload: ServerEvent }
 type CurrentDelta = Extract<
-  OpenCodeEvent,
+  CyberStrikeEvent,
   { type: "session.text.delta" | "session.reasoning.delta" | "session.tool.input.delta" | "session.compaction.delta" }
 >
 
-export function adaptServerEvent(event: OpenCodeEvent): ServerEvent {
+export function adaptServerEvent(event: CyberStrikeEvent): ServerEvent {
   if (event.type === "permission.v2.asked") {
     return {
       id: event.id,
@@ -138,7 +138,7 @@ export function coalesceServerEvents(events: QueuedServerEvent[]) {
   return output
 }
 
-function currentDelta(event: OpenCodeEvent | undefined): CurrentDelta | undefined {
+function currentDelta(event: CyberStrikeEvent | undefined): CurrentDelta | undefined {
   if (
     event?.type === "session.text.delta" ||
     event?.type === "session.reasoning.delta" ||

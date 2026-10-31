@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { createStore } from "solid-js/store"
 import { QueryClient } from "@tanstack/solid-query"
-import type { Config, OpencodeClient, Project } from "@cyberstrike-io/sdk/v2/client"
+import type { Config, CyberStrikeClient, Project } from "@cyberstrike-io/sdk/v2/client"
 import type { AgentApi, CatalogApi, CommandApi, ReferenceApi } from "@cyberstrike-io/client/promise"
 import type { NormalizedProviderListResponse } from "@cyberstrike-io/session-ui/context"
 import {
@@ -140,7 +140,7 @@ describe("bootstrapDirectory", () => {
           },
         },
         provider: { list: async () => ({ data: { all: [], connected: [], default: {} } }) },
-      } as unknown as OpencodeClient,
+      } as unknown as CyberStrikeClient,
       api,
       store,
       setStore,
@@ -179,7 +179,7 @@ describe("bootstrapDirectory", () => {
             throw new Error("legacy directory config should not be called")
           },
         },
-      } as unknown as OpencodeClient,
+      } as unknown as CyberStrikeClient,
       api,
       store,
       setStore,
@@ -208,7 +208,7 @@ describe("config queries", () => {
           },
         },
       },
-    } as unknown as OpencodeClient
+    } as unknown as CyberStrikeClient
 
     const result = await new QueryClient().fetchQuery(
       loadGlobalConfigQuery(ServerScope.local, sdk, Promise.resolve("v2")),
@@ -230,7 +230,7 @@ describe("config queries", () => {
           },
         },
       },
-    } as unknown as OpencodeClient
+    } as unknown as CyberStrikeClient
 
     const result = await new QueryClient().fetchQuery(
       loadGlobalConfigQuery(ServerScope.local, sdk, Promise.resolve("v1")) as any,

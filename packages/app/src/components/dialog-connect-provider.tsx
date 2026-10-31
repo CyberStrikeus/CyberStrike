@@ -167,7 +167,7 @@ function ProviderPicker(props: {
     if (id === "anthropic") return language.t("dialog.provider.anthropic.note")
     if (id === "openai") return language.t("dialog.provider.openai.note")
     if (id.startsWith("github-copilot")) return language.t("dialog.provider.copilot.note")
-    if (id === "cyberstrike-go") return language.t("dialog.provider.opencodeGo.tagline")
+    if (id === "cyberstrike-go") return language.t("dialog.provider.cyberstrikeGo.tagline")
     return undefined
   }
 
@@ -207,7 +207,7 @@ function ProviderPicker(props: {
           <ProviderIcon data-slot="list-item-extra-icon" id={i.id} />
           <span>{i.name}</span>
           <Show when={i.id === "cyberstrike"}>
-            <div class="text-14-regular text-text-weak">{language.t("dialog.provider.opencode.tagline")}</div>
+            <div class="text-14-regular text-text-weak">{language.t("dialog.provider.cyberstrike.tagline")}</div>
           </Show>
           <Show when={i.id === CUSTOM_ID}>
             <Tag>{language.t("settings.providers.tag.custom")}</Tag>
@@ -338,8 +338,8 @@ function ProviderPickerV2(props: {
                           <span class="min-w-0 truncate font-[440] text-v2-text-text-muted">
                             {language.t(
                               provider.id === "cyberstrike"
-                                ? "dialog.provider.opencode.tagline"
-                                : "dialog.provider.opencodeGo.tagline",
+                                ? "dialog.provider.cyberstrike.tagline"
+                                : "dialog.provider.cyberstrikeGo.tagline",
                             )}
                           </span>
                           <span class="flex h-4 shrink-0 items-center rounded-xs border-[0.5px] border-v2-border-border-base bg-v2-background-bg-layer-03 px-1 text-[11px] font-[530] leading-none tracking-[0.05px] text-v2-text-text-muted">
@@ -564,7 +564,7 @@ function ProviderConnection(props: {
           if (!alive.value) return
           if (props.provider === "cyberstrike" && platform.platform === "desktop") {
             const url = new URL(x.data.url)
-            url.searchParams.set("client_id", "opencode-desktop")
+            url.searchParams.set("client_id", "cyberstrike-desktop")
             x.data.url = url.href
           }
           dispatch({ type: "auth.complete", authorization: x.data })
@@ -844,17 +844,17 @@ function ProviderConnection(props: {
             fallback={language.t("provider.connect.apiKey.description", { provider: provider().name })}
           >
             <div class="flex flex-col gap-5">
-              <div>{language.t("provider.connect.opencodeZen.line1")}</div>
-              <div>{language.t("provider.connect.opencodeZen.line2")}</div>
+              <div>{language.t("provider.connect.cyberstrikeZen.line1")}</div>
+              <div>{language.t("provider.connect.cyberstrikeZen.line2")}</div>
               <div>
-                {language.t("provider.connect.opencodeZen.visit.prefix")}
+                {language.t("provider.connect.cyberstrikeZen.visit.prefix")}
                 <ExternalLink
                   href="https://cyberstrike.io/zen"
                   class="text-v2-text-text-base focus-visible:rounded-xs focus-visible:outline-2 focus-visible:outline-v2-border-border-focus"
                 >
-                  {language.t("provider.connect.opencodeZen.visit.link")}
+                  {language.t("provider.connect.cyberstrikeZen.visit.link")}
                 </ExternalLink>
-                {language.t("provider.connect.opencodeZen.visit.suffix")}
+                {language.t("provider.connect.cyberstrikeZen.visit.suffix")}
               </div>
             </div>
           </Show>
@@ -894,14 +894,14 @@ function ProviderConnection(props: {
         <Switch>
           <Match when={provider().id === "cyberstrike"}>
             <div class="flex flex-col gap-4">
-              <div class="text-14-regular text-text-base">{language.t("provider.connect.opencodeZen.line1")}</div>
-              <div class="text-14-regular text-text-base">{language.t("provider.connect.opencodeZen.line2")}</div>
+              <div class="text-14-regular text-text-base">{language.t("provider.connect.cyberstrikeZen.line1")}</div>
+              <div class="text-14-regular text-text-base">{language.t("provider.connect.cyberstrikeZen.line2")}</div>
               <div class="text-14-regular text-text-base">
-                {language.t("provider.connect.opencodeZen.visit.prefix")}
+                {language.t("provider.connect.cyberstrikeZen.visit.prefix")}
                 <ExternalLink href="https://cyberstrike.io/zen" tabIndex={-1}>
-                  {language.t("provider.connect.opencodeZen.visit.link")}
+                  {language.t("provider.connect.cyberstrikeZen.visit.link")}
                 </ExternalLink>
-                {language.t("provider.connect.opencodeZen.visit.suffix")}
+                {language.t("provider.connect.cyberstrikeZen.visit.suffix")}
               </div>
             </div>
           </Match>

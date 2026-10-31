@@ -9,10 +9,10 @@ import path from "path"
 
 import { createClient } from "@hey-api/openapi-ts"
 
-const opencode = path.resolve(dir, "../../cyberstrike")
+const root = path.resolve(dir, "../../cyberstrike")
 
 if (!process.env.CI) {
-  await $`bun dev generate > ${dir}/openapi.json`.cwd(opencode)
+  await $`bun dev generate > ${dir}/openapi.json`.cwd(root)
 
   const document = (await Bun.file("./openapi.json").json()) as {
     components?: { schemas?: Record<string, unknown> }
@@ -59,7 +59,7 @@ if (!process.env.CI) {
       },
       {
         name: "@hey-api/sdk",
-        instance: "OpencodeClient",
+        instance: "CyberStrikeClient",
         exportFromIndex: false,
         auth: false,
         paramsStructure: "flat",

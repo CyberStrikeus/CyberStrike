@@ -563,7 +563,7 @@ export const Terminal = (props: TerminalProps) => {
               { ptyID: id, directory },
               {
                 throwOnError: false,
-                headers: { "x-opencode-ticket": "1" },
+                headers: { "x-cyberstrike-ticket": "1" },
               },
             )
             .catch((err: unknown) => {
@@ -580,7 +580,7 @@ export const Terminal = (props: TerminalProps) => {
         //   .api.pty.connectToken({
         //     ptyID: id,
         //     location: { directory },
-        //     "x-opencode-ticket": "1",
+        //     "x-cyberstrike-ticket": "1",
         //   })
         //   .then((result) => result.data.ticket)
       }

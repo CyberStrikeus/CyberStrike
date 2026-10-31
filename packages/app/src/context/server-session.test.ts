@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import type { retry } from "@cyberstrike-io/core/util/retry"
-import type { OpenCodeEvent, SessionApi } from "@cyberstrike-io/client/promise"
-import type { Message, OpencodeClient, Part, Session } from "@cyberstrike-io/sdk/v2/client"
+import type { CyberStrikeEvent, SessionApi } from "@cyberstrike-io/client/promise"
+import type { Message, CyberStrikeClient, Part, Session } from "@cyberstrike-io/sdk/v2/client"
 import { createServerSession } from "./server-session"
 import type { ServerApi } from "@/utils/server"
 
@@ -85,7 +85,7 @@ function messageClient(...responses: Array<MessageResponse | Promise<MessageResp
         return responses[index++]
       },
     },
-  } as unknown as OpencodeClient
+  } as unknown as CyberStrikeClient
   return Object.assign(client, {
     requests,
     requested(count: number) {
@@ -118,7 +118,7 @@ function rootMessageClient(
         return roots[rootIndex++]
       },
     },
-  } as unknown as OpencodeClient
+  } as unknown as CyberStrikeClient
   return Object.assign(client, {
     requests,
     rootRequests,
@@ -157,7 +157,7 @@ function setup(sessions: Record<string, Session>) {
       diff: async () => ({ data: [] }),
       todo: async () => ({ data: [] }),
     },
-  } as unknown as OpencodeClient
+  } as unknown as CyberStrikeClient
   return { get, messages, store: createServerSession(client) }
 }
 
@@ -173,7 +173,7 @@ describe("server session", () => {
         time: { created: 1 },
       },
     ])
-    const apply = (input: object) => ctx.store.applyV2(input as OpenCodeEvent)
+    const apply = (input: object) => ctx.store.applyV2(input as CyberStrikeEvent)
 
     apply({
       id: "evt_step",
@@ -250,7 +250,7 @@ describe("server session", () => {
           throw new Error("legacy message endpoint called")
         },
       },
-    } as unknown as OpencodeClient
+    } as unknown as CyberStrikeClient
     const messageApi = {
       list: async (input: unknown) => {
         requests.push(input)
@@ -293,7 +293,7 @@ describe("server session", () => {
         return pages.shift()!
       },
     } as unknown as MessageApi
-    const store = createServerSession({} as OpencodeClient, {} as SessionApi, messageApi)
+    const store = createServerSession({} as CyberStrikeClient, {} as SessionApi, messageApi)
     store.remember(session("root"))
 
     await store.sync("root")

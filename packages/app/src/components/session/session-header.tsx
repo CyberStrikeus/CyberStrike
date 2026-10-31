@@ -288,7 +288,7 @@ export function SessionHeader() {
   const [centerMount, setCenterMount] = createSignal<HTMLElement | null>(null)
   const rightMount = useTitlebarRightMount()
   onMount(() => {
-    setCenterMount(document.getElementById("opencode-titlebar-center"))
+    setCenterMount(document.getElementById("cyberstrike-titlebar-center"))
   })
 
   return (

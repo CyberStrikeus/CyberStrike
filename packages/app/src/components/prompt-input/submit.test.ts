@@ -126,7 +126,7 @@ beforeAll(async () => {
   }))
 
   mock.module("@cyberstrike-io/sdk/v2/client", () => ({
-    createOpencodeClient: (input: { directory: string }) => {
+    createClient: (input: { directory: string }) => {
       createdClients.push(input.directory)
       return clientFor(input.directory)
     },

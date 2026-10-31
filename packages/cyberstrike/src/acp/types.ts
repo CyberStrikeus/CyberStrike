@@ -1,5 +1,5 @@
 import type { McpServer } from "@agentclientprotocol/sdk"
-import type { OpencodeClient } from "@cyberstrike-io/sdk/v2"
+import type { CyberStrikeClient } from "@cyberstrike-io/sdk/v2"
 
 export interface ACPSessionState {
   id: string
@@ -15,7 +15,7 @@ export interface ACPSessionState {
 }
 
 export interface ACPConfig {
-  sdk: OpencodeClient
+  sdk: CyberStrikeClient
   defaultModel?: {
     providerID: string
     modelID: string

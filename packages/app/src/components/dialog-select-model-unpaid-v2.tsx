@@ -150,8 +150,8 @@ export const DialogSelectModelUnpaidV2: Component<{ model?: ModelState }> = (pro
                           <span class="truncate font-[440] text-v2-text-text-muted">
                             {language.t(
                               provider.id === "cyberstrike"
-                                ? "dialog.provider.opencode.tagline"
-                                : "dialog.provider.opencodeGo.tagline",
+                                ? "dialog.provider.cyberstrike.tagline"
+                                : "dialog.provider.cyberstrikeGo.tagline",
                             )}
                           </span>
                         </Show>

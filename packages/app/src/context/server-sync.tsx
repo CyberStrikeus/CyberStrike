@@ -1,6 +1,6 @@
 import type {
   Config,
-  OpencodeClient,
+  CyberStrikeClient,
   Path,
   Project,
   ProviderAuthResponse,
@@ -98,7 +98,7 @@ export const loadMcpQuery = (
   scope: ServerScope,
   directory: string,
   api: McpListApi,
-  legacy?: OpencodeClient,
+  legacy?: CyberStrikeClient,
   protocol?: Promise<"v1" | "v2">,
 ): ApiQueryOptions<Record<string, McpServer["status"]>, readonly [ServerScope, string, "mcp"]> =>
   queryOptions<
@@ -120,7 +120,7 @@ export const loadMcpResourcesQuery = (
   scope: ServerScope,
   directory: string,
   api: McpResourceApi,
-  legacy?: OpencodeClient,
+  legacy?: CyberStrikeClient,
   protocol?: Promise<"v1" | "v2">,
 ): ApiQueryOptions<Record<string, McpResource>, readonly [ServerScope, string, "mcpResources"]> =>
   queryOptions<
@@ -148,7 +148,7 @@ export const loadMcpResourcesQuery = (
     placeholderData: {},
   })
 
-export const loadLspQuery = (scope: ServerScope, directory: string, sdk: OpencodeClient) =>
+export const loadLspQuery = (scope: ServerScope, directory: string, sdk: CyberStrikeClient) =>
   queryOptions({
     queryKey: [scope, directory, "lsp"] as const,
     queryFn: () => sdk.lsp.status().then((r) => r.data ?? []),
@@ -182,9 +182,9 @@ export function seedActiveSessionStatuses(
 
 function makeQueryOptionsApi(
   scope: ServerScope,
-  serverSDK: () => OpencodeClient,
+  serverSDK: () => CyberStrikeClient,
   serverAPI: ServerApi,
-  sdkFor: (dir: PathKey) => OpencodeClient,
+  sdkFor: (dir: PathKey) => CyberStrikeClient,
   protocol: Promise<"v1" | "v2">,
 ) {
   return {
@@ -211,7 +211,7 @@ export function createServerSyncContextInner(serverSDK: ServerSDK) {
   const owner = getOwner()
   if (!owner) throw new Error("ServerSync must be created within owner")
 
-  const sdkCache = new Map<string, OpencodeClient>()
+  const sdkCache = new Map<string, CyberStrikeClient>()
   const booting = new Map<string, Promise<void>>()
   const sessionLoads = new Map<string, Promise<void>>()
   const sessionMeta = new Map<string, { limit: number }>()

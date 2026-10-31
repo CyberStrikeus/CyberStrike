@@ -1,6 +1,6 @@
 import type {
   Event,
-  createOpencodeClient,
+  createClient,
   Project,
   Model,
   Provider,
@@ -27,7 +27,7 @@ export type ProviderContext = {
 }
 
 export type PluginInput = {
-  client: ReturnType<typeof createOpencodeClient>
+  client: ReturnType<typeof createClient>
   project: Project
   directory: string
   worktree: string

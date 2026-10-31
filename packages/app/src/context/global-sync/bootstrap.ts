@@ -1,6 +1,6 @@
 import type {
   Config,
-  OpencodeClient,
+  CyberStrikeClient,
   Path,
   PermissionRequest,
   Project,
@@ -105,7 +105,7 @@ function showErrors(input: {
   })
 }
 
-export const loadGlobalConfigQuery = (scope: ServerScope, sdk: OpencodeClient, protocol?: Promise<ServerProtocol>) =>
+export const loadGlobalConfigQuery = (scope: ServerScope, sdk: CyberStrikeClient, protocol?: Promise<ServerProtocol>) =>
   queryOptions({
     queryKey: [scope, "config"],
     queryFn: async () => {
@@ -132,7 +132,7 @@ export const loadProjectsQuery = (scope: ServerScope, api: ProjectApi) =>
         api.list().then((projects) => {
           return projects
             .filter((p) => !!p?.id)
-            .filter((p) => !!p.worktree && !p.worktree.includes("opencode-test") && !p.worktree.includes("cyberstrike-test-"))
+            .filter((p) => !!p.worktree && !p.worktree.includes("cyberstrike-test") && !p.worktree.includes("cyberstrike-test-"))
             .map(normalizeProjectInfo)
             .slice()
             .sort((a, b) => cmp(a.id, b.id))
@@ -141,7 +141,7 @@ export const loadProjectsQuery = (scope: ServerScope, api: ProjectApi) =>
   })
 
 export async function bootstrapGlobal(input: {
-  serverSDK: OpencodeClient
+  serverSDK: CyberStrikeClient
   serverAPI: CatalogApi & { readonly project: ProjectApi }
   protocol?: Promise<ServerProtocol>
   scope: ServerScope
@@ -222,7 +222,7 @@ export const loadProvidersQuery = (
   scope: ServerScope,
   directory: string | null,
   sdk: CatalogApi,
-  legacy?: OpencodeClient,
+  legacy?: CyberStrikeClient,
   protocol?: Promise<ServerProtocol>,
 ) =>
   queryOptions({
@@ -259,7 +259,7 @@ export const loadAgentsQuery = (
   scope: ServerScope,
   directory: string,
   sdk: AgentListApi,
-  legacy?: OpencodeClient,
+  legacy?: CyberStrikeClient,
   protocol?: Promise<ServerProtocol>,
 ) =>
   queryOptions({
@@ -274,7 +274,7 @@ export const loadAgentsQuery = (
 export const loadCommands = (
   directory: string,
   api: CommandListApi,
-  legacy?: OpencodeClient,
+  legacy?: CyberStrikeClient,
   protocol?: Promise<ServerProtocol>,
 ): Promise<CommandInfo[]> =>
   retry(async () => {
@@ -301,7 +301,7 @@ export const loadCommands = (
 export const loadPathQuery = (
   scope: ServerScope,
   directory: string | null,
-  sdk: OpencodeClient,
+  sdk: CyberStrikeClient,
   protocol?: Promise<ServerProtocol>,
 ) =>
   queryOptions<Path>({
@@ -317,7 +317,7 @@ export const loadReferencesQuery = (
   scope: ServerScope,
   directory: string,
   api: ReferenceListApi,
-  legacy?: OpencodeClient,
+  legacy?: CyberStrikeClient,
   protocol?: Promise<ServerProtocol>,
 ) =>
   queryOptions<ReferenceInfo[]>({
@@ -334,7 +334,7 @@ export async function bootstrapDirectory(input: {
   directory: string
   scope: ServerScope
   mcp: boolean
-  sdk: OpencodeClient
+  sdk: CyberStrikeClient
   api: CatalogApi & {
     readonly agent: AgentListApi
     readonly command: CommandListApi

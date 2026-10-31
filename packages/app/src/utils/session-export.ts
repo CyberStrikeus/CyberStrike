@@ -1,6 +1,6 @@
 import type { Message, Part, Session } from "@cyberstrike-io/sdk/v2/client"
 
-// Matches the exact `{ info, messages: [{ info, parts }] }` structure produced by `opencode export` CLI
+// Matches the exact `{ info, messages: [{ info, parts }] }` structure produced by `cyberstrike export` CLI
 export type SessionExportData = {
   info: Session
   messages: {

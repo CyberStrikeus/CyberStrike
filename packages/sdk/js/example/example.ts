@@ -1,8 +1,8 @@
-import { createOpencodeClient, createOpencodeServer } from "@cyberstrike-io/sdk"
+import { createClient, createServer } from "@cyberstrike-io/sdk"
 import { pathToFileURL } from "bun"
 
-const server = await createOpencodeServer()
-const client = createOpencodeClient({ baseUrl: server.url })
+const server = await createServer()
+const client = createClient({ baseUrl: server.url })
 
 const input = await Array.fromAsync(new Bun.Glob("packages/core/*.ts").scan())
 

@@ -205,10 +205,10 @@ describe("migrateCanonicalLocalServerState", () => {
       migrateCanonicalLocalServerState(
         {
           list: [],
-          projects: { "https://opencode.example.com": [{ worktree: "/remote", expanded: true }] },
-          lastProject: { "https://opencode.example.com": "/remote" },
+          projects: { "https://cyberstrike.example.com": [{ worktree: "/remote", expanded: true }] },
+          lastProject: { "https://cyberstrike.example.com": "/remote" },
         },
-        ServerConnection.Key.make("https://opencode.example.com"),
+        ServerConnection.Key.make("https://cyberstrike.example.com"),
       ),
     ).toEqual({
       list: [],
@@ -223,14 +223,14 @@ describe("migrateCanonicalLocalServerState", () => {
         {
           projects: {
             local: [{ worktree: "/local", expanded: false }],
-            "https://opencode.example.com": [
+            "https://cyberstrike.example.com": [
               { worktree: "/local", expanded: true },
               { worktree: "/remote", expanded: true },
             ],
           },
-          lastProject: { local: "/local", "https://opencode.example.com": "/remote" },
+          lastProject: { local: "/local", "https://cyberstrike.example.com": "/remote" },
         },
-        ServerConnection.Key.make("https://opencode.example.com"),
+        ServerConnection.Key.make("https://cyberstrike.example.com"),
       ),
     ).toEqual({
       projects: {

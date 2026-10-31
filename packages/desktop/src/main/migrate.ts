@@ -32,7 +32,7 @@ function tauriAppId() {
 }
 
 // Migrate a single Tauri .dat file into the corresponding electron-store.
-// `cyberstrike.settings.dat` is special: it maps to the `opencode.settings` store
+// `cyberstrike.settings.dat` is special: it maps to the `cyberstrike.settings` store
 // (the electron-store name without the `.dat` extension). All other .dat files
 // keep their full filename as the electron-store name so they match what the
 // renderer already passes via IPC (e.g. `"default.dat"`, `"cyberstrike.global.dat"`).

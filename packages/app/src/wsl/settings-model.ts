@@ -54,7 +54,7 @@ export const wslRuntimeRetryable = (runtime: WslServerRuntime) =>
 export function wslCliAction(check?: WslCliCheck) {
   if (!check) return
   if (!check.resolvedPath) return "wsl.onboarding.installCli"
-  if (check.matchesDesktop === false) return "wsl.onboarding.updateOpencode"
+  if (check.matchesDesktop === false) return "wsl.onboarding.updateCli"
 }
 
 export function wslDistroReady(state: WslServersState | undefined, name: string) {
@@ -172,8 +172,8 @@ function addServerDistroStatus(input: {
     }
     return
   }
-  if (check.matchesDesktop === false) return { label: { key: "wsl.onboarding.updateOpencode" }, tone: "warning" }
-  if (!check.resolvedPath) return { label: { key: "wsl.onboarding.distroStatus.opencodeMissing" }, tone: "warning" }
+  if (check.matchesDesktop === false) return { label: { key: "wsl.onboarding.updateCli" }, tone: "warning" }
+  if (!check.resolvedPath) return { label: { key: "wsl.onboarding.distroStatus.cliMissing" }, tone: "warning" }
   if (check.error) return { label: { key: "wsl.onboarding.installCli" }, tone: "warning" }
   return { label: { key: "wsl.onboarding.distroStatus.ready" }, tone: "success" }
 }
@@ -215,9 +215,9 @@ function addServerPrimaryButton(input: {
     return {
       variant: "neutral",
       label: installingCli
-        ? { key: "wsl.onboarding.updatingOpencode" }
+        ? { key: "wsl.onboarding.updatingCli" }
         : update
-          ? { key: "wsl.onboarding.updateOpencode" }
+          ? { key: "wsl.onboarding.updateCli" }
           : { key: "wsl.onboarding.installCli" },
       disabled: !!input.state?.job || input.adding,
       action: "install-cli",

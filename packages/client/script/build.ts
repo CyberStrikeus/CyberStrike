@@ -13,8 +13,8 @@ await Effect.runPromise(
         emitPromise(contract, {
           outputTypes: {
             "events.subscribe": {
-              name: "OpenCodeEventEncoded",
-              import: 'import type { OpenCodeEventEncoded } from "@cyberstrike-io/protocol/groups/event"',
+              name: "CyberStrikeEventEncoded",
+              import: 'import type { CyberStrikeEventEncoded } from "@cyberstrike-io/protocol/groups/event"',
             },
           },
         }),

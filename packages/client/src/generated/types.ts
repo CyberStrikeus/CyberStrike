@@ -1,4 +1,4 @@
-import type { OpenCodeEventEncoded } from "@cyberstrike-io/protocol/groups/event"
+import type { CyberStrikeEventEncoded } from "@cyberstrike-io/protocol/groups/event"
 
 export type JsonValue =
   | null
@@ -2538,7 +2538,7 @@ export type SkillsListOutput = {
   }>
 }
 
-export type EventsSubscribeOutput = OpenCodeEventEncoded
+export type EventsSubscribeOutput = CyberStrikeEventEncoded
 
 export type PtysListInput = {
   readonly location?: {

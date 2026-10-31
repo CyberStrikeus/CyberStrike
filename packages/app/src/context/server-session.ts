@@ -1,9 +1,9 @@
 import { Binary } from "@cyberstrike-io/core/util/binary"
 import { retry } from "@cyberstrike-io/core/util/retry"
-import type { OpenCodeEvent, SessionApi, SessionMessageInfo } from "@cyberstrike-io/client/promise"
+import type { CyberStrikeEvent, SessionApi, SessionMessageInfo } from "@cyberstrike-io/client/promise"
 import type {
   Message,
-  OpencodeClient,
+  CyberStrikeClient,
   Part,
   PermissionRequest,
   QuestionRequest,
@@ -186,7 +186,7 @@ function reconcileFetched<T extends { id: string }>(
 type ServerSessionOptions = { retry?: typeof retry; protocol?: Promise<"v1" | "v2"> }
 
 export function createServerSession(
-  client: OpencodeClient,
+  client: CyberStrikeClient,
   sessionApiOrOptions?: SessionApi | ServerSessionOptions,
   messageApi?: MessageApi,
   currentOptions?: ServerSessionOptions,
@@ -935,7 +935,7 @@ export function createServerSession(
       .catch(() => {})
   }
 
-  const applyV2 = (event: OpenCodeEvent) => {
+  const applyV2 = (event: CyberStrikeEvent) => {
     if (!("data" in event) || !("sessionID" in event.data) || typeof event.data.sessionID !== "string") return
     const sessionID = event.data.sessionID
     const reduction = v2.reduce(data.session_message[sessionID] ?? [], event)

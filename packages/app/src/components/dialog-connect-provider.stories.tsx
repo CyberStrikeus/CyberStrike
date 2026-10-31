@@ -60,7 +60,7 @@ export const ApiKey = {
   render: renderConnection("openrouter", [{ type: "api", label: "API key" }]),
 }
 
-export const OpenCodeZen = {
+export const CyberStrikeZen = {
   render: renderConnection("cyberstrike", [{ type: "api", label: "API key" }]),
 }
 

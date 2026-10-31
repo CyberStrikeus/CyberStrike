@@ -18,8 +18,8 @@ export async function spawnWslSidecar(
   distro: string,
   opts: { onLine?: (line: WslCommandLine) => void; healthTimeoutMs?: number } = {},
 ): Promise<WslSidecar> {
-  const opencode = await resolveWslCli(distro)
-  if (!opencode) throw new Error(nativeT("desktop.wsl.error.opencodeNotInstalled", { distro }))
+  const bin = await resolveWslCli(distro)
+  if (!bin) throw new Error(nativeT("desktop.wsl.error.cliNotInstalled", { distro }))
 
   const port = await allocatePort()
   const password = randomUUID()
@@ -35,7 +35,7 @@ export async function spawnWslSidecar(
     `export CYBERSTRIKE_SERVER_USERNAME=${shellEscape(username)}`,
     `export CYBERSTRIKE_SERVER_PASSWORD=${shellEscape(password)}`,
     'export XDG_STATE_HOME="$HOME/.local/state"',
-    `exec ${shellEscape(opencode)} --print-logs --log-level ${app.isPackaged ? "WARN" : "INFO"} serve --hostname 0.0.0.0 --port ${port}`,
+    `exec ${shellEscape(bin)} --print-logs --log-level ${app.isPackaged ? "WARN" : "INFO"} serve --hostname 0.0.0.0 --port ${port}`,
   ].join("\n")
   const child = spawn("wsl", wslArgs(["bash", "-se"], distro), {
     stdio: ["pipe", "pipe", "pipe"],
