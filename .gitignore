@@ -47,3 +47,4 @@ session-*.md
 # Stray electron-vite build output dropped at repo root (desktop main-process bundle)
 /index.js
 .vendor/
+*.tgz
