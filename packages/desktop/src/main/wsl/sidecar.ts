@@ -23,7 +23,7 @@ export async function spawnWslSidecar(
 
   const port = await allocatePort()
   const password = randomUUID()
-  const username = "opencode"
+  const username = "cyberstrike"
   const script = [
     "set -euo pipefail",
     'cd "$HOME" || cd /',

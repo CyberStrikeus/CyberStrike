@@ -67,7 +67,7 @@ const getBase = (appId: string): Configuration => ({
           {
             from: "resources/",
             to: "",
-            filter: ["opencode-cli*"],
+            filter: ["cyberstrike-cli*"],
           },
         ]
       : []),

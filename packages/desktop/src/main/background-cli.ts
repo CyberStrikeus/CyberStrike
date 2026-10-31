@@ -47,12 +47,12 @@ export async function startBackgroundCli(logger: Logger, shellStateHome?: string
   })
   logger.log("v2 CLI background service ready", {
     existing: Boolean(found),
-    username: "opencode",
+    username: "cyberstrike",
     ...endpoint(url),
   })
   return {
     url,
-    username: "opencode",
+    username: "cyberstrike",
     password,
   }
 }
@@ -121,5 +121,5 @@ function endpoint(url: string | undefined) {
 }
 
 function executableName() {
-  return process.platform === "win32" ? "opencode-cli.exe" : "opencode-cli"
+  return process.platform === "win32" ? "cyberstrike.exe" : "cyberstrike"
 }
