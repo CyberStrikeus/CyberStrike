@@ -27,28 +27,44 @@
   // can't see or click the OK button, and each one BLOCKS the page's JS thread synchronously, which
   // stalls the whole co-driving loop (no observe, no act) until a human dismisses it. Override them
   // here (MAIN world, document_start — before page scripts run) so they never block:
-  //   alert   → no-op            (page continues)
-  //   confirm → false (Cancel)   safe default, mirroring the guard's "destructive needs human confirm"
-  //   prompt  → null  (Cancel)
-  // Each is still REPORTED (an XSS alert(document.cookie) PoC stays visible in the HBLog) — the
+  //   alert   → no-op                 (page continues)
+  //   confirm → OK unless DESTRUCTIVE  (see below)
+  //   prompt  → null (Cancel)
+  // confirm() is the one that gates discovery: a Save/Create/Submit flow often pops "Save changes?"
+  // and POSTs to an endpoint reachable ONLY past that OK. Always-Cancel would hide that endpoint, so
+  // confirm returns OK — EXCEPT when the message looks destructive (logout / delete / revoke / …),
+  // where auto-OK could log the crawl out or wipe data; those stay Cancel. The decision is a
+  // synchronous keyword heuristic because confirm() blocks and cannot await the AI navigator (the
+  // AI-driven open→observe→close path is for DOM modals, handled in content.js). Each call is still
+  // REPORTED with its decision (an XSS alert(document.cookie) PoC stays visible in the HBLog) — the
   // dialog is suppressed, not hidden. NOTE: beforeunload ("Leave site?") is NOT handled yet.
-  function reportDialog(kind, message) {
+  const DESTRUCTIVE =
+    /\b(log\s*out|sign\s*out|logout|signout|log\s*off|delete|remove|revoke|deactivate|disable|terminate|unsubscribe|cancel\s+(subscription|account|plan)|close\s+account|delete\s+account|reset|wipe|erase|destroy|purge|discard|clear\s+all|unlink|unpair)\b|çıkış|oturumu? ?kapat|\bsil\b|siler|kaldır|iptal\s+et|devre ?dışı|sıfırla|hesab[ıi].*(kapat|sil)|temizle|vazgeç/i
+  function isDestructive(m) {
     try {
-      window.postMessage({ __cs_dialog: { kind, message: String(message == null ? "" : message).slice(0, 500) } }, window.location.origin || "*")
+      return DESTRUCTIVE.test(String(m == null ? "" : m))
+    } catch {
+      return true // unreadable message → treat as destructive (safe: Cancel)
+    }
+  }
+  function reportDialog(kind, message, auto) {
+    try {
+      window.postMessage({ __cs_dialog: { kind, auto, message: String(message == null ? "" : message).slice(0, 500) } }, window.location.origin || "*")
     } catch {
       // ignore — best effort
     }
   }
   try {
     window.alert = function (m) {
-      reportDialog("alert", m)
+      reportDialog("alert", m, "dismiss")
     }
     window.confirm = function (m) {
-      reportDialog("confirm", m)
-      return false
+      const proceed = !isDestructive(m)
+      reportDialog("confirm", m, proceed ? "ok" : "cancel")
+      return proceed
     }
     window.prompt = function (m) {
-      reportDialog("prompt", m)
+      reportDialog("prompt", m, "cancel")
       return null
     }
   } catch {
