@@ -17,6 +17,10 @@
       "dependsOn": [],
       "outputs": ["dist/**"]
     },
+    "@cyberstrike-io/re#build": {
+      "dependsOn": [],
+      "outputs": ["dist/**"]
+    },
     "cyberstrike#test": {
       "dependsOn": ["^build"],
       "outputs": []
