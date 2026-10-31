@@ -6,6 +6,7 @@
   "license": "AGPL-3.0-only",
   "exports": {
     ".": "./src/index.ts",
+    "./promise": "./src/index.ts",
     "./effect": "./src/effect.ts"
   },
   "scripts": {

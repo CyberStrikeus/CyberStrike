@@ -6043,7 +6043,7 @@
 
     "@cspotcode/source-map-support/@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.9", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.0.3", "@jridgewell/sourcemap-codec": "^1.4.10" } }, "sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ=="],
 
-    "@cyberstrike-io/app/@cyberstrike-io/client": ["@cyberstrike-io/client@vendor/cyberstrike-io-client-1.17.13-v2.tgz", {}, "sha512-fCvgrkS9Tw3qe5AVB+ON7r9izYPTYX/KMAH1V0da2BfHdLJWjWlk3EsuhNmrAT4nd/zDRmMvVVDYEp729pRiTg=="],
+    "@cyberstrike-io/app/@cyberstrike-io/client": ["@cyberstrike-io/client@vendor/cyberstrike-io-client-1.17.13-v2.tgz", {}, "sha512-/hyD5FMZsHkL+P2jvAmbs16Q4Zuc/MRQaH6/4dlHn0OlwHezsYWEygg71lLVxR1EG3Q4A4GBBNHiYcG1dryYig=="],
 
     "@cyberstrike-io/console-function/@ai-sdk/anthropic": ["@ai-sdk/anthropic@2.0.0", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4" } }, "sha512-uyyaO4KhxoIKZztREqLPh+6/K3ZJx/rp72JKoUEL9/kC+vfQTThUfPnY/bUryUpcnawx8IY/tSoYNOi/8PCv7w=="],
 
