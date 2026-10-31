@@ -25,10 +25,7 @@
 </p>
 
 <p align="center">
-  <picture>
-    <source srcset="assets/hero-dark.webp" type="image/webp">
-    <img src="assets/hero-dark.png" alt="CyberStrike — AI Augmented Pentester" width="880">
-  </picture>
+  <img src="assets/banner.png" alt="CyberStrike — Agentic AI Penetration Testing Framework" width="880">
 </p>
 
 <h3 align="center">Open-source AI agent that runs complete penetration tests.</h3>

@@ -25,11 +25,7 @@
 </p>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="assets/hero-dark.webp">
-    <source media="(prefers-color-scheme: light)" srcset="assets/hero-light.webp">
-    <img src="assets/hero-dark.png" alt="CyberStrike — open-source AI agent for offensive security" width="880">
-  </picture>
+  <img src="assets/banner.png" alt="CyberStrike — Agentic AI Penetration Testing Framework" width="880">
 </p>
 
 <h3 align="center">Il primo agente IA open-source progettato per la sicurezza offensiva.</h3>
