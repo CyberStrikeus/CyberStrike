@@ -51,7 +51,9 @@ describe("POST/GET /session/:id/web/driver", () => {
         body: JSON.stringify({ driver: "human" }),
       })
       expect(post.status).toBe(200)
-      expect(await post.json()).toEqual({ ok: true, driver: "human" })
+      const body = await post.json()
+      expect(body).toMatchObject({ ok: true, driver: "human" })
+      expect(typeof body.model).toBe("string") // the route reports the main co-drive model
       expect(WebDriver.get("s1")).toBe("human")
 
       const get = await app.request("/session/s1/web/driver")
@@ -109,7 +111,7 @@ describe("driver route drives the co-driving loop (end-to-end, in-process)", () 
       CoDrive._setFactory(() => CoDriveSession.withDefaults(fast))
       attachBrowser("s1")
       const res = await setDriver(app, "s1", "ai")
-      expect(await res.json()).toEqual({ ok: true, driver: "ai" })
+      expect(await res.json()).toMatchObject({ ok: true, driver: "ai" })
 
       // Loop runs in the background — wait for coverage.
       const start = Date.now()
