@@ -97,4 +97,7 @@ const tasks = Object.entries(binaries).map(async ([name]) => {
   await $`npm publish *.tgz ${access} --tag ${tag}`.cwd(`./dist/${dirName}`)
 })
 await Promise.all(tasks)
-await $`cd ./${distDir} && bun pm pack && npm publish *.tgz ${access} --tag ${tag}`
+// Main package is declared dual-use (#113) → npm forbids direct publish with a 2FA-bypass
+// token, so stage it. A maintainer promotes it with `npm stage approve <id>` (2FA) afterward.
+// The binary/sdk/plugin packages are not dual-use and keep publishing directly above.
+await $`cd ./${distDir} && bun pm pack && npm stage publish *.tgz ${access} --tag ${tag}`
