@@ -165,7 +165,12 @@ await $`rm -rf dist`
 
 const binaries: Record<string, string> = {}
 if (!skipInstall) {
-  await $`bun install --os="*" --cpu="*" @opentui/core@${pkg.dependencies["@opentui/core"]}`
+  const otui = pkg.dependencies["@opentui/core"]
+  // Install opentui's native package for every os/arch BY NAME. The plain --os=*/--cpu=*
+  // cascade on @opentui/core alone does not reliably fetch the cross-arch platform packages,
+  // so a cross-compiled target (e.g. linux-arm64 on an x64 runner) cannot resolve its native
+  // module and the build fails. Mirrors the working GitLab CI install list (#112).
+  await $`bun install --os="*" --cpu="*" @opentui/core@${otui} @opentui/core-darwin-x64@${otui} @opentui/core-darwin-arm64@${otui} @opentui/core-linux-x64@${otui} @opentui/core-linux-arm64@${otui} @opentui/core-win32-x64@${otui} @opentui/core-win32-arm64@${otui}`
   await $`bun install --os="*" --cpu="*" @parcel/watcher@${pkg.dependencies["@parcel/watcher"]}`
 }
 for (const item of targets) {
