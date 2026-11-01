@@ -31,6 +31,8 @@ await $`cp ./script/postinstall.mjs ./${distDir}/postinstall.mjs`
 await $`cp ./script/preuninstall.mjs ./${distDir}/preuninstall.mjs`
 await Bun.file(`./${distDir}/LICENSE`).write(await Bun.file("../../LICENSE").text())
 await Bun.file(`./${distDir}/README.md`).write(await Bun.file("./README.md").text())
+// npm dual-use policy: the DISCLOSURE file must ship in the published package root (#113)
+await Bun.file(`./${distDir}/DISCLOSURE`).write(await Bun.file("./DISCLOSURE").text())
 
 // Bundle web UI if available (built by publish workflow build-app job)
 const webDistPath = "../../packages/app/dist"
@@ -73,6 +75,8 @@ await Bun.file(`./${distDir}/package.json`).write(
         type: "git",
         url: "https://github.com/CyberStrikeus/CyberStrike.git",
       },
+      // npm dual-use content declaration — this is a penetration-testing tool (#113)
+      contentPolicy: { class: "dual-use" },
       dependencies: {},
       optionalDependencies: binaries,
     },
