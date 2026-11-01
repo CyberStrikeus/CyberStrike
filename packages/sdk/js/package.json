@@ -22,6 +22,7 @@
   "devDependencies": {
     "@hey-api/openapi-ts": "0.97.3",
     "@tsconfig/node22": "catalog:",
+    "@types/bun": "catalog:",
     "@types/node": "catalog:",
     "typescript": "catalog:",
     "@typescript/native-preview": "catalog:"

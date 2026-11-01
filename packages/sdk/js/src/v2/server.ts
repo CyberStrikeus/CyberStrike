@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process"
+import { randomUUID } from "node:crypto"
 import { type Config } from "./gen/types.gen.js"
 
 export type ServerOptions = {
@@ -7,6 +8,7 @@ export type ServerOptions = {
   signal?: AbortSignal
   timeout?: number
   config?: Config
+  password?: string
 }
 
 export type TuiOptions = {
@@ -31,10 +33,16 @@ export async function createCyberstrikeServer(options?: ServerOptions) {
   const args = [`serve`, `--hostname=${options.hostname}`, `--port=${options.port}`]
   if (options.config?.logLevel) args.push(`--log-level=${options.config.logLevel}`)
 
+  // `serve` refuses to start without a password, so give the spawned server one:
+  // an explicitly passed value, the caller's environment, or a per-run random one
+  const username = process.env["CYBERSTRIKE_SERVER_USERNAME"] ?? "cyberstrike"
+  const password = options.password ?? process.env["CYBERSTRIKE_SERVER_PASSWORD"] ?? randomUUID()
+
   const proc = spawn(`cyberstrike`, args, {
     signal: options.signal,
     env: {
       ...process.env,
+      CYBERSTRIKE_SERVER_PASSWORD: password,
       CYBERSTRIKE_CONFIG_CONTENT: JSON.stringify(options.config ?? {}),
     },
   })
@@ -84,6 +92,8 @@ export async function createCyberstrikeServer(options?: ServerOptions) {
 
   return {
     url,
+    username,
+    password,
     close() {
       proc.kill()
     },
