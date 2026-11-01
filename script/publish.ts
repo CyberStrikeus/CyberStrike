@@ -60,8 +60,17 @@ if (Script.release) {
   await $`git commit -am "release: v${Script.version}"`.nothrow()
   await $`git tag v${Script.version}`.nothrow()
   await $`git fetch origin`
-  await $`git cherry-pick HEAD..origin/dev`.nothrow()
-  await $`git push origin HEAD --tags --no-verify --force-with-lease`
+  // Only sync dev when it is a few commits ahead. A large HEAD..origin/dev range would replay
+  // hundreds/thousands of commits with fresh timestamps and push them in one burst, which trips
+  // the platform's automated abuse/rate-limit filters (see CyberStrike-Enterprise#111).
+  const rev = await $`git rev-list --count HEAD..origin/dev`.nothrow()
+  const ahead = rev.exitCode === 0 ? Number(rev.stdout.toString().trim()) || 0 : 0
+  if (ahead > 0 && ahead <= 25) await $`git cherry-pick HEAD..origin/dev`.nothrow()
+  else if (ahead > 25) console.warn(`skipping cherry-pick: origin/dev is ${ahead} commits ahead — sync manually to avoid a mass-commit push`)
+  // Push HEAD and ONLY the new tag — never --tags (the repo carries 900+ inherited tags; pushing
+  // them all at once is a classic abuse-filter trigger).
+  await $`git push origin HEAD --no-verify --force-with-lease`
+  await $`git push origin refs/tags/v${Script.version} --no-verify`
   await new Promise((resolve) => setTimeout(resolve, 5_000))
   await $`gh release edit v${Script.version} --draft=false`
 }
