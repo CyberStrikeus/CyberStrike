@@ -5,7 +5,6 @@ import path from "path"
 import os from "os"
 import { fileURLToPath } from "url"
 import { createRequire } from "module"
-import { execSync } from "child_process"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const require = createRequire(import.meta.url)
@@ -152,45 +151,20 @@ function installSkills() {
 
 
 /**
- * Ensure npm's global bin directory is in the Windows user PATH.
- * Corporate installs often skip PATH setup, leaving `cyberstrike` unreachable
- * from both CMD and PowerShell. Uses PowerShell to append to user-level PATH
- * (no admin required). Safe: checks for duplicates, doesn't truncate.
+ * Print guidance for putting npm's global bin directory on the Windows PATH.
+ * Corporate/global installs sometimes skip PATH setup, leaving `cyberstrike`
+ * unreachable from CMD/PowerShell. We only PRINT instructions here — the install
+ * script must not spawn a shell or modify the environment, since a postinstall
+ * that invokes child_process/PowerShell trips npm's publish-time malware review
+ * (see CyberStrikeus/CyberStrike#174).
  */
 function ensureWindowsPath() {
-  try {
-    const npmPrefix = execSync("npm config get prefix", { encoding: "utf-8", timeout: 10000 }).trim()
-    if (!npmPrefix) return
-
-    const currentPath = process.env.PATH || ""
-    // Case-insensitive check for Windows paths
-    if (currentPath.toLowerCase().includes(npmPrefix.toLowerCase())) {
-      console.log(`npm global bin already in PATH: ${npmPrefix}`)
-      return
-    }
-
-    console.log(`Adding npm global bin to user PATH: ${npmPrefix}`)
-    // Use PowerShell to safely append to user-level PATH without truncation
-    const psCommand = [
-      `$current = [Environment]::GetEnvironmentVariable('Path', 'User')`,
-      `if ($current -and -not $current.ToLower().Contains('${npmPrefix.toLowerCase().replace(/'/g, "''")}')) {`,
-      `  [Environment]::SetEnvironmentVariable('Path', $current + ';${npmPrefix}', 'User')`,
-      `  Write-Host 'Added to user PATH: ${npmPrefix}'`,
-      `}`,
-    ].join("; ")
-    execSync(`powershell -NoProfile -Command "${psCommand}"`, {
-      stdio: "inherit",
-      timeout: 15000,
-    })
-    console.log("PATH updated. Restart your terminal for changes to take effect.")
-  } catch (err) {
-    console.warn(
-      `Warning: Could not add npm global bin to PATH automatically.\n` +
-        `If 'cyberstrike' command is not found, add npm's global bin directory to your PATH manually:\n` +
-        `  PowerShell: [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + (npm config get prefix), 'User')\n` +
-        `  CMD: setx PATH "%PATH%;%APPDATA%\\npm"`,
-    )
-  }
+  console.log(
+    `If the 'cyberstrike' command is not found, add npm's global bin directory to your PATH:\n` +
+      `  PowerShell: [Environment]::SetEnvironmentVariable('Path', [Environment]::GetEnvironmentVariable('Path', 'User') + ';' + (npm config get prefix), 'User')\n` +
+      `  CMD: setx PATH "%PATH%;%APPDATA%\\npm"\n` +
+      `Then restart your terminal.`,
+  )
 }
 
 async function main() {
