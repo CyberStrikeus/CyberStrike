@@ -45,10 +45,13 @@ if (await Bun.file(`${webDistPath}/index.html`).exists()) {
 }
 
 // Bundle built-in skills
+// TEST (isolation — revert to true): skip bundling the offensive skill corpus to confirm
+// whether it is what trips npm's automated review on the main package.
+const BUNDLE_SKILLS = false
 const skillSrcPath = "../../.cyberstrike/skill"
 const skillDestPath = `./${distDir}/skill`
 const { existsSync } = await import("fs")
-if (existsSync(skillSrcPath)) {
+if (BUNDLE_SKILLS && existsSync(skillSrcPath)) {
   await $`cp -r ${skillSrcPath} ${skillDestPath}`
   console.log("Bundled skills into npm package")
 } else {
