@@ -33,13 +33,16 @@ export namespace Skill {
     const url = `https://github.com/CyberStrikeus/CyberStrike/releases/download/v${Installation.VERSION}/skills.tar.gz`
     const tmp = path.join(Global.Path.cache, "skills.tar.gz")
     try {
+      process.stderr.write("\n  \x1b[36m◆ CyberStrike\x1b[0m — first run: downloading the skill corpus…\n")
       const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       await Bun.write(tmp, res)
       await Bun.$`tar -xzf ${tmp} -C ${Global.Path.data}`.quiet()
       await fs.rm(tmp, { force: true })
+      process.stderr.write("  \x1b[32m✓\x1b[0m skill corpus ready\n\n")
       log.info("installed skill corpus from release", { version: Installation.VERSION })
     } catch (error) {
+      process.stderr.write("  \x1b[33m⚠\x1b[0m couldn't download skills (offline?) — skill search will be limited\n\n")
       log.warn("could not fetch skill corpus; built-in skills unavailable", {
         url,
         error: error instanceof Error ? error.message : String(error),
