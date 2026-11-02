@@ -170,4 +170,11 @@ if (!resolved) {
   process.exit(1)
 }
 
+// Point the compiled binary at the bundled web UI (main package's web/), so `cyberstrike web`
+// works without a postinstall step copying it into the data dir.
+const webDir = path.join(scriptDir, "..", "web")
+if (!process.env.CYBERSTRIKE_WEB_DIR && fs.existsSync(path.join(webDir, "index.html"))) {
+  process.env.CYBERSTRIKE_WEB_DIR = webDir
+}
+
 run(resolved)

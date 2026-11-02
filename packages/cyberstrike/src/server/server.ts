@@ -597,6 +597,9 @@ export namespace Server {
           // Resolve web UI dist directory (cached after first lookup)
           if (_webDistDir === undefined) {
             const candidates = [
+              // 0. Explicit path from the npm bin wrapper (main package's bundled web/), so
+              //    `cyberstrike web` works with no postinstall copy into the data dir (#114).
+              process.env.CYBERSTRIKE_WEB_DIR || "",
               // 1. Workspace-relative (dev: running from repo root) — a freshly built dist must win
               //    over the data-dir copy, or dev serves a stale ~/.local/share/cyberstrike/web and
               //    no frontend change is ever visible in the web UI (#33).

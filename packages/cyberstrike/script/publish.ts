@@ -58,7 +58,10 @@ await Bun.file(`./${distDir}/package.json`).write(
         [pkg.name]: `./bin/${pkg.name}`,
       },
       scripts: {
-        postinstall: "bun ./postinstall.mjs || node ./postinstall.mjs",
+        // No postinstall: the bin wrapper resolves the platform binary (and points the server
+        // at the bundled web UI) at runtime, and skills are fetched from GitHub Releases on
+        // first run. Shipping no install script keeps `npm i` clean — npm v12 blocks lifecycle
+        // scripts by default and warns the user otherwise (#114).
         preuninstall: "bun ./preuninstall.mjs || node ./preuninstall.mjs || true",
       },
       version: version,
