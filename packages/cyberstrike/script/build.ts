@@ -257,6 +257,8 @@ if (Script.release) {
       await $`zip -r ../../${key}.zip *`.cwd(`dist/${key}/bin`)
     }
   }
+  // Skill corpus ships as a release asset (not in the npm tarball — #114), fetched at runtime.
+  await $`tar -czf ./dist/skills.tar.gz -C ../../.cyberstrike skill`
   await $`gh release upload v${Script.version} ./dist/*.zip ./dist/*.tar.gz --clobber`
 }
 

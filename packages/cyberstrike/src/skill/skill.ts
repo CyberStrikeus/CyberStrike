@@ -13,9 +13,39 @@ import { Bus } from "@/bus"
 import { Session } from "@/session"
 import { Discovery } from "./discovery"
 import { SkillSigning } from "./signing"
+import { Installation } from "@/installation"
+import fs from "fs/promises"
 
 export namespace Skill {
   const log = Log.create({ service: "skill" })
+
+  // Ensure the built-in skill corpus is present for compiled binaries. It is NOT bundled in
+  // the npm tarball (the offensive skill content trips npm's publish-time automated review —
+  // #114); it ships as a `skills.tar.gz` GitHub Release asset and is fetched to the XDG data
+  // dir on first run. Degrades gracefully if the download fails; dev/source builds use the
+  // in-repo .cyberstrike/skill tree (VERSION "local") and skip this entirely.
+  async function ensureInstalledSkills(installedDir: string) {
+    if (Installation.VERSION === "local") return
+    if (await Filesystem.isDir(installedDir)) {
+      const entries = await fs.readdir(installedDir).catch(() => [] as string[])
+      if (entries.length > 0) return
+    }
+    const url = `https://github.com/CyberStrikeus/CyberStrike/releases/download/v${Installation.VERSION}/skills.tar.gz`
+    const tmp = path.join(Global.Path.cache, "skills.tar.gz")
+    try {
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      await Bun.write(tmp, res)
+      await Bun.$`tar -xzf ${tmp} -C ${Global.Path.data}`.quiet()
+      await fs.rm(tmp, { force: true })
+      log.info("installed skill corpus from release", { version: Installation.VERSION })
+    } catch (error) {
+      log.warn("could not fetch skill corpus; built-in skills unavailable", {
+        url,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
   export const Info = z.object({
     name: z.string(),
     description: z.string(),
@@ -230,10 +260,12 @@ export namespace Skill {
         }
       }
 
-      // Installed skills: XDG data dir (npm postinstall copies skills here)
-      // This is the fallback for compiled binaries where import.meta.dir
-      // resolves to bunfs and can't find skills on the filesystem.
+      // Installed skills: XDG data dir. Not bundled in the npm tarball (offensive skill
+      // content trips npm's automated review — #114); fetched from the GitHub Release on
+      // first run for compiled binaries. Also the fallback where import.meta.dir resolves
+      // to bunfs and can't find skills on the filesystem.
       const installedDir = path.join(Global.Path.data, "skill")
+      await ensureInstalledSkills(installedDir)
       if (await Filesystem.isDir(installedDir)) {
         for await (const match of SKILL_GLOB.scan({
           cwd: installedDir,
