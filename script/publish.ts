@@ -56,7 +56,10 @@ await Bun.file(extensionToml).write(toml)
 await $`bun install`
 await import(`../packages/sdk/js/script/build.ts`)
 
-if (Script.release) {
+// Stable only: commit the version bump, tag, push, and publish the draft release. Preview
+// (canary/beta) releases are already created live on HEAD by version.ts and filled by
+// build.ts, so they skip the git version-bump dance entirely (no per-canary release commits).
+if (Script.release && !Script.preview) {
   await $`git commit -am "release: v${Script.version}"`.nothrow()
   await $`git tag v${Script.version}`.nothrow()
   await $`git fetch origin`
