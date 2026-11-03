@@ -79,6 +79,11 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   // API docs the AI navigator deliberately does NOT tunnel to; feeds the collector + vuln pipeline.
   void WellKnown.probe(opts.sessionID, opts.target).catch(() => {})
   const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
+  // First run on a fresh machine (appliance, bare npm install) has no extension-capable browser.
+  // Download Chrome for Testing into the CyberStrike-owned cache before spawning — no-op when one
+  // is already present. Soft-fails offline; spawnProfile then throws the actionable "install a
+  // browser" error below.
+  await spawn.ensureChrome()
   try {
     // Pass the ACTUAL server URL so the extension calls back to this instance even when the
     // server bound a non-default port (4096 taken → random). Without it the extension defaults
