@@ -8,6 +8,12 @@ on:
     tags:
       - "v*"
 
+# One release at a time per tag; never cancel a running release mid-upload (let it finish so the
+# registry/release isn't left half-populated).
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: docker
