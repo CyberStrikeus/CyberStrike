@@ -1,0 +1,109 @@
+name: release
+# Self-hosted release pipeline — runs on the home ("kasa") Forgejo runner, no GitHub/GitLab needed.
+# Trigger: push a tag like v2.0.0-canary.9. Builds every OS target (bun cross-compile in one job —
+# single runner, no cross-job artifact passing), packages the archives, uploads them to Forgejo's
+# generic package registry, and creates a Forgejo Release.
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: docker
+    container:
+      image: oven/bun:1.3.9-debian
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Install build tools
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq git zip tar curl jq ca-certificates
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Version from tag
+        id: ver
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          case "$V" in
+            *-canary.*) echo "channel=canary" >> "$GITHUB_OUTPUT" ;;
+            *-beta.*)   echo "channel=beta"   >> "$GITHUB_OUTPUT" ;;
+            *)          echo "channel=latest" >> "$GITHUB_OUTPUT" ;;
+          esac
+          echo "building $V"
+
+      - name: Build web UI
+        env:
+          CYBERSTRIKE_VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          bun install --frozen-lockfile
+          bun turbo build --filter=@cyberstrike-io/app
+
+      - name: Install cross-platform native deps
+        run: |
+          OTUI_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@opentui/core'])")
+          PW_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@parcel/watcher'])")
+          bun install --os="*" --cpu="*" \
+            @opentui/core@$OTUI_VER \
+            @opentui/core-darwin-x64@$OTUI_VER \
+            @opentui/core-darwin-arm64@$OTUI_VER \
+            @opentui/core-linux-x64@$OTUI_VER \
+            @opentui/core-linux-arm64@$OTUI_VER \
+            @opentui/core-win32-x64@$OTUI_VER \
+            @opentui/core-win32-arm64@$OTUI_VER \
+            @parcel/watcher@$PW_VER
+
+      - name: Build CLI (all OS targets)
+        env:
+          CYBERSTRIKE_VERSION: ${{ steps.ver.outputs.version }}
+          CYBERSTRIKE_BUMP: ${{ steps.ver.outputs.channel }}
+          CYBERSTRIKE_RELEASE: ""
+        run: |
+          # CI is set by the runner -> build.ts builds every target (not --single). --skip-install:
+          # the opentui/parcel platform packages are already added in the step above.
+          bun run ./packages/cyberstrike/script/build.ts --skip-install
+
+      - name: Package archives (extension + web + skill beside the binary)
+        run: |
+          mkdir -p archives
+          ROOT=$(pwd)
+          for dir in packages/cyberstrike/dist/cyberstrike-*/; do
+            name=$(basename "$dir")
+            [ -d "$dir/extension" ] && cp -r "$dir/extension" "$dir/bin/extension"
+            [ -d packages/app/dist ] && cp -r packages/app/dist "$dir/bin/web"
+            [ -d .cyberstrike/skill ] && cp -r .cyberstrike/skill "$dir/bin/skill"
+            if echo "$name" | grep -q linux; then
+              tar -czf "$ROOT/archives/${name}.tar.gz" -C "$dir/bin" .
+            else
+              ( cd "$dir/bin" && zip -qr "$ROOT/archives/${name}.zip" . )
+            fi
+          done
+          ls -lh archives/
+
+      - name: Upload archives to Forgejo package registry + create Release
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          REG="${GITHUB_SERVER_URL}/api/packages/${GITHUB_REPOSITORY_OWNER}/generic/cyberstrike/${VERSION}"
+          LINKS=""
+          for f in archives/*; do
+            fn=$(basename "$f")
+            echo "uploading $fn"
+            curl -fsSL --retry 3 --upload-file "$f" \
+              -H "Authorization: token ${TOKEN}" "${REG}/${fn}"
+            LINKS="${LINKS}{\"name\":\"${fn}\",\"url\":\"${REG}/${fn}\"},"
+          done
+          LINKS="[${LINKS%,}]"
+          BODY="## CyberStrike ${GITHUB_REF_NAME}\n\nSelf-hosted build. Archives attached to the generic package registry."
+          curl -fsSL -X POST \
+            -H "Authorization: token ${TOKEN}" -H "Content-Type: application/json" \
+            "${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}/releases" \
+            -d "{\"tag_name\":\"${GITHUB_REF_NAME}\",\"name\":\"CyberStrike ${GITHUB_REF_NAME}\",\"body\":\"${BODY}\",\"target_commitish\":\"${GITHUB_SHA}\"}"
+          echo "release ${GITHUB_REF_NAME} created"
