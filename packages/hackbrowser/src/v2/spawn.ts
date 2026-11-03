@@ -10,6 +10,20 @@ import { existsSync, readdirSync, statSync, cpSync, readFileSync, writeFileSync 
 import { dirname, join } from "node:path"
 import { tmpdir, homedir } from "node:os"
 
+// CyberStrike-OWNED browser cache. We install Chrome for Testing here (NOT the shared
+// ~/.cache/puppeteer) so `cyberstrike uninstall` removes it without touching a browser some other
+// tool (a puppeteer project) downloaded. Lives under the xdg CACHE dir (Global.Path.cache), not
+// data: it is re-downloadable, and uninstall always clears cache (no --keep-cache flag), so CfT is
+// removed even on `uninstall --keep-data`. Computed here without importing Global so this package
+// stays dependency-light. @puppeteer/browsers lays the binary out as
+// <cacheDir>/chrome/<platform>-<buildId>/chrome-<platform>/… so the search root is the "chrome"
+// subdir, same shape as the puppeteer/playwright roots below.
+export function csBrowsersDir(): string {
+  const xdg = process.env.XDG_CACHE_HOME || join(homedir(), ".cache")
+  return join(xdg, "cyberstrike", ".browsers")
+}
+const CS_CHROME_ROOT = join(csBrowsersDir(), "chrome")
+
 // Branded Google Chrome 137+ REMOVED the --load-extension switch (Chrome 142 removed the
 // --disable-features workaround too), so it can no longer load our unpacked extension
 // from the command line. We therefore spawn an EXTENSION-CAPABLE build instead — the
@@ -39,7 +53,7 @@ const APP_BROWSERS: Record<string, string[]> = {
 function cachedBrowsers(): string[] {
   const out: string[] = []
   if (process.platform === "darwin") {
-    const roots = [join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), "Library", "Caches", "ms-playwright")]
+    const roots = [CS_CHROME_ROOT, join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), "Library", "Caches", "ms-playwright")]
     const leaves = ["chrome-mac-arm64", "chrome-mac"]
     const apps = [
       "Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
@@ -56,7 +70,7 @@ function cachedBrowsers(): string[] {
           }
     }
   } else if (process.platform === "win32") {
-    const roots = [join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), "AppData", "Local", "ms-playwright")]
+    const roots = [CS_CHROME_ROOT, join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), "AppData", "Local", "ms-playwright")]
     const leaves = ["chrome-win64", "chrome-win32"]
     const exes = ["chrome.exe"]
     for (const root of roots) {
@@ -70,7 +84,7 @@ function cachedBrowsers(): string[] {
           }
     }
   } else {
-    const roots = [join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), ".cache", "ms-playwright")]
+    const roots = [CS_CHROME_ROOT, join(homedir(), ".cache", "puppeteer", "chrome"), join(homedir(), ".cache", "ms-playwright")]
     const leaves = ["chrome-linux64"]
     const exes = ["chrome"]
     for (const root of roots) {
@@ -211,6 +225,31 @@ export function stageExtension(srcDir: string, outDir: string = join(tmpdir(), "
   } catch {
     return srcDir
   }
+}
+
+// First-run provisioning: if no extension-capable browser is present, download Chrome for Testing
+// into the CyberStrike-owned cache (csBrowsersDir), so `/hackbrowser` works out of the box without
+// the user running `npx @puppeteer/browsers install` by hand. No-op when a usable browser already
+// exists (system install, puppeteer/playwright cache, or a prior ensureChrome). @puppeteer/browsers
+// is ONLY a downloader here — CyberStrike still spawns the binary itself and injects the extension
+// via --load-extension; nothing drives the browser through puppeteer. Mirrors the skill-corpus
+// first-run fetch: branded progress on stderr, soft-fail (returns null) when offline.
+export async function ensureChrome(): Promise<string | null> {
+  const existing = findBrowser()
+  if (existing) return existing
+  const { install, resolveBuildId, detectBrowserPlatform, Browser } = await import("@puppeteer/browsers")
+  const platform = detectBrowserPlatform()
+  if (!platform) return null
+  process.stderr.write("\n  \x1b[36m◆ CyberStrike\x1b[0m — first run: downloading Chrome for Testing…\n")
+  try {
+    const buildId = await resolveBuildId(Browser.CHROME, platform, "stable")
+    await install({ browser: Browser.CHROME, buildId, cacheDir: csBrowsersDir(), platform })
+    process.stderr.write("  \x1b[32m✓\x1b[0m browser ready\n\n")
+  } catch {
+    process.stderr.write("  \x1b[33m⚠\x1b[0m couldn't download Chrome for Testing (offline?) — /hackbrowser needs it\n\n")
+    return null
+  }
+  return findBrowser()
 }
 
 export function spawnProfile(spec: ProfileSpec): { profileDir: string; pid: number; proc: ReturnType<typeof Bun.spawn> } {
