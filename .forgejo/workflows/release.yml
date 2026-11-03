@@ -104,26 +104,29 @@ jobs:
           done
           ls -lh archives/
 
-      - name: Upload archives to Forgejo package registry + create Release
+      - name: Create Release with all-OS binaries attached
         env:
-          # PUBLISH_TOKEN is a repo secret (a Forgejo access token with package+repo write). The
-          # auto GITHUB_TOKEN 401s on the generic registry (no owner-level package scope), and the
-          # package endpoint wants Basic auth, not `Authorization: token`.
+          # PUBLISH_TOKEN is a repo secret (a Forgejo access token with repo write). Attach the
+          # archives as RELEASE ASSETS (not the generic package registry) so every platform shows
+          # up as a download on the release page.
           TOKEN: ${{ secrets.PUBLISH_TOKEN }}
-          VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          REG="${GITHUB_SERVER_URL}/api/packages/${GITHUB_REPOSITORY_OWNER}/generic/cyberstrike/${VERSION}"
-          LINKS=""
+          API="${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}"
+          BODY="## CyberStrike ${GITHUB_REF_NAME}\n\nSelf-hosted build on the home runner. Download your platform's archive below."
+          # Create the release (reuse it if the tag already has one, e.g. a re-run) and capture id.
+          RID=$(curl -fsSL -X POST -H "Authorization: token ${TOKEN}" -H "Content-Type: application/json" \
+            "${API}/releases" \
+            -d "{\"tag_name\":\"${GITHUB_REF_NAME}\",\"name\":\"CyberStrike ${GITHUB_REF_NAME}\",\"body\":\"${BODY}\",\"target_commitish\":\"${GITHUB_SHA}\"}" \
+            | jq -r '.id')
+          if [ -z "$RID" ] || [ "$RID" = "null" ]; then
+            RID=$(curl -fsSL -H "Authorization: token ${TOKEN}" "${API}/releases/tags/${GITHUB_REF_NAME}" | jq -r '.id')
+          fi
+          echo "release id: $RID"
           for f in archives/*; do
             fn=$(basename "$f")
-            echo "uploading $fn"
-            curl -fsSL --retry 3 -u "oyildirim:${TOKEN}" --upload-file "$f" "${REG}/${fn}"
-            LINKS="${LINKS}{\"name\":\"${fn}\",\"url\":\"${REG}/${fn}\"},"
+            echo "attaching $fn"
+            curl -fsSL -X POST -H "Authorization: token ${TOKEN}" \
+              -F "attachment=@${f};filename=${fn}" \
+              "${API}/releases/${RID}/assets?name=${fn}" >/dev/null
           done
-          LINKS="[${LINKS%,}]"
-          BODY="## CyberStrike ${GITHUB_REF_NAME}\n\nSelf-hosted build on the home runner. Binaries in the generic package registry."
-          curl -fsSL -X POST \
-            -H "Authorization: token ${TOKEN}" -H "Content-Type: application/json" \
-            "${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}/releases" \
-            -d "{\"tag_name\":\"${GITHUB_REF_NAME}\",\"name\":\"CyberStrike ${GITHUB_REF_NAME}\",\"body\":\"${BODY}\",\"target_commitish\":\"${GITHUB_SHA}\"}"
-          echo "release ${GITHUB_REF_NAME} created"
+          echo "release ${GITHUB_REF_NAME} ready with $(ls archives | wc -l) OS archives attached"
