@@ -19,7 +19,7 @@ function xdgStateDir() {
 
 const dirs = [
   { path: path.join(xdgDataDir(), "cyberstrike"), label: "Data (sessions, database, skills)" },
-  { path: path.join(xdgCacheDir(), "cyberstrike"), label: "Cache (models, assets)" },
+  { path: path.join(xdgCacheDir(), "cyberstrike"), label: "Cache (models, assets, Chrome for Testing)" },
   { path: path.join(xdgConfigDir(), "cyberstrike"), label: "Config (settings, providers)" },
   { path: path.join(xdgStateDir(), "cyberstrike"), label: "State" },
 ]
