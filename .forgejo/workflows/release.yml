@@ -38,6 +38,17 @@ jobs:
           esac
           echo "building $V"
 
+      - name: Let github deps resolve from real github.com
+        run: |
+          # act_runner rewrites github.com -> this Forgejo instance (so it can fetch actions from
+          # it). That also redirects bun's `github:` deps (e.g. ghostty-web@github:anomalyco/...)
+          # to the Forgejo API, which 404s. Drop every insteadOf rewrite so those deps hit real
+          # github.com, exactly like on GitHub/GitLab CI.
+          for k in $(git config --global --name-only --get-regexp 'insteadof' 2>/dev/null || true); do
+            git config --global --unset-all "$k" || true
+          done
+          git config --global --list | grep -i insteadof || echo "no insteadOf rewrites remain"
+
       - name: Build web UI
         env:
           CYBERSTRIKE_VERSION: ${{ steps.ver.outputs.version }}
