@@ -263,12 +263,31 @@ export namespace Skill {
         }
       }
 
+      // Bundled skills beside the compiled binary — the flat archive (GitLab / standalone
+      // download) ships skill/ next to the exe, mirroring the web-dir resolution in server.ts.
+      // This loads the full offensive corpus OFFLINE on every OS: import.meta.dir resolves to
+      // bunfs in a compiled binary (built-in scan above misses), and the GitHub fetch below only
+      // has assets for npm-published versions (a GitLab-only release 404s). Check beside the exe,
+      // then one level up (npm bin/ subdirectory layout).
+      let bundledFound = false
+      for (const dir of [
+        path.join(path.dirname(process.execPath), "skill"),
+        path.join(path.dirname(process.execPath), "..", "skill"),
+      ]) {
+        if (!(await Filesystem.isDir(dir))) continue
+        for await (const match of SKILL_GLOB.scan({ cwd: dir, absolute: true, onlyFiles: true, followSymlinks: true })) {
+          await addSkill(match)
+          bundledFound = true
+        }
+        if (bundledFound) break
+      }
+
       // Installed skills: XDG data dir. Not bundled in the npm tarball (offensive skill
       // content trips npm's automated review — #114); fetched from the GitHub Release on
-      // first run for compiled binaries. Also the fallback where import.meta.dir resolves
-      // to bunfs and can't find skills on the filesystem.
+      // first run for npm-published binaries. Skipped when the corpus was already found bundled
+      // beside the exe (GitLab/standalone archive), where the GitHub fetch would 404.
       const installedDir = path.join(Global.Path.data, "skill")
-      await ensureInstalledSkills(installedDir)
+      if (!bundledFound) await ensureInstalledSkills(installedDir)
       if (await Filesystem.isDir(installedDir)) {
         for await (const match of SKILL_GLOB.scan({
           cwd: installedDir,
