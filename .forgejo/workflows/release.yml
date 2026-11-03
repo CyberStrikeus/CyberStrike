@@ -38,25 +38,26 @@ jobs:
           esac
           echo "building $V"
 
-      - name: Let github deps resolve from real github.com
-        run: |
-          # act_runner rewrites github.com -> this Forgejo instance (so it can fetch actions from
-          # it). That also redirects bun's `github:` deps (e.g. ghostty-web@github:anomalyco/...)
-          # to the Forgejo API, which 404s. Drop every insteadOf rewrite so those deps hit real
-          # github.com, exactly like on GitHub/GitLab CI.
-          for k in $(git config --global --name-only --get-regexp 'insteadof' 2>/dev/null || true); do
-            git config --global --unset-all "$k" || true
-          done
-          git config --global --list | grep -i insteadof || echo "no insteadOf rewrites remain"
-
+      # act_runner points GITHUB_API_URL / GITHUB_SERVER_URL at THIS Forgejo instance (so actions
+      # resolve from it). bun uses GITHUB_API_URL to fetch `github:` deps (ghostty-web@github:
+      # anomalyco/...), so they 404 against Forgejo. Override to real github.com for the bun steps
+      # ONLY — the release step below still needs the Forgejo GITHUB_SERVER_URL. GITHUB_TOKEN is
+      # cleared so the Forgejo token isn't sent to github (the dep is public; anonymous is fine).
       - name: Build web UI
         env:
           CYBERSTRIKE_VERSION: ${{ steps.ver.outputs.version }}
+          GITHUB_API_URL: https://api.github.com
+          GITHUB_SERVER_URL: https://github.com
+          GITHUB_TOKEN: ""
         run: |
           bun install --frozen-lockfile
           bun turbo build --filter=@cyberstrike-io/app
 
       - name: Install cross-platform native deps
+        env:
+          GITHUB_API_URL: https://api.github.com
+          GITHUB_SERVER_URL: https://github.com
+          GITHUB_TOKEN: ""
         run: |
           OTUI_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@opentui/core'])")
           PW_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@parcel/watcher'])")
