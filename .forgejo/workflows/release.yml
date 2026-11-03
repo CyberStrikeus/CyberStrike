@@ -100,7 +100,10 @@ jobs:
 
       - name: Upload archives to Forgejo package registry + create Release
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # PUBLISH_TOKEN is a repo secret (a Forgejo access token with package+repo write). The
+          # auto GITHUB_TOKEN 401s on the generic registry (no owner-level package scope), and the
+          # package endpoint wants Basic auth, not `Authorization: token`.
+          TOKEN: ${{ secrets.PUBLISH_TOKEN }}
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
           REG="${GITHUB_SERVER_URL}/api/packages/${GITHUB_REPOSITORY_OWNER}/generic/cyberstrike/${VERSION}"
@@ -108,12 +111,11 @@ jobs:
           for f in archives/*; do
             fn=$(basename "$f")
             echo "uploading $fn"
-            curl -fsSL --retry 3 --upload-file "$f" \
-              -H "Authorization: token ${TOKEN}" "${REG}/${fn}"
+            curl -fsSL --retry 3 -u "oyildirim:${TOKEN}" --upload-file "$f" "${REG}/${fn}"
             LINKS="${LINKS}{\"name\":\"${fn}\",\"url\":\"${REG}/${fn}\"},"
           done
           LINKS="[${LINKS%,}]"
-          BODY="## CyberStrike ${GITHUB_REF_NAME}\n\nSelf-hosted build. Archives attached to the generic package registry."
+          BODY="## CyberStrike ${GITHUB_REF_NAME}\n\nSelf-hosted build on the home runner. Binaries in the generic package registry."
           curl -fsSL -X POST \
             -H "Authorization: token ${TOKEN}" -H "Content-Type: application/json" \
             "${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}/releases" \
