@@ -119,6 +119,8 @@ export type UserMessage = {
   id: string
   sessionID: string
   role: "user"
+  origin?: "goal-continuation"
+  goalID?: string
   time: {
     created: number
   }
@@ -206,6 +208,7 @@ export type AssistantMessage = {
   id: string
   sessionID: string
   role: "assistant"
+  goalID?: string
   time: {
     created: number
     completed?: number
@@ -681,18 +684,55 @@ export type EventQuestionRejected = {
   }
 }
 
-export type EventSessionCompacted = {
-  type: "session.compacted"
-  properties: {
-    sessionID: string
-  }
-}
-
 export type EventFileWatcherUpdated = {
   type: "file.watcher.updated"
   properties: {
     file: string
     event: "add" | "change" | "unlink"
+  }
+}
+
+export type SessionGoal = {
+  agent: string
+  model: {
+    providerID: string
+    modelID: string
+  }
+  variant?: string
+  tokenBudget?: number
+  deadlineAt?: number
+  tokensUsed: number
+  timeUsedSeconds: number
+  continuationCount: number
+  lastAccountedMessageID?: string
+  completedAt?: number
+  reason?: string
+  report?: string
+  reportPath?: string
+  version: number
+  fingerprint?: string
+  stalls: number
+  runner?: number
+  id: string
+  sessionID: string
+  objective: string
+  status: "active" | "paused" | "budget-limited" | "blocked" | "completed" | "dropped"
+  createdAt: number
+  updatedAt: number
+}
+
+export type EventSessionGoalUpdated = {
+  type: "session.goal.updated"
+  properties: {
+    sessionID: string
+    goal: SessionGoal
+  }
+}
+
+export type EventSessionCompacted = {
+  type: "session.compacted"
+  properties: {
+    sessionID: string
   }
 }
 
@@ -1250,8 +1290,9 @@ export type Event =
   | EventQuestionAsked
   | EventQuestionReplied
   | EventQuestionRejected
-  | EventSessionCompacted
   | EventFileWatcherUpdated
+  | EventSessionGoalUpdated
+  | EventSessionCompacted
   | EventRequestUpdated
   | EventWebCredentialUpdated
   | EventSessionQueueStatus
@@ -2067,6 +2108,20 @@ export type Config = {
     diff_style?: "auto" | "stacked"
   }
   server?: ServerConfig
+  goal?: {
+    /**
+     * Enable goal mode (default: true)
+     */
+    enabled?: boolean
+    /**
+     * Goal token limit (default: unlimited)
+     */
+    defaultTokenBudget?: number
+    /**
+     * Continue unfinished goal turns (default: true)
+     */
+    autoContinue?: boolean
+  }
   /**
    * Command configuration, see https://cyberstrike.io/docs/commands
    */
@@ -3740,6 +3795,128 @@ export type SessionUsageResponses = {
 }
 
 export type SessionUsageResponse = SessionUsageResponses[keyof SessionUsageResponses]
+
+export type SessionGoalGetData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/goal"
+}
+
+export type SessionGoalGetErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionGoalGetError = SessionGoalGetErrors[keyof SessionGoalGetErrors]
+
+export type SessionGoalGetResponses = {
+  /**
+   * Current or latest goal
+   */
+  200: SessionGoal | null
+}
+
+export type SessionGoalGetResponse = SessionGoalGetResponses[keyof SessionGoalGetResponses]
+
+export type SessionGoalUpdateData = {
+  body?:
+    | {
+        op: "pause"
+      }
+    | {
+        op: "resume"
+      }
+    | {
+        op: "drop"
+      }
+    | {
+        op: "budget"
+        tokenBudget: number | null
+      }
+    | {
+        op: "duration"
+        durationSeconds: number | null
+      }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/goal"
+}
+
+export type SessionGoalUpdateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionGoalUpdateError = SessionGoalUpdateErrors[keyof SessionGoalUpdateErrors]
+
+export type SessionGoalUpdateResponses = {
+  /**
+   * Updated goal
+   */
+  200: SessionGoal
+}
+
+export type SessionGoalUpdateResponse = SessionGoalUpdateResponses[keyof SessionGoalUpdateResponses]
+
+export type SessionGoalCreateData = {
+  body?: {
+    objective: string
+    agent?: string
+    model?: {
+      providerID: string
+      modelID: string
+    }
+    variant?: string
+    tokenBudget?: number | null
+    durationSeconds?: number
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/goal"
+}
+
+export type SessionGoalCreateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionGoalCreateError = SessionGoalCreateErrors[keyof SessionGoalCreateErrors]
+
+export type SessionGoalCreateResponses = {
+  /**
+   * Created goal
+   */
+  200: SessionGoal
+}
+
+export type SessionGoalCreateResponse = SessionGoalCreateResponses[keyof SessionGoalCreateResponses]
 
 export type SessionTodoData = {
   body?: never

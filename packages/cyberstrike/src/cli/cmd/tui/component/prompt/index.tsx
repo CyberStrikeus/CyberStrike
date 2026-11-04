@@ -32,6 +32,7 @@ import { useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv"
 import { useTextareaKeybindings } from "../textarea-keybindings"
 import { DialogSkill } from "../dialog-skill"
+import { useGoal } from "../dialog-goal"
 
 export type PromptProps = {
   sessionID?: string
@@ -68,6 +69,7 @@ export function Prompt(props: PromptProps) {
   const sync = useSync()
   const dialog = useDialog()
   const toast = useToast()
+  const dispatchGoal = useGoal()
   const status = createMemo(() => sync.data.session_status?.[props.sessionID ?? ""] ?? { type: "idle" })
   const history = usePromptHistory()
   const stash = usePromptStash()
@@ -168,6 +170,18 @@ export function Prompt(props: PromptProps) {
 
   command.register(() => {
     return [
+      {
+        title: "Manage goal",
+        value: "session.goal",
+        category: "Session",
+        enabled: sync.data.config.goal?.enabled !== false,
+        slash: { name: "goal" },
+        onSelect: async () => {
+          const sessionID = props.sessionID ?? (await sdk.client.session.create({})).data!.id
+          if (!(await dispatchGoal("/goal", sessionID))) return
+          if (!props.sessionID) route.navigate({ type: "session", sessionID })
+        },
+      },
       {
         title: "Clear prompt",
         value: "prompt.clear",
@@ -532,18 +546,6 @@ export function Prompt(props: PromptProps) {
       exit()
       return
     }
-    const selectedModel = local.model.current()
-    if (!selectedModel) {
-      promptModelWarning()
-      return
-    }
-    const sessionID = props.sessionID
-      ? props.sessionID
-      : await (async () => {
-          const sessionID = await sdk.client.session.create({}).then((x) => x.data!.id)
-          return sessionID
-        })()
-    const messageID = Identifier.ascending("message")
     let inputText = store.prompt.input
 
     // Expand pasted text inline before submitting
@@ -561,6 +563,30 @@ export function Prompt(props: PromptProps) {
         }
       }
     }
+    if (store.mode === "normal" && /^\s*\/goal(?:\s|$)/.test(inputText)) {
+      const sessionID = props.sessionID ?? (await sdk.client.session.create({})).data!.id
+      if (!(await dispatchGoal(inputText, sessionID))) return
+      history.append({ ...store.prompt, mode: store.mode })
+      input.extmarks.clear()
+      input.clear()
+      setStore("prompt", { input: "", parts: [] })
+      setStore("extmarkToPartIndex", new Map())
+      props.onSubmit?.()
+      if (!props.sessionID) route.navigate({ type: "session", sessionID })
+      return
+    }
+    const selectedModel = local.model.current()
+    if (!selectedModel) {
+      promptModelWarning()
+      return
+    }
+    const sessionID = props.sessionID
+      ? props.sessionID
+      : await (async () => {
+          const sessionID = await sdk.client.session.create({}).then((x) => x.data!.id)
+          return sessionID
+        })()
+    const messageID = Identifier.ascending("message")
 
     // Filter out text parts (pasted content) since they're now expanded inline
     const nonTextParts = store.prompt.parts.filter((part) => part.type !== "text")

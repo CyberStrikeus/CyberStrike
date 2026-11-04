@@ -15,6 +15,7 @@ import { Plugin } from "@/plugin"
 import { Config } from "@/config/config"
 import { ProviderTransform } from "@/provider/transform"
 
+import { SessionGoal } from "./goal"
 export namespace SessionCompaction {
   const log = Log.create({ service: "session.compaction" })
 
@@ -115,6 +116,7 @@ export namespace SessionCompaction {
     const msg = (await Session.updateMessage({
       id: Identifier.ascending("message"),
       role: "assistant",
+      goalID: userMessage.goalID,
       parentID: input.parentID,
       sessionID: input.sessionID,
       mode: "compaction",
@@ -238,6 +240,8 @@ Rules:
       const continueMsg = await Session.updateMessage({
         id: Identifier.ascending("message"),
         role: "user",
+        origin: userMessage.origin,
+        goalID: userMessage.goalID,
         sessionID: input.sessionID,
         time: {
           created: Date.now(),
@@ -274,9 +278,11 @@ Rules:
       auto: z.boolean(),
     }),
     async (input) => {
+      const goal = SessionGoal.shouldContinue(input.sessionID) ? SessionGoal.get(input.sessionID) : undefined
       const msg = await Session.updateMessage({
         id: Identifier.ascending("message"),
         role: "user",
+        ...(goal ? { origin: "goal-continuation" as const, goalID: goal.id } : {}),
         model: input.model,
         sessionID: input.sessionID,
         agent: input.agent,

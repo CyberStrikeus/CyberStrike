@@ -4,6 +4,8 @@ import type { MessageV2 } from "./message-v2"
 import type { Snapshot } from "@/snapshot"
 import type { PermissionNext } from "@/permission/next"
 import { Timestamps } from "@/storage/schema.sql"
+import { sql } from "drizzle-orm"
+import type { SessionGoal } from "./goal"
 
 type PartData = Omit<MessageV2.Part, "id" | "sessionID" | "messageID">
 type InfoData = Omit<MessageV2.Info, "id" | "sessionID">
@@ -32,6 +34,37 @@ export const SessionTable = sqliteTable(
     time_archived: integer(),
   },
   (table) => [index("session_project_idx").on(table.project_id), index("session_parent_idx").on(table.parent_id)],
+)
+
+export const GoalTable = sqliteTable(
+  "goal",
+  {
+    id: text().primaryKey(),
+    session_id: text()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    objective: text().notNull(),
+    status: text().notNull().$type<SessionGoal.Info["status"]>(),
+    execution: text({ mode: "json" }).notNull().$type<SessionGoal.Execution>(),
+    ...Timestamps,
+  },
+  (table) => [
+    index("goal_session_idx").on(table.session_id),
+    uniqueIndex("goal_current_idx")
+      .on(table.session_id)
+      .where(sql`${table.status} NOT IN ('completed', 'dropped')`),
+  ],
+)
+
+export const GoalUsageTable = sqliteTable(
+  "goal_usage",
+  {
+    goal_id: text()
+      .notNull()
+      .references(() => GoalTable.id, { onDelete: "cascade" }),
+    id: text().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.goal_id, table.id] })],
 )
 
 export const MessageTable = sqliteTable(

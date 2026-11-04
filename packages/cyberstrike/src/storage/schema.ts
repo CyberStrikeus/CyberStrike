@@ -1,6 +1,8 @@
 export { ControlAccountTable } from "../control/control.sql"
 export {
   SessionTable,
+  GoalTable,
+  GoalUsageTable,
   MessageTable,
   PartTable,
   TodoTable,

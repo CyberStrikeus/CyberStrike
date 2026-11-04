@@ -3,6 +3,7 @@ import type {
   Agent,
   Provider,
   Session,
+  SessionGoal,
   Part,
   Config,
   Todo,
@@ -50,6 +51,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       }
       config: Config
       session: Session[]
+      goal: Record<string, SessionGoal | undefined>
       session_status: {
         [sessionID: string]: SessionStatus
       }
@@ -209,6 +211,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       provider: [],
       provider_default: {},
       session: [],
+      goal: {},
       session_status: {},
       session_queue_status: {},
       session_hackbrowser_status: {},
@@ -375,6 +378,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           break
         }
 
+        case "session.goal.updated":
+          setStore("goal", event.properties.sessionID, event.properties.goal)
+          break
         case "todo.updated":
           setStore("todo", event.properties.sessionID, event.properties.todos)
           break
@@ -384,6 +390,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           break
 
         case "session.deleted": {
+          setStore("goal", event.properties.info.id, undefined)
           const result = Binary.search(store.session, event.properties.info.id, (s) => s.id)
           if (result.found) {
             setStore(
@@ -634,6 +641,14 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           // non-blocking
           Promise.all([
             ...(args.continue ? [] : [sessionListPromise.then((sessions) => setStore("session", reconcile(sessions)))]),
+            sessionListPromise.then((sessions) =>
+              Promise.all(
+                sessions.map(async (session) => {
+                  const result = await sdk.client.session.goalGet({ sessionID: session.id })
+                  setStore("goal", session.id, result.data ?? undefined)
+                }),
+              ),
+            ),
             sdk.client.command.list().then((x) => setStore("command", reconcile(x.data ?? []))),
             sdk.client.lsp.status().then((x) => setStore("lsp", reconcile(x.data!))),
             sdk.client.mcp.status().then((x) => setStore("mcp", reconcile(x.data!))),
@@ -708,25 +723,28 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         async sync(sessionID: string) {
           if (fullSyncedSessions.has(sessionID)) return
           const http = (sdk.client as any).client as { get: (opts: { url: string }) => Promise<{ data?: any }> }
-          const [session, messages, todo, diff, vuln, req, wCred, wRole, wObj, wFunc, wRetest] = await Promise.all([
-            sdk.client.session.get({ sessionID }, { throwOnError: true }),
-            sdk.client.session.messages({ sessionID, limit: 100 }),
-            sdk.client.session.todo({ sessionID }),
-            sdk.client.session.diff({ sessionID }),
-            sdk.client.session.vulnerability({ sessionID }).catch(() => ({ data: [] })),
-            sdk.client.session.request({ sessionID }).catch(() => ({ data: [] })),
-            http.get({ url: `/session/${sessionID}/web/credentials` }).catch(() => ({ data: [] })),
-            http.get({ url: `/session/${sessionID}/web/roles` }).catch(() => ({ data: [] })),
-            http.get({ url: `/session/${sessionID}/web/objects` }).catch(() => ({ data: [] })),
-            http.get({ url: `/session/${sessionID}/web/functions` }).catch(() => ({ data: [] })),
-            http.get({ url: `/session/${sessionID}/web/retest-queue` }).catch(() => ({ data: { pending: [] } })),
-          ])
+          const [session, messages, todo, diff, vuln, req, wCred, wRole, wObj, wFunc, wRetest, goal] =
+            await Promise.all([
+              sdk.client.session.get({ sessionID }, { throwOnError: true }),
+              sdk.client.session.messages({ sessionID, limit: 100 }),
+              sdk.client.session.todo({ sessionID }),
+              sdk.client.session.diff({ sessionID }),
+              sdk.client.session.vulnerability({ sessionID }).catch(() => ({ data: [] })),
+              sdk.client.session.request({ sessionID }).catch(() => ({ data: [] })),
+              http.get({ url: `/session/${sessionID}/web/credentials` }).catch(() => ({ data: [] })),
+              http.get({ url: `/session/${sessionID}/web/roles` }).catch(() => ({ data: [] })),
+              http.get({ url: `/session/${sessionID}/web/objects` }).catch(() => ({ data: [] })),
+              http.get({ url: `/session/${sessionID}/web/functions` }).catch(() => ({ data: [] })),
+              http.get({ url: `/session/${sessionID}/web/retest-queue` }).catch(() => ({ data: { pending: [] } })),
+              sdk.client.session.goalGet({ sessionID }),
+            ])
           setStore(
             produce((draft) => {
               const match = Binary.search(draft.session, sessionID, (s) => s.id)
               if (match.found) draft.session[match.index] = session.data!
               if (!match.found) draft.session.splice(match.index, 0, session.data!)
               draft.todo[sessionID] = todo.data ?? []
+              draft.goal[sessionID] = goal.data ?? undefined
               draft.vulnerability[sessionID] = vuln?.data ?? []
               draft.request[sessionID] = req?.data ?? []
               draft.web_credential[sessionID] = wCred?.data ?? []

@@ -8,6 +8,7 @@ import type { AssistantMessage, Session } from "@cyberstrike-io/sdk/v2"
 import { useCommandDialog } from "@tui/component/dialog-command"
 import { useKeybind } from "../../context/keybind"
 import { useTerminalDimensions } from "@opentui/solid"
+import { goalLabel } from "@tui/component/prompt/goal"
 
 const Title = (props: { session: Accessor<Session> }) => {
   const { theme } = useTheme()
@@ -49,6 +50,7 @@ export function Header() {
   const session = createMemo(() => sync.session.get(route.sessionID)!)
   const messages = createMemo(() => sync.data.message[route.sessionID] ?? [])
   const queueStatus = createMemo(() => sync.data.session_queue_status?.[route.sessionID])
+  const goal = createMemo(() => sync.data.goal[route.sessionID])
 
   const cost = createMemo(() => {
     const total = pipe(
@@ -165,6 +167,16 @@ export function Header() {
             </box>
           </Match>
         </Switch>
+        <Show when={goal()}>
+          {(goal) => (
+            <text fg={theme.textMuted} wrapMode="none">
+              Goal {goalLabel(goal().status)}:{" "}
+              {goal()
+                .objective.replace(/\s+/g, " ")
+                .slice(0, Math.max(8, dimensions().width - 28))}
+            </text>
+          )}
+        </Show>
       </box>
     </box>
   )
