@@ -3,7 +3,7 @@ import { createStore } from "solid-js/store"
 import { createMediaQuery } from "@solid-primitives/media"
 import { DragDropProvider as DndKitProvider, PointerSensor } from "@dnd-kit/solid"
 import { isSortable } from "@dnd-kit/solid/sortable"
-import { Accessibility, AutoScroller, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
+import { Accessibility, AutoScroller, Feedback, PointerActivationConstraints, Scroller } from "@dnd-kit/dom"
 import { RestrictToHorizontalAxis } from "@dnd-kit/abstract/modifiers"
 import { RestrictToElement } from "@dnd-kit/dom/modifiers"
 import {
@@ -544,7 +544,8 @@ export function SessionSidePanel(props: {
                         RestrictToElement.configure({ element: () => tabList ?? null }),
                       ]}
                       plugins={(defaults) => [
-                        ...defaults.filter((plugin) => plugin !== Accessibility),
+                        ...defaults.filter((plugin) => plugin !== Accessibility && plugin !== AutoScroller),
+                        Scroller,
                         AutoScroller.configure({ acceleration: 8, threshold: { x: 0.05, y: 0 } }),
                         Feedback.configure({ dropAnimation: null }),
                       ]}

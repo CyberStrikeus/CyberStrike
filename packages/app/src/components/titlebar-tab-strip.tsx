@@ -303,7 +303,7 @@ export function TitlebarTabStrip(props: {
           ]}
           modifiers={[RestrictToHorizontalAxis, RestrictToElement.configure({ element: () => listRef })]}
           plugins={(defaults) => [
-            ...defaults.filter((plugin) => plugin !== Accessibility),
+            ...defaults.filter((plugin) => plugin !== Accessibility && plugin !== AutoScroller),
             Scroller,
             AutoScroller.configure({ acceleration: 8, threshold: { x: 0.05, y: 0 } }),
             Feedback.configure({ dropAnimation: null }),
