@@ -29,6 +29,8 @@ import { useSettings } from "@/context/settings"
 import { WindowsAppMenu } from "./windows-app-menu"
 import { applyPath, backPath, forwardPath } from "./titlebar-history"
 import { TitlebarTabStrip } from "@/components/titlebar-tab-strip"
+import { useDirectoryPicker } from "@/components/directory-picker"
+import { homeProjectDirectories } from "@/pages/layout/helpers"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createMediaQuery } from "@solid-primitives/media"
 import { readSessionTabsRemovedDetail, SESSION_TABS_REMOVED_EVENT } from "@/components/titlebar-session-events"
@@ -197,6 +199,7 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
             const tabs = useTabs()
             const tabsStore = tabs.store
             const tabsStoreActions = tabs
+            const pickDirectory = useDirectoryPicker()
             const [session] = createResource(
               () => {
                 const route = layout.route()
@@ -307,9 +310,28 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                 const project = global.ensureServerCtx(conn).projects.list()[0]
                 return project ? [{ server: ServerConnection.key(conn), project }] : []
               })[0]
-              if (!fallback) return
+              if (fallback) {
+                tabs.newDraft({ server: fallback.server, directory: fallback.project.worktree }, "")
+                return
+              }
 
-              tabs.newDraft({ server: fallback.server, directory: fallback.project.worktree }, "")
+              // First run: no project is open on any server. Instead of silently doing nothing,
+              // let the user pick a directory, open it as a project, and start a draft in it —
+              // the same flow as the home screen's "add project".
+              const conn =
+                global.servers.list().find((item) => ServerConnection.key(item) === server.key) ??
+                global.servers.list()[0]
+              if (!conn) return
+              pickDirectory({
+                server: conn,
+                title: language.t("command.project.open"),
+                onSelect: (result) => {
+                  const directory = homeProjectDirectories(result)[0]
+                  if (!directory) return
+                  global.ensureServerCtx(conn).projects.open(directory)
+                  tabs.newDraft({ server: ServerConnection.key(conn), directory }, "")
+                },
+              })
             }
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
 
