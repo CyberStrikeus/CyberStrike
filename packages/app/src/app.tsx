@@ -42,7 +42,7 @@ import { CommandProvider, useCommand, type CommandOption } from "@/context/comma
 import { CommentsProvider } from "@/context/comments"
 import { FileProvider } from "@/context/file"
 import { ServerSDKProvider } from "@/context/server-sdk"
-import { ServerSyncProvider, useServerSync } from "@/context/server-sync"
+import { ServerSyncProvider } from "@/context/server-sync"
 import { GlobalProvider, useGlobal } from "@/context/global"
 import { HighlightsProvider } from "@/context/highlights"
 import { LanguageProvider, type Locale, useLanguage } from "@/context/language"
@@ -62,12 +62,10 @@ import LegacyLayout from "@/pages/layout"
 import NewLayout from "@/pages/layout-new"
 import { ErrorPage } from "./pages/error"
 import { useCheckServerHealth } from "./utils/server-health"
-import { legacySessionHref, legacySessionServer, requireServerKey, sessionHref } from "./utils/session-route"
-import { createSessionLineage } from "@/pages/session/session-lineage"
+import { legacySessionServer, requireServerKey, sessionHref } from "./utils/session-route"
 
 import { SessionPage, SessionRouteErrorBoundary, TargetSessionRouteContent } from "@/pages/session"
 import { NewHome } from "@/pages/home"
-import { LegacyHome } from "@/pages/home/legacy-home"
 
 const NewSession = lazy(() => import("@/pages/new-session"))
 
@@ -138,42 +136,6 @@ const TargetSessionRoute = () => (
     <TargetSessionRouteContent />
   </TargetServerRoute>
 )
-
-function LegacyTargetSessionRoute() {
-  const params = useParams<{ serverKey: string; id: string }>()
-  const serverKey = createMemo(() => {
-    try {
-      return requireServerKey(params.serverKey)
-    } catch {
-      return undefined
-    }
-  })
-  return (
-    <TargetServerRoute>
-      <SessionRouteErrorBoundary sessionID={params.id} serverKey={serverKey()}>
-        <LegacyTargetSessionRedirect />
-      </SessionRouteErrorBoundary>
-    </TargetServerRoute>
-  )
-}
-
-function LegacyTargetSessionRedirect() {
-  const params = useParams<{ id: string }>()
-  const navigate = useNavigate()
-  const sync = useServerSync()
-  const current = createSessionLineage(
-    () => params.id,
-    () => sync()?.session.lineage,
-  )
-
-  createEffect(() => {
-    const directory = current()?.session.directory
-    if (!directory) return
-    navigate(legacySessionHref(directory, params.id), { replace: true })
-  })
-
-  return null
-}
 
 // Wraps the non-draft routes. They are gated on (and keyed to) the globally selected
 // server via ServerKey, then provide the server-scoped shell for that server.
@@ -635,14 +597,6 @@ function Routes(props: { serverScoped?: JSX.Element }) {
           <LegacyServerLayout serverScoped={props.serverScoped}>{routeProps.children}</LegacyServerLayout>
         )}
       >
-        <Show when={!settings.general.newLayoutDesigns()}>
-          {
-            <>
-              <Route path="/" component={LegacyHome} />
-              <Route path="/server/:serverKey/session/:id" component={LegacyTargetSessionRoute} />
-            </>
-          }
-        </Show>
         <Route path="/:dir" component={DirectoryLayout}>
           <Route path="/" component={() => <Navigate href="session" />} />
           <Route path="/session/:id?" component={SessionRoute} />
