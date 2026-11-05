@@ -295,19 +295,25 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
     ...(sync()?.data.command ?? []).map((item) => ({
       id: `custom.${item.name}`,
       trigger: item.name,
+      keywords: "",
       title: item.name,
       description: item.description,
       type: "custom" as const,
     })),
     ...command.options
       .filter((item) => !item.disabled && !item.id.startsWith("suggested.") && item.slash)
-      .flatMap((item) => {
+      .map((item) => {
         const name = typeof item.slash === "string" ? item.slash : item.slash!.name
         const aliases = typeof item.slash === "object" ? (item.slash!.aliases ?? []) : []
-        return [
-          { id: item.id, trigger: name, title: item.title, description: item.description, type: "builtin" as const },
-          ...aliases.map((a) => ({ id: item.id, trigger: a, title: item.title, description: item.description, type: "builtin" as const })),
-        ]
+        // One row per command (primary name only); aliases stay searchable via keywords, matching the TUI.
+        return {
+          id: item.id,
+          trigger: name,
+          keywords: aliases.join(" "),
+          title: item.title,
+          description: item.description,
+          type: "builtin" as const,
+        }
       }),
   ])
   const commands = createMemo<PromptInputV2Suggestion[]>(() =>
@@ -316,6 +322,7 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
       kind: "command",
       label: `/${item.trigger}`,
       trigger: item.trigger,
+      keywords: item.keywords,
       title: item.title,
       description: item.description,
       keybind: command.keybindParts(item.id),
