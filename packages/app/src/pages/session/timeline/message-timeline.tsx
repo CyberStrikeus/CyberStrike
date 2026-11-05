@@ -843,7 +843,7 @@ export function MessageTimeline(props: {
 
     const removed = new Set<string>([sessionID])
     const byParent = new Map<string, string[]>()
-    for (const item of sync()?.data.session) {
+    for (const item of sync()?.data.session ?? []) {
       const parentID = item.parentID
       if (!parentID) continue
       const existing = byParent.get(parentID)
