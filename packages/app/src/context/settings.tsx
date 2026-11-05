@@ -262,23 +262,10 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
     const layoutTransition = createMemo(() =>
       layoutTransitionState(!!sunset, layoutTransitionEligible(), oldInterfaceRetired(), newInterfaceNoticeDismissed()),
     )
-    const newLayoutDesigns = createMemo(() => {
-      if (layoutUpgrade()) return true
-      if (!ready() && !oldInterfaceRetired()) return legacyNewLayoutDesignsDefault
-      if (!layoutTransitionClassified()) {
-        return resolveNewLayoutDesigns(
-          oldInterfaceRetired(),
-          store.general?.newLayoutDesigns,
-          legacyNewLayoutDesignsDefault,
-        )
-      }
-      return resolveNewLayoutDesigns(
-        oldInterfaceRetired(),
-        store.general?.newLayoutDesigns,
-        layoutTransitionEligible() ? legacyNewLayoutDesignsDefault : newLayoutDesignsDefault,
-      )
-    })
-    const visible = (preference: () => boolean) => createMemo(() => !newLayoutDesigns() || preference())
+    // newLayoutDesigns was a transitional flag; the old interface was retired on 2026-09-14, so it is
+    // now permanently true. Kept as a constant memo while call sites are collapsed to the v2 branch (#10).
+    const newLayoutDesigns = createMemo(() => true)
+    const visible = (preference: () => boolean) => createMemo(() => preference())
     const initializeAgentVisibility = (existing: boolean) => {
       const initial = initialAgentVisibility(store.general?.agentVisibilityInitialized, existing, launchState.previous)
       if (initial === undefined) return
