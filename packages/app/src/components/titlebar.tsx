@@ -315,20 +315,28 @@ export function Titlebar(props: { update?: TitlebarUpdate; debugTools?: { visibl
                 return
               }
 
-              // First run: no project is open on any server. Instead of silently doing nothing,
-              // let the user pick a directory, open it as a project, and start a draft in it —
-              // the same flow as the home screen's "add project".
+              // First run: no project is open on any server. Start a session in the server's own
+              // working directory directly, instead of forcing the user to pick a folder: on a bare
+              // appliance the home dir has only hidden subfolders, so the picker shows "No folders
+              // found" and is a dead end. Fall back to the picker only if the server reports no path.
               const conn =
                 global.servers.list().find((item) => ServerConnection.key(item) === server.key) ??
                 global.servers.list()[0]
               if (!conn) return
+              const ctx = global.ensureServerCtx(conn)
+              const workdir = ctx.sync.data.path?.directory || ctx.sync.data.path?.home
+              if (workdir) {
+                ctx.projects.open(workdir)
+                tabs.newDraft({ server: ServerConnection.key(conn), directory: workdir }, "")
+                return
+              }
               pickDirectory({
                 server: conn,
                 title: language.t("command.project.open"),
                 onSelect: (result) => {
                   const directory = homeProjectDirectories(result)[0]
                   if (!directory) return
-                  global.ensureServerCtx(conn).projects.open(directory)
+                  ctx.projects.open(directory)
                   tabs.newDraft({ server: ServerConnection.key(conn), directory }, "")
                 },
               })
