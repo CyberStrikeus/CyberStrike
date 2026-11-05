@@ -76,7 +76,7 @@ export async function sendFollowupDraft(input: FollowupSendInput) {
 
   const [head, ...tail] = text.split(" ")
   const cmd = head?.startsWith("/") ? head.slice(1) : undefined
-  if (cmd && input.sync.data.command.find((item) => item.name === cmd)) {
+  if (cmd && (input.sync.data.command ?? []).find((item) => item.name === cmd)) {
     setBusy()
     try {
       if (!(await wait())) {
