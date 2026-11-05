@@ -226,8 +226,8 @@ export function usePromptInputV2Controller(props: PromptInputV2ControllerProps):
   const referenceDescription = (reference: ReferenceInfo) =>
     reference.source.type === "git" ? reference.source.repository : reference.source.path
   const references = createMemo(() =>
-    sync()
-      .data.reference.filter((reference) => !reference.hidden)
+    (sync()?.data.reference ?? [])
+      .filter((reference) => !reference.hidden)
       .map((reference) => ({
         id: `reference:${reference.name}`,
         kind: "reference" as const,
@@ -574,7 +574,7 @@ function openComment(
       })
     })
   }
-  const diffs = props.controls.session.id ? sync()?.data.session_diff[props.controls.session.id] : undefined
+  const diffs = props.controls.session.id ? sync()?.data.session_diff?.[props.controls.session.id] : undefined
   const review =
     item.commentOrigin === "review" || (item.commentOrigin !== "file" && diffs?.some((diff) => diff.file === item.path))
   if (!props.controls.session.reviewPanel.opened()) props.controls.session.reviewPanel.open()
