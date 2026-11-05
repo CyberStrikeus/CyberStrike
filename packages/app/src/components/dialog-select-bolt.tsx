@@ -54,7 +54,7 @@ export const DialogSelectBolt: Component = () => {
     if (!s) return
     setLoading(name)
     try {
-      const status = sync().data.bolt[name]
+      const status = sync().data.bolt?.[name]
       if (status?.status === "connected") {
         await (s.client as any).bolt.disconnect({ name })
       } else {
@@ -222,7 +222,7 @@ export const DialogSelectBolt: Component = () => {
             }}
           >
             {(i) => {
-              const boltStatus = () => sync().data.bolt[i.name]
+              const boltStatus = () => sync().data.bolt?.[i.name]
               const status = () => boltStatus()?.status
               const statusLabel = () => {
                 const key = status() ? statusLabels[status() as keyof typeof statusLabels] : undefined
