@@ -232,7 +232,12 @@ for (const item of targets) {
   const hackbrowserExt = path.resolve(dir, "../hackbrowser/extension")
   if (fs.existsSync(hackbrowserExt)) {
     await $`cp -r ${hackbrowserExt} ./dist/${name}/extension`
-    console.log(`  copied hackbrowser extension to dist/${name}/extension`)
+    // Also place it INSIDE bin/ so the release archive (tarred from bin/) is self-contained for a
+    // binary-only install (the AWS Marketplace AMI, any standalone download): spawn.ts resolves
+    // `dirname(exe)/extension` first. Without it the appliance errors "extension not found at
+    // /opt/extension". npm keeps using the sibling copy above (resolved via dirname(exe)/../extension).
+    await $`cp -r ${hackbrowserExt} ./dist/${name}/bin/extension`
+    console.log(`  copied hackbrowser extension to dist/${name}/{extension,bin/extension}`)
   }
   // Bundle the web UI beside the binary so a binary-only install (the AWS Marketplace AMI, any
   // standalone download) serves it LOCALLY — server.ts resolves `dirname(exe)/web`. Without it the
