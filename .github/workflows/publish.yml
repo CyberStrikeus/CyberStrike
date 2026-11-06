@@ -84,7 +84,9 @@ jobs:
           path: packages/app/dist
 
   build-cli:
-    needs: version
+    needs:
+      - version
+      - build-app
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
@@ -92,6 +94,19 @@ jobs:
           fetch-tags: true
 
       - uses: ./.github/actions/setup-bun
+
+      # Embed the FRESHLY built web UI into the compiled binary. build.ts's bun-compile embeds
+      # packages/app/dist (server.ts references it via `new URL("../../../app/dist", import.meta.url)`),
+      # so if app/dist is stale/empty at compile time the binary ships an OLD web to every binary-only
+      # install (the AWS Marketplace AMI, any standalone download). app/dist is gitignored and this job
+      # never built it, so it was serving a stale cached build. Wipe any stale copy, then pull
+      # build-app's fresh output so the compiled binary embeds exactly it.
+      - name: Clean stale web dist
+        run: rm -rf packages/app/dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: cyberstrike-web
+          path: packages/app/dist
 
       - name: Build
         id: build
