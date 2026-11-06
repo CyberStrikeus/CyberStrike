@@ -19,18 +19,22 @@ import fs from "fs/promises"
 export namespace Skill {
   const log = Log.create({ service: "skill" })
 
-  // Ensure the built-in skill corpus is present for compiled binaries. It is NOT bundled in
-  // the npm tarball (the offensive skill content trips npm's publish-time automated review —
-  // #114); it ships as a `skills.tar.gz` GitHub Release asset and is fetched to the XDG data
-  // dir on first run. Degrades gracefully if the download fails; dev/source builds use the
-  // in-repo .cyberstrike/skill tree (VERSION "local") and skip this entirely.
+  // Ensure the built-in skill corpus is present for compiled binaries. It is NOT bundled in the
+  // npm tarball (the offensive skill content trips npm's publish-time automated review — #114),
+  // and the AWS Marketplace AMI strips it to pass the image scan; both fetch `skills.tar.gz` on
+  // first run into the XDG data dir. The corpus changes far less often than the app version, so it
+  // lives at ONE stable release URL (the `skills` tag), not a per-version asset; override with
+  // CYBERSTRIKE_SKILLS_URL (e.g. to a CDN). Degrades gracefully if the download fails; dev/source
+  // builds use the in-repo .cyberstrike/skill tree (VERSION "local") and skip this entirely.
   async function ensureInstalledSkills(installedDir: string) {
     if (Installation.VERSION === "local") return
     if (await Filesystem.isDir(installedDir)) {
       const entries = await fs.readdir(installedDir).catch(() => [] as string[])
       if (entries.length > 0) return
     }
-    const url = `https://github.com/CyberStrikeus/CyberStrike/releases/download/v${Installation.VERSION}/skills.tar.gz`
+    const url =
+      process.env.CYBERSTRIKE_SKILLS_URL ||
+      "https://github.com/CyberStrikeus/CyberStrike/releases/download/skills/skills.tar.gz"
     const tmp = path.join(Global.Path.cache, "skills.tar.gz")
     try {
       process.stderr.write("\n  \x1b[36m◆ CyberStrike\x1b[0m — first run: downloading the skill corpus…\n")
