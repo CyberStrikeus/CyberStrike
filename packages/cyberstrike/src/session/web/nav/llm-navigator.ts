@@ -26,6 +26,7 @@ import { HBLog } from "../hblog"
 import { WebCredential } from "../web-credential"
 import { Provider } from "../../../provider/provider"
 import { ProviderTransform } from "../../../provider/transform"
+import { SessionPrompt } from "../../prompt"
 import { Log } from "../../../util/log"
 
 const log = Log.create({ service: "llm-navigator" })
@@ -50,7 +51,9 @@ export namespace LlmNavigator {
     actions: RawAction[]
   }
   // The single model touch, behind a DI seam. Returns null when the model produced nothing.
-  export type Ask = (ctx: { system: string; user: string }) => Promise<RawPlan | null>
+  // `sessionID` lets the default resolve the SESSION's active model (what the user is actually
+  // running) rather than a global default.
+  export type Ask = (ctx: { system: string; user: string; sessionID: string }) => Promise<RawPlan | null>
 
   // A safe, actionable click target the model may choose from. Built from the snapshot with the
   // SAME bounds the executor enforces — only allow-policy, enabled, un-acted, in-scope elements —
@@ -397,10 +400,13 @@ export function mapActions(
   return out
 }
 
-// Default `ask`: the MAIN model (deliberately NOT the small one — per-page planning is the kind of
-// business-logic reasoning small models do poorly), bounded I/O, structured forced-tool output.
-const defaultAsk: LlmNavigator.Ask = async ({ system, user }) => {
-  const dm = await Provider.defaultModel()
+// Default `ask`: the SESSION's active model — the one the user actually selected and every agent/
+// subagent runs (NOT Provider.defaultModel(), which with no configured default falls back to the
+// provider's first catalog model — often an alias that isn't served, so the plan silently times out
+// and the crawl never engages the model). Still the MAIN model, not the small one: per-page planning
+// is the kind of business-logic reasoning small models do poorly. Bounded I/O, structured output.
+const defaultAsk: LlmNavigator.Ask = async ({ system, user, sessionID }) => {
+  const dm = await SessionPrompt.lastModel(sessionID)
   const model = await Provider.getModel(dm.providerID, dm.modelID)
   const language = await Provider.getLanguage(model)
   const schema = z.object({
@@ -477,7 +483,7 @@ export class LlmNavigator implements Navigator {
 
     let raw: LlmNavigator.RawPlan | null = null
     try {
-      raw = await withTimeout(this.ask({ system: SYSTEM, user: buildContext(sessionID, snap, picks, forms, DataCollector.latest(sessionID)) }), this.timeoutMs)
+      raw = await withTimeout(this.ask({ system: SYSTEM, user: buildContext(sessionID, snap, picks, forms, DataCollector.latest(sessionID)), sessionID }), this.timeoutMs)
     } catch (e) {
       // Surface WHY the model plan failed in the diagnostic log, not just server stderr — a silent
       // fallback is how the whole crawl ran "deterministic single-link" for a session without anyone

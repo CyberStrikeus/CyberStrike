@@ -16,6 +16,7 @@ import { PageState } from "./page-state"
 import { Crawl } from "./crawl"
 import { Provider } from "../../provider/provider"
 import { ProviderTransform } from "../../provider/transform"
+import { SessionPrompt } from "../prompt"
 import { Log } from "../../util/log"
 
 const log = Log.create({ service: "web-strategy" })
@@ -28,7 +29,10 @@ export namespace WebStrategy {
     atPage: number // pages_visited when computed (for the refresh cadence)
   }
   // Injectable so tests can drive cadence/caching without a live model.
-  export type Reasoner = (state: PageState.StatePayload) => Promise<{ purpose: string; priorities: string[] }>
+  export type Reasoner = (
+    sessionID: string,
+    state: PageState.StatePayload,
+  ) => Promise<{ purpose: string; priorities: string[] }>
 
   const REFRESH_PAGES = 15
   const bySession = new Map<string, Plan>()
@@ -64,7 +68,7 @@ export namespace WebStrategy {
     computing.add(sessionID)
     let out: { purpose: string; priorities: string[] } = { purpose: "", priorities: [] }
     try {
-      out = await reasoner(state)
+      out = await reasoner(sessionID, state)
     } catch (e) {
       log.debug("strategy reasoner failed; caching empty plan", { err: String(e) })
     } finally {
@@ -98,10 +102,12 @@ export namespace WebStrategy {
     return lines.join("\n")
   }
 
-  // The MAIN model — deliberately NOT getSmallModel: this high-level business-logic reasoning
-  // is what a small model tends to do poorly.
-  export const mainModelReasoner: Reasoner = async (state) => {
-    const dm = await Provider.defaultModel()
+  // The session's active model (SessionPrompt.lastModel) — NOT Provider.defaultModel(), which with
+  // no configured default falls back to the provider's first catalog model (often an unserved alias
+  // that times out). Still the main model, deliberately NOT getSmallModel: this high-level
+  // business-logic reasoning is what a small model tends to do poorly.
+  export const mainModelReasoner: Reasoner = async (sessionID, state) => {
+    const dm = await SessionPrompt.lastModel(sessionID)
     const model = await Provider.getModel(dm.providerID, dm.modelID)
     const language = await Provider.getLanguage(model)
     const schema = z.object({
