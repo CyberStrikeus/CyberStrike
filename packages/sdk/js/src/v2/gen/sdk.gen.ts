@@ -1313,6 +1313,10 @@ export class Session extends HeyApiClient {
       exclude?: Array<string>
       steps?: number
       headless?: boolean
+      model?: {
+        providerID: string
+        modelID: string
+      }
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1329,6 +1333,7 @@ export class Session extends HeyApiClient {
             { in: "body", key: "exclude" },
             { in: "body", key: "steps" },
             { in: "body", key: "headless" },
+            { in: "body", key: "model" },
           ],
         },
       ],

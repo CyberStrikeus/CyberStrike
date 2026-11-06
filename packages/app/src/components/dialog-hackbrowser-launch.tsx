@@ -6,6 +6,7 @@
 
 import { Component, createSignal, Show } from "solid-js"
 import { useSDK } from "@/context/sdk"
+import { useLocal } from "@/context/local"
 import { useLanguage } from "@/context/language"
 import { useDialog } from "@cyberstrike-io/ui/context/dialog"
 import { Dialog } from "@cyberstrike-io/ui/dialog"
@@ -34,6 +35,7 @@ function parseSteps(raw: string): { value?: number; error: boolean } {
 
 export const DialogHackbrowserLaunch: Component<{ sessionID: string; onLaunched?: () => void }> = (props) => {
   const sdk = useSDK()
+  const local = useLocal()
   const language = useLanguage()
   const dialog = useDialog()
 
@@ -78,6 +80,10 @@ export const DialogHackbrowserLaunch: Component<{ sessionID: string; onLaunched?
     try {
       const s = sdk()
       if (!s) return
+      // Carry the UI's selected model so the crawl plans with it — otherwise the server resolves the
+      // provider's catalog default (e.g. the expensive deepseek-v4-pro), since a crawl is launched
+      // out-of-band and has no chat message to read the model from.
+      const picked = local.model.current()
       const result = await (s.client.session as any).hackbrowserLaunch({
         sessionID: props.sessionID,
         target: url,
@@ -86,6 +92,7 @@ export const DialogHackbrowserLaunch: Component<{ sessionID: string; onLaunched?
         exclude: splitCSV(exclude()),
         steps: parsedSteps.value,
         headless: runHeadless,
+        model: picked ? { providerID: picked.provider.id, modelID: picked.id } : undefined,
       })
       showToast({
         title: language.t("hackbrowser.title"),

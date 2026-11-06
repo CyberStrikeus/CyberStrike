@@ -3620,6 +3620,10 @@ export type SessionHackbrowserLaunchData = {
     exclude?: Array<string>
     steps?: number
     headless?: boolean
+    model?: {
+      providerID: string
+      modelID: string
+    }
   }
   path: {
     sessionID: string
