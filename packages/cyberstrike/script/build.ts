@@ -234,6 +234,16 @@ for (const item of targets) {
     await $`cp -r ${hackbrowserExt} ./dist/${name}/extension`
     console.log(`  copied hackbrowser extension to dist/${name}/extension`)
   }
+  // Bundle the web UI beside the binary so a binary-only install (the AWS Marketplace AMI, any
+  // standalone download) serves it LOCALLY — server.ts resolves `dirname(exe)/web`. Without it the
+  // server finds no local web (`$bunfs` does not embed the dist; the dev source-relative candidate
+  // resolves to a bogus `/app/dist` in a compiled binary) and falls back to PROXYING
+  // app.cyberstrike.io, which can be a stale deploy — that is how the AMI shipped an old UI.
+  const appDist = path.resolve(dir, "../app/dist")
+  if (fs.existsSync(path.join(appDist, "index.html"))) {
+    await $`cp -r ${appDist} ./dist/${name}/bin/web`
+    console.log(`  copied web UI to dist/${name}/bin/web`)
+  }
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
