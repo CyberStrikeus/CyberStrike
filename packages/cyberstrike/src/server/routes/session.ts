@@ -1530,11 +1530,13 @@ export const SessionRoutes = lazy(() =>
         // any in-flight action). Idempotent — repeated "ai" posts don't stack loops.
         if (driver === "ai") CoDrive.start(sessionID)
         else CoDrive.stop(sessionID)
-        // Report the MAIN model the co-driving loop will plan with, so the panel can confirm the
-        // AI is actually wired up (and to which model) rather than leaving the user guessing.
+        // Report the model the co-driving loop will actually plan with, so the panel can confirm the
+        // AI is wired up to the RIGHT model. Must match what LlmNavigator uses — the session's active
+        // model (SessionPrompt.lastModel), NOT Provider.defaultModel(), or the banner shows a model
+        // (e.g. an unconfigured default like deepseek-v4-pro) the navigator never actually runs.
         let model: string | undefined
         try {
-          model = (await Provider.defaultModel()).modelID
+          model = (await SessionPrompt.lastModel(sessionID)).modelID
         } catch {}
         return c.json({ ok: true, driver, model })
       },
