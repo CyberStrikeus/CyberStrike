@@ -91,7 +91,12 @@ const tasks = Object.entries(binaries).map(async ([name]) => {
     await $`chmod -R 755 .`.cwd(`./dist/${dirName}`)
   }
   await $`bun pm pack`.cwd(`./dist/${dirName}`)
-  await $`npm publish *.tgz ${access} --tag ${tag}`.cwd(`./dist/${dirName}`)
+  // Idempotent: npm versions are immutable, so a re-run (or a partial prior publish) 403s with
+  // "cannot publish over the previously published versions". Skip that one package and keep going —
+  // one already-published platform must not abort publishing every other platform. Any other
+  // failure still throws.
+  const r = await $`npm publish *.tgz ${access} --tag ${tag}`.cwd(`./dist/${dirName}`).nothrow()
+  if (r.exitCode !== 0 && !r.stderr.toString().includes("cannot publish over")) throw new Error(r.stderr.toString())
 })
 await Promise.all(tasks)
 // Main package is declared dual-use (#113) → npm forbids direct publish with a 2FA-bypass
