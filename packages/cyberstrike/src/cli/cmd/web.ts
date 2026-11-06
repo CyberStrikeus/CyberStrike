@@ -3,6 +3,8 @@ import { UI } from "../ui"
 import { cmd } from "./cmd"
 import { withNetworkOptions, resolveNetworkOptions } from "../network"
 import { Flag } from "../../flag/flag"
+import { Instance } from "../../project/instance"
+import { Log } from "@/util/log"
 import open from "open"
 import { networkInterfaces } from "os"
 
@@ -48,6 +50,15 @@ export const WebCommand = cmd({
     }
     const opts = await resolveNetworkOptions(args)
     const server = Server.listen(opts)
+
+    // Eagerly register the working directory as a project so a fresh install lands on a
+    // ready project on first load. Otherwise the project is only created lazily on the first
+    // request that needs it, so a client that lists projects before that sees none and
+    // dead-ends into the empty "Open project" picker. Same behavior locally and on the appliance.
+    await Instance.provide({ directory: process.cwd(), fn: () => {} }).catch((error) =>
+      Log.Default.warn("default project registration failed", { error }),
+    )
+
     UI.empty()
     UI.println(UI.logo("  "))
     UI.empty()
