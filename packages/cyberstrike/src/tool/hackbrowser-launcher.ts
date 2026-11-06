@@ -13,6 +13,7 @@ import { WellKnown } from "../session/web/well-known"
 import { HackbrowserStatus } from "../session/hackbrowser-status"
 import { RoleQueue } from "../session/web/role-queue"
 import { SpawnedProfiles } from "../session/web/spawned-profiles"
+import { SessionPrompt } from "../session/prompt"
 const log = Log.create({ service: "hackbrowser-launcher" })
 
 // v2 runs: no crawl worker — just the orchestrator browser + the role queue. Tracks the
@@ -39,6 +40,9 @@ export interface LauncherOptions {
   credentials?: string[]
   steps?: number
   headless?: boolean
+  // The model the user has selected in the UI. Recorded as the session's crawl model so the navigator
+  // and driver banner plan with it instead of the provider's catalog default (SessionPrompt.webModel).
+  model?: { providerID: string; modelID: string }
   // Connect to user's real Chrome via CDP instead of Playwright's Chromium.
   // Bypasses WAF TLS fingerprinting (Cloudflare, etc.).
   cdp?: string
@@ -71,6 +75,7 @@ export async function launchHackbrowser(opts: LauncherOptions): Promise<KickOffR
   // orchestrator browser with the first credential so the extension panel reflects
   // what the user typed. Remaining credentials spawn one at a time via Start capture.
   const creds = opts.credentials ?? []
+  SessionPrompt.setRunModel(opts.sessionID, opts.model)
   RoleQueue.enqueue(opts.sessionID, creds)
   // Bound the AI crawl to the target domain (+ any explicit scope) so it can't wander off-site.
   WebScope.ensure(opts.sessionID, opts.target, opts.scope)
@@ -137,6 +142,7 @@ export function stopHackbrowser(sessionID: string): boolean {
   if (!run) return false
   const closed = SpawnedProfiles.closeAll(sessionID)
   v2Runs.delete(sessionID)
+  SessionPrompt.setRunModel(sessionID, undefined)
   log.info("stopHackbrowser: closed spawned browsers", { sessionID, closed })
   HackbrowserStatus.set(sessionID, {
     sessionID,

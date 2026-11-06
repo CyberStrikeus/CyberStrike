@@ -102,12 +102,13 @@ export namespace WebStrategy {
     return lines.join("\n")
   }
 
-  // The session's active model (SessionPrompt.lastModel) — NOT Provider.defaultModel(), which with
-  // no configured default falls back to the provider's first catalog model (often an unserved alias
-  // that times out). Still the main model, deliberately NOT getSmallModel: this high-level
-  // business-logic reasoning is what a small model tends to do poorly.
+  // The crawl's model (SessionPrompt.webModel: the model picked at launch, else the session's last
+  // model) — NOT Provider.defaultModel(), which with no configured default falls back to the
+  // provider's first catalog model (often an unserved alias that times out). Still the main model,
+  // deliberately NOT getSmallModel: this high-level business-logic reasoning is what a small model
+  // tends to do poorly.
   export const mainModelReasoner: Reasoner = async (sessionID, state) => {
-    const dm = await SessionPrompt.lastModel(sessionID)
+    const dm = await SessionPrompt.webModel(sessionID)
     const model = await Provider.getModel(dm.providerID, dm.modelID)
     const language = await Provider.getLanguage(model)
     const schema = z.object({

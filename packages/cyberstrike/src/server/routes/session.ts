@@ -539,6 +539,7 @@ export const SessionRoutes = lazy(() =>
           exclude: z.array(z.string()).optional(),
           steps: z.number().int().min(1).max(200).optional(),
           headless: z.boolean().optional(),
+          model: z.object({ providerID: z.string(), modelID: z.string() }).optional(),
         }),
       ),
       async (c) => {
@@ -553,6 +554,7 @@ export const SessionRoutes = lazy(() =>
           exclude: body.exclude,
           steps: body.steps,
           headless: body.headless,
+          model: body.model,
         })
         return c.json(result)
       },
@@ -1531,12 +1533,13 @@ export const SessionRoutes = lazy(() =>
         if (driver === "ai") CoDrive.start(sessionID)
         else CoDrive.stop(sessionID)
         // Report the model the co-driving loop will actually plan with, so the panel can confirm the
-        // AI is wired up to the RIGHT model. Must match what LlmNavigator uses — the session's active
-        // model (SessionPrompt.lastModel), NOT Provider.defaultModel(), or the banner shows a model
-        // (e.g. an unconfigured default like deepseek-v4-pro) the navigator never actually runs.
+        // AI is wired up to the RIGHT model. Must match what LlmNavigator uses — the crawl's model
+        // (SessionPrompt.webModel: the launch-time pick, else the session's last model), NOT
+        // Provider.defaultModel(), or the banner shows a model (e.g. an unconfigured default like
+        // deepseek-v4-pro) the navigator never actually runs.
         let model: string | undefined
         try {
-          model = (await SessionPrompt.lastModel(sessionID)).modelID
+          model = (await SessionPrompt.webModel(sessionID)).modelID
         } catch {}
         return c.json({ ok: true, driver, model })
       },

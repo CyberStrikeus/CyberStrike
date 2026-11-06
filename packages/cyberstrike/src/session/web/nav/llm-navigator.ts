@@ -406,7 +406,7 @@ export function mapActions(
 // and the crawl never engages the model). Still the MAIN model, not the small one: per-page planning
 // is the kind of business-logic reasoning small models do poorly. Bounded I/O, structured output.
 const defaultAsk: LlmNavigator.Ask = async ({ system, user, sessionID }) => {
-  const dm = await SessionPrompt.lastModel(sessionID)
+  const dm = await SessionPrompt.webModel(sessionID)
   const model = await Provider.getModel(dm.providerID, dm.modelID)
   const language = await Provider.getLanguage(model)
   const schema = z.object({

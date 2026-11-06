@@ -1053,6 +1053,22 @@ export namespace SessionPrompt {
     return Provider.defaultModel()
   }
 
+  // Model for an active hackbrowser/web crawl, set at launch from the UI's selected model. A crawl is
+  // kicked off out-of-band (the launch dialog / slash / CLI — NOT a chat message), so lastModel() has
+  // no user turn to read and falls through to Provider.defaultModel() = the provider's catalog default
+  // (e.g. the expensive deepseek-v4-pro), ignoring whatever model the user actually selected. Launch
+  // records the pick here so the navigator and the driver banner plan with it.
+  const runModel = new Map<string, { providerID: string; modelID: string }>()
+  export function setRunModel(sessionID: string, model?: { providerID: string; modelID: string }) {
+    if (model) return void runModel.set(sessionID, model)
+    runModel.delete(sessionID)
+  }
+  export async function webModel(sessionID: string) {
+    const run = runModel.get(sessionID)
+    if (run) return run
+    return lastModel(sessionID)
+  }
+
   // The agent of the most recent user turn — so a programmatic re-prompt (idle watchdog) continues under
   // the SAME agent the session was driven with, not a default. Undefined when the session has no agent.
   export async function lastAgent(sessionID: string): Promise<string | undefined> {
