@@ -10,7 +10,8 @@
     "dev:web": "bun --cwd packages/app dev",
     "typecheck": "bun turbo typecheck",
     "prepare": "husky",
-    "test": "echo 'do not run tests from root' && exit 1"
+    "test": "echo 'do not run tests from root' && exit 1",
+    "v2:contract": "bash script/v2-contract.sh"
   },
   "workspaces": {
     "packages": [
@@ -61,7 +62,11 @@
       "@solidjs/router": "0.15.4",
       "@solidjs/start": "https://pkg.pr.new/@solidjs/start@dfb2020",
       "solid-js": "1.9.10",
-      "vite-plugin-solid": "2.11.10"
+      "vite-plugin-solid": "2.11.10",
+      "@opencode/protocol": "2.1.4",
+      "@opencode/schema": "2.1.4",
+      "effect": "4.0.1",
+      "@effect/platform-node": "4.0.1"
     }
   },
   "devDependencies": {
@@ -102,7 +107,8 @@
   ],
   "overrides": {
     "@types/bun": "catalog:",
-    "@types/node": "catalog:"
+    "@types/node": "catalog:",
+    "@effect/platform-node-shared": "4.0.1"
   },
   "patchedDependencies": {
     "@standard-community/standard-openapi@0.2.9": "patches/@standard-community%2Fstandard-openapi@0.2.9.patch",

@@ -1,5 +1,6 @@
 import z from "zod"
-import { spawn } from "child_process"
+import { spawn, type ChildProcess } from "child_process"
+import { createWriteStream, writeFileSync } from "fs"
 import { Tool } from "./tool"
 import path from "path"
 import DESCRIPTION from "./bash.txt"
@@ -17,6 +18,7 @@ import { Shell } from "@/shell/shell"
 import { BashArity } from "@/permission/arity"
 import { Truncate } from "./truncation"
 import { Plugin } from "@/plugin"
+import { SessionEnvironment } from "@/session/environment"
 
 const MAX_METADATA_LENGTH = 30_000
 
@@ -39,6 +41,26 @@ function isBinaryBuffer(buf: Buffer): boolean {
 const DEFAULT_TIMEOUT = Flag.CYBERSTRIKE_EXPERIMENTAL_BASH_DEFAULT_TIMEOUT_MS || 2 * 60 * 1000
 
 export const log = Log.create({ service: "bash-tool" })
+
+// The foreground command each session is waiting on. session.background hands it to the shell registry.
+export namespace Foreground {
+  export type Detached = { id: string; file: string }
+  export type Run = {
+    proc: ChildProcess
+    command: string
+    cwd: string
+    shell: string
+    // Ends the tool call with the registry entry's id, and sends the rest of the command's output to its file.
+    detach: (entry: Detached) => void
+  }
+
+  const runs = new Map<string, Run>()
+  export const get = (sessionID: string) => runs.get(sessionID)
+  export const set = (sessionID: string, run: Run) => runs.set(sessionID, run)
+  export const clear = (sessionID: string, proc: ChildProcess) => {
+    if (runs.get(sessionID)?.proc === proc) runs.delete(sessionID)
+  }
+}
 
 const resolveWasm = (asset: string) => {
   if (asset.startsWith("file://")) return fileURLToPath(asset)
@@ -187,6 +209,7 @@ export const BashTool = Tool.define("bash", async () => {
         env: {
           ...process.env,
           ...shellEnv.env,
+          ...SessionEnvironment.get(ctx.sessionID),
         },
         stdio: ["ignore", "pipe", "pipe"],
         detached: process.platform !== "win32",
@@ -247,7 +270,7 @@ export const BashTool = Tool.define("bash", async () => {
         void kill()
       }, timeout + 100)
 
-      await new Promise<void>((resolve, reject) => {
+      const detached = await new Promise<Foreground.Detached | undefined>((resolve, reject) => {
         const cleanup = () => {
           clearTimeout(timeoutTimer)
           ctx.abort.removeEventListener("abort", abortHandler)
@@ -256,15 +279,44 @@ export const BashTool = Tool.define("bash", async () => {
         proc.once("exit", () => {
           exited = true
           cleanup()
-          resolve()
+          Foreground.clear(ctx.sessionID, proc)
+          resolve(undefined)
         })
 
         proc.once("error", (error) => {
           exited = true
           cleanup()
+          Foreground.clear(ctx.sessionID, proc)
           reject(error)
         })
+
+        Foreground.set(ctx.sessionID, {
+          proc,
+          command: params.command,
+          cwd,
+          shell,
+          detach(entry) {
+            cleanup()
+            Foreground.clear(ctx.sessionID, proc)
+            // Output captured so far goes to the file first; the synchronous write and pipe setup leave no gap.
+            writeFileSync(entry.file, output)
+            proc.stdout?.off("data", append)
+            proc.stderr?.off("data", append)
+            const sink = createWriteStream(entry.file, { flags: "a" })
+            proc.stdout?.pipe(sink, { end: false })
+            proc.stderr?.pipe(sink, { end: false })
+            resolve(entry)
+          },
+        })
       })
+
+      if (detached) {
+        return {
+          title: params.description,
+          metadata: { output: "", exit: proc.exitCode, description: params.description },
+          output: `Command moved to the background as shell ${detached.id}. It keeps running, and its output goes to ${detached.file}. Check it with the shell endpoints using this id.`,
+        }
+      }
 
       const resultMetadata: string[] = []
 

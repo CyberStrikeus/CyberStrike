@@ -5,6 +5,7 @@ import { Identifier } from "@/id/id"
 import { Instance } from "@/project/instance"
 import { Database, eq } from "@/storage/db"
 import { PermissionTable } from "@/session/session.sql"
+import { PermissionSaved } from "./saved"
 import { fn } from "@/util/fn"
 import { Log } from "@/util/log"
 import { Wildcard } from "@/util/wildcard"
@@ -107,6 +108,15 @@ export namespace PermissionNext {
     ),
   }
 
+  // Saved "always" approvals of the current project, read back as allow rules on every evaluation.
+  function savedRules(): Ruleset {
+    return PermissionSaved.list(Instance.project.id).map((row) => ({
+      permission: row.action,
+      pattern: row.resource,
+      action: "allow" as const,
+    }))
+  }
+
   const state = Instance.state(() => {
     const projectID = Instance.project.id
     const row = Database.use((db) =>
@@ -136,8 +146,9 @@ export namespace PermissionNext {
     async (input) => {
       const s = await state()
       const { ruleset, ...request } = input
+      const saved = savedRules()
       for (const pattern of request.patterns ?? []) {
-        const rule = evaluate(request.permission, pattern, ruleset, s.approved)
+        const rule = evaluate(request.permission, pattern, ruleset, s.approved, saved)
         log.info("evaluated", { permission: request.permission, pattern, action: rule })
         if (rule.action === "deny")
           throw new DeniedError(ruleset.filter((r) => Wildcard.match(request.permission, r.permission)))
@@ -205,6 +216,7 @@ export namespace PermissionNext {
             pattern,
             action: "allow",
           })
+          PermissionSaved.save(Instance.project.id, existing.info.permission, pattern)
         }
 
         existing.resolve()
@@ -213,7 +225,7 @@ export namespace PermissionNext {
         for (const [id, pending] of Object.entries(s.pending)) {
           if (pending.info.sessionID !== sessionID) continue
           const ok = pending.info.patterns.every(
-            (pattern) => evaluate(pending.info.permission, pattern, s.approved).action === "allow",
+            (pattern) => evaluate(pending.info.permission, pattern, s.approved, savedRules()).action === "allow",
           )
           if (!ok) continue
           delete s.pending[id]
@@ -224,11 +236,6 @@ export namespace PermissionNext {
           })
           pending.resolve()
         }
-
-        // TODO: we don't save the permission ruleset to disk yet until there's
-        // UI to manage it
-        // db().insert(PermissionTable).values({ projectID: Instance.project.id, data: s.approved })
-        //   .onConflictDoUpdate({ target: PermissionTable.projectID, set: { data: s.approved } }).run()
         return
       }
     },

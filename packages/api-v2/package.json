@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "name": "@cyberstrike-io/api-v2",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "exports": {
+    ".": "./src/api.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "generate": "bun run script/generate-openapi.ts",
+    "check:generated": "bun run script/generate-openapi.ts --check",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode/protocol": "catalog:",
+    "@opencode/schema": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@tsconfig/bun": "catalog:",
+    "@types/bun": "catalog:",
+    "typescript": "catalog:"
+  }
+}

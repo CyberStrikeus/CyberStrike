@@ -14,7 +14,7 @@ import { Request } from "../session/request"
 import { CoverageNote } from "../session/coverage-note"
 import { WebCredential } from "../session/web/web-credential"
 import { Observation } from "../session/observation"
-import { renderAccessContextLines, resolveVisitedBy } from "../server/routes/session"
+import { renderAccessContextLines, resolveVisitedBy } from "../session/access-context"
 import { Truncate } from "./truncation"
 import { dispatchScopeViolation, dispatchOffLaneMessage } from "./vuln-scope"
 

@@ -2,7 +2,7 @@ import type { Hooks, PluginInput, Plugin as PluginInstance } from "@cyberstrike-
 import { Config } from "../config/config"
 import { Bus } from "../bus"
 import { Log } from "../util/log"
-import { createCyberstrikeClient } from "@cyberstrike-io/sdk"
+import { createCyberstrikeClient } from "@cyberstrike-io/sdk/v2"
 import { Server } from "../server/server"
 import { BunProc } from "../bun"
 import { Instance } from "../project/instance"
@@ -129,7 +129,6 @@ export namespace Plugin {
     const hooks = await state().then((x) => x.hooks)
     const config = await Config.get()
     for (const hook of hooks) {
-      // @ts-expect-error this is because we haven't moved plugin to sdk v2
       await hook.config?.(config)
     }
     Bus.subscribeAll(async (input) => {

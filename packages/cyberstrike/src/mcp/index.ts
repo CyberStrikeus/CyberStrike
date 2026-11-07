@@ -929,6 +929,26 @@ export namespace MCP {
     s.status[name] = { status: "disabled" }
   }
 
+  // A client-hosted server has no config entry; its connected client is supplied by the caller and lives only while
+  // the caller keeps it attached. Its tools come from the same tools() path as configured servers.
+  export async function attach(name: string, client: MCPClient) {
+    const s = await state()
+    if (s.status[name]) throw new Error(`MCP server already exists: ${name}`)
+    registerNotificationHandlers(client, name)
+    s.clients[name] = client
+    s.status[name] = { status: "connected" }
+    Bus.publish(ToolsChanged, { server: name })
+  }
+
+  // Removes the client only while it is still the one attached under `name`, so a late detach cannot remove a newer one.
+  export async function detach(name: string, client: MCPClient) {
+    const s = await state()
+    if (s.clients[name] !== client) return
+    delete s.clients[name]
+    delete s.status[name]
+    Bus.publish(ToolsChanged, { server: name })
+  }
+
   async function findConfigFiles() {
     const files: string[] = []
     // Project-level config files (same as Config.get() discovery)

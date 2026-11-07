@@ -1962,6 +1962,26 @@ describe("ProviderTransform.variants", () => {
       expect(result.low).toEqual({ reasoningEffort: "low" })
       expect(result.high).toEqual({ reasoningEffort: "high" })
     })
+
+    test("uses catalog efforts for current Grok models", () => {
+      const model = createMockModel({
+        id: "xai/grok-4.7",
+        providerID: "xai",
+        api: {
+          id: "grok-4.7",
+          url: "https://api.x.ai",
+          npm: "@ai-sdk/xai",
+        },
+        reasoning_options: [{ type: "effort", values: ["low", "high", "xhigh"] }],
+      })
+      const result = ProviderTransform.variants(model)
+      expect(Object.keys(result)).toEqual(["low", "high", "xhigh"])
+      expect(result.xhigh).toEqual({
+        reasoningEffort: "xhigh",
+        reasoningSummary: "auto",
+        include: ["reasoning.encrypted_content"],
+      })
+    })
   })
 
   describe("@ai-sdk/deepinfra", () => {
@@ -2112,6 +2132,20 @@ describe("ProviderTransform.variants", () => {
       })
       const result = ProviderTransform.variants(model)
       expect(Object.keys(result)).toEqual(["none", "minimal", "low", "medium", "high", "xhigh"])
+    })
+
+    test("uses catalog efforts for GPT-5.6", () => {
+      const model = createMockModel({
+        id: "gpt-5.6-sol",
+        providerID: "openai",
+        api: {
+          id: "gpt-5.6-sol",
+          url: "https://api.openai.com",
+          npm: "@ai-sdk/openai",
+        },
+        reasoning_options: [{ type: "effort", values: ["none", "low", "high", "xhigh", "max"] }],
+      })
+      expect(Object.keys(ProviderTransform.variants(model))).toEqual(["none", "low", "high", "xhigh", "max"])
     })
   })
 

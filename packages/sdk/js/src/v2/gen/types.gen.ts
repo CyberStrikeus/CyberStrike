@@ -769,42 +769,6 @@ export type EventWebCredentialUpdated = {
   }
 }
 
-export type SessionQueueStatus = {
-  paused: boolean
-  pending: number
-}
-
-export type EventSessionQueueStatus = {
-  type: "session.queue.status"
-  properties: {
-    sessionID: string
-    status: SessionQueueStatus
-  }
-}
-
-export type HackbrowserPhase = "starting" | "crawling" | "completed" | "failed"
-
-export type HackbrowserStatus = {
-  sessionID: string
-  phase: HackbrowserPhase
-  targetUrl: string
-  pagesExplored: number
-  capturedEndpoints: number
-  currentPage?: string
-  errors: Array<string>
-  startedAt: number
-  finishedAt?: number
-  cost?: number
-}
-
-export type EventSessionHackbrowserStatus = {
-  type: "session.hackbrowser.status"
-  properties: {
-    sessionID: string
-    status: HackbrowserStatus
-  }
-}
-
 export type Todo = {
   /**
    * Brief description of the task
@@ -858,139 +822,6 @@ export type EventVulnerabilityUpdated = {
   properties: {
     sessionID: string
     vulnerabilities: Array<Vulnerability>
-  }
-}
-
-export type EndpointTemplate = {
-  id: string
-  session_id: string
-  origin: string
-  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
-  template: string
-  segment_count: number
-  source: "tier1" | "tier3-llm"
-  confidence: number
-  hit_count: number
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventEndpointTemplateUpdated = {
-  type: "endpoint_template.updated"
-  properties: {
-    sessionID: string
-    templates: Array<EndpointTemplate>
-  }
-}
-
-export type WebFunction = {
-  id: string
-  session_id: string
-  name: string
-  action_type: "create" | "read" | "update" | "delete"
-  request_id: string
-  role_id?: string
-  objects?: Array<string>
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebFunctionUpdated = {
-  type: "web_function.updated"
-  properties: {
-    sessionID: string
-    functions: Array<WebFunction>
-  }
-}
-
-export type WebObject = {
-  id: string
-  session_id: string
-  name: string
-  fields?: Array<string>
-  sensitive_fields?: Array<string>
-  id_fields?: Array<string>
-  discovered_from?: string
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebObjectUpdated = {
-  type: "web_object.updated"
-  properties: {
-    sessionID: string
-    objects: Array<WebObject>
-  }
-}
-
-export type WebObjectValue = {
-  id: string
-  session_id: string
-  object_id: string
-  field_name: string
-  value: string
-  credential_id?: string
-  discovered_from?: string
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebObjectValueUpdated = {
-  type: "web_object_value.updated"
-  properties: {
-    sessionID: string
-    objectID: string
-    values: Array<WebObjectValue>
-  }
-}
-
-export type WebRole = {
-  id: string
-  session_id: string
-  name: string
-  level?: number
-  discovered_from?: string
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebRoleUpdated = {
-  type: "web_role.updated"
-  properties: {
-    sessionID: string
-    roles: Array<WebRole>
-  }
-}
-
-export type WebRetest = {
-  id: string
-  session_id: string
-  request_id: string
-  trigger_type: "new_role" | "new_object_value" | "new_credential"
-  trigger_source: string
-  status: "pending" | "processing" | "completed"
-  priority: "high" | "medium" | "low"
-  time: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventWebRetestUpdated = {
-  type: "web_retest.updated"
-  properties: {
-    sessionID: string
-    queue: Array<WebRetest>
   }
 }
 
@@ -1060,6 +891,138 @@ export type EventMcpBrowserOpenFailed = {
   properties: {
     mcpName: string
     url: string
+  }
+}
+
+export type WebRole = {
+  id: string
+  session_id: string
+  name: string
+  level?: number
+  discovered_from?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebRoleUpdated = {
+  type: "web_role.updated"
+  properties: {
+    sessionID: string
+    roles: Array<WebRole>
+  }
+}
+
+export type WebRetest = {
+  id: string
+  session_id: string
+  request_id: string
+  trigger_type: "new_role" | "new_object_value" | "new_credential"
+  trigger_source: string
+  status: "pending" | "processing" | "completed"
+  priority: "high" | "medium" | "low"
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebRetestUpdated = {
+  type: "web_retest.updated"
+  properties: {
+    sessionID: string
+    queue: Array<WebRetest>
+  }
+}
+
+export type WebObject = {
+  id: string
+  session_id: string
+  name: string
+  fields?: Array<string>
+  sensitive_fields?: Array<string>
+  id_fields?: Array<string>
+  discovered_from?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebObjectUpdated = {
+  type: "web_object.updated"
+  properties: {
+    sessionID: string
+    objects: Array<WebObject>
+  }
+}
+
+export type WebObjectValue = {
+  id: string
+  session_id: string
+  object_id: string
+  field_name: string
+  value: string
+  credential_id?: string
+  discovered_from?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebObjectValueUpdated = {
+  type: "web_object_value.updated"
+  properties: {
+    sessionID: string
+    objectID: string
+    values: Array<WebObjectValue>
+  }
+}
+
+export type WebFunction = {
+  id: string
+  session_id: string
+  name: string
+  action_type: "create" | "read" | "update" | "delete"
+  request_id: string
+  role_id?: string
+  objects?: Array<string>
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventWebFunctionUpdated = {
+  type: "web_function.updated"
+  properties: {
+    sessionID: string
+    functions: Array<WebFunction>
+  }
+}
+
+export type HackbrowserPhase = "starting" | "crawling" | "completed" | "failed"
+
+export type HackbrowserStatus = {
+  sessionID: string
+  phase: HackbrowserPhase
+  targetUrl: string
+  pagesExplored: number
+  capturedEndpoints: number
+  currentPage?: string
+  errors: Array<string>
+  startedAt: number
+  finishedAt?: number
+  cost?: number
+}
+
+export type EventSessionHackbrowserStatus = {
+  type: "session.hackbrowser.status"
+  properties: {
+    sessionID: string
+    status: HackbrowserStatus
   }
 }
 
@@ -1174,6 +1137,43 @@ export type EventVcsBranchUpdated = {
   }
 }
 
+export type SessionQueueStatus = {
+  paused: boolean
+  pending: number
+}
+
+export type EventSessionQueueStatus = {
+  type: "session.queue.status"
+  properties: {
+    sessionID: string
+    status: SessionQueueStatus
+  }
+}
+
+export type EndpointTemplate = {
+  id: string
+  session_id: string
+  origin: string
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
+  template: string
+  segment_count: number
+  source: "tier1" | "tier3-llm"
+  confidence: number
+  hit_count: number
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventEndpointTemplateUpdated = {
+  type: "endpoint_template.updated"
+  properties: {
+    sessionID: string
+    templates: Array<EndpointTemplate>
+  }
+}
+
 export type Pty = {
   id: string
   title: string
@@ -1254,22 +1254,20 @@ export type Event =
   | EventFileWatcherUpdated
   | EventRequestUpdated
   | EventWebCredentialUpdated
-  | EventSessionQueueStatus
-  | EventSessionHackbrowserStatus
   | EventTodoUpdated
   | EventVulnerabilityUpdated
-  | EventEndpointTemplateUpdated
-  | EventWebFunctionUpdated
-  | EventWebObjectUpdated
-  | EventWebObjectValueUpdated
-  | EventWebRoleUpdated
-  | EventWebRetestUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
   | EventTuiSessionSelect
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
+  | EventWebRoleUpdated
+  | EventWebRetestUpdated
+  | EventWebObjectUpdated
+  | EventWebObjectValueUpdated
+  | EventWebFunctionUpdated
+  | EventSessionHackbrowserStatus
   | EventIntelUpdated
   | EventCommandExecuted
   | EventSessionCreated
@@ -1278,6 +1276,8 @@ export type Event =
   | EventSessionDiff
   | EventSessionError
   | EventVcsBranchUpdated
+  | EventSessionQueueStatus
+  | EventEndpointTemplateUpdated
   | EventPtyCreated
   | EventPtyUpdated
   | EventPtyExited
@@ -1897,7 +1897,7 @@ export type ProviderConfig = {
       reasoning_options?: Array<
         | {
             type: "effort"
-            values: Array<string>
+            values: Array<string | null>
           }
         | {
             type: "toggle"
@@ -5269,7 +5269,7 @@ export type ProviderListResponses = {
           release_date: string
           attachment: boolean
           reasoning: boolean
-          temperature: boolean
+          temperature?: boolean
           tool_call: boolean
           interleaved?:
             | true
@@ -5319,7 +5319,7 @@ export type ProviderListResponses = {
                 }
               }
           status?: "alpha" | "beta" | "deprecated"
-          options: {
+          options?: {
             [key: string]: unknown
           }
           headers?: {
@@ -5332,7 +5332,7 @@ export type ProviderListResponses = {
           reasoning_options?: Array<
             | {
                 type: "effort"
-                values: Array<string>
+                values: Array<string | null>
               }
             | {
                 type: "toggle"

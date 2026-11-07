@@ -1132,6 +1132,17 @@ export namespace Config {
           "Automatically update to the latest version. Set to true to auto-update, false to disable, or 'notify' to show update notifications",
         ),
       disabled_providers: z.array(z.string()).optional().describe("Disable providers that are loaded automatically"),
+      integration: z
+        .object({
+          wellknown_commands: z
+            .array(z.array(z.string()).min(1))
+            .optional()
+            .describe(
+              "Auth command argv arrays that a wellknown integration may run. A discovered command runs only when its argv matches one of these exactly",
+            ),
+        })
+        .optional()
+        .describe("Integration settings"),
       enabled_providers: z
         .array(z.string())
         .optional()
@@ -1242,6 +1253,20 @@ export namespace Config {
           },
         ),
       instructions: z.array(z.string()).optional().describe("Additional instruction files or patterns to include"),
+      shell: z.string().optional().describe("Default shell for terminal and shell tool execution"),
+      references: z
+        .record(
+          z.string(),
+          z
+            .object({
+              path: z.string().describe("Local directory, absolute or relative to the location"),
+              description: z.string().optional(),
+              hidden: z.boolean().optional(),
+            })
+            .strict(),
+        )
+        .optional()
+        .describe("Named local directories available as external context"),
       layout: Layout.optional().describe("@deprecated Always uses stretch layout."),
       permission: Permission.optional(),
       tools: z.record(z.string(), z.boolean()).optional(),
@@ -1490,10 +1515,8 @@ export namespace Config {
       return applyEdits(input, edits)
     }
 
-    return Object.entries(patch).reduce((result, [key, value]) => {
-      if (value === undefined) return result
-      return patchJsonc(result, value, [...path, key])
-    }, input)
+    // An undefined field removes the key, as it does in the .json path where mergeDeep drops it on write.
+    return Object.entries(patch).reduce((result, [key, value]) => patchJsonc(result, value, [...path, key]), input)
   }
 
   function parseConfig(text: string, filepath: string): Info {

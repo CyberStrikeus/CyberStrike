@@ -70,7 +70,10 @@ export namespace IngestQueue {
       .then(task)
       .then(
         () => {},
-        (err) => log.error("ingest prompt failed", { sessionID, error: err }),
+        (err) => {
+          if (err instanceof DOMException && err.name === "AbortError") return
+          log.error("ingest prompt failed", { sessionID, error: err })
+        },
       )
       .then(() => {
         const cur = state()[sessionID]

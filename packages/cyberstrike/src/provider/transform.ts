@@ -359,6 +359,8 @@ export namespace ProviderTransform {
       return {}
     }
 
+    const efforts = model.reasoning_options?.find((option) => option.type === "effort")?.values
+
     // see: https://docs.x.ai/docs/guides/reasoning#control-how-hard-the-model-thinks
     if (id.includes("grok") && id.includes("grok-3-mini")) {
       if (model.api.npm === "@openrouter/ai-sdk-provider") {
@@ -372,10 +374,11 @@ export namespace ProviderTransform {
         high: { reasoningEffort: "high" },
       }
     }
+    if (id.includes("grok-3") && !efforts) return {}
     switch (model.api.npm) {
       case "@openrouter/ai-sdk-provider":
         if (!model.id.includes("gpt") && !model.id.includes("gemini-3") && !model.id.includes("claude")) return {}
-        return Object.fromEntries(OPENAI_EFFORTS.map((effort) => [effort, { reasoning: { effort } }]))
+        return Object.fromEntries((efforts ?? OPENAI_EFFORTS).map((effort) => [effort, { reasoning: { effort } }]))
 
       case "@ai-sdk/gateway":
         if (model.id.includes("anthropic")) {
@@ -433,7 +436,7 @@ export namespace ProviderTransform {
             thinking: { thinking_budget: 4000 },
           }
         }
-        const copilotEfforts = iife(() => {
+        const copilotEfforts = efforts ?? iife(() => {
           if (id.includes("5.1-codex-max") || id.includes("5.2") || id.includes("5.3"))
             return [...WIDELY_SUPPORTED_EFFORTS, "xhigh"]
           return WIDELY_SUPPORTED_EFFORTS
@@ -449,24 +452,36 @@ export namespace ProviderTransform {
           ]),
         )
 
+      case "@ai-sdk/xai":
+        return Object.fromEntries(
+          (efforts ?? WIDELY_SUPPORTED_EFFORTS).map((effort) => [
+            effort,
+            {
+              reasoningEffort: effort,
+              reasoningSummary: "auto",
+              include: ["reasoning.encrypted_content"],
+            },
+          ]),
+        )
+
       case "@ai-sdk/cerebras":
       // https://v5.ai-sdk.dev/providers/ai-sdk-providers/cerebras
       case "@ai-sdk/togetherai":
       // https://v5.ai-sdk.dev/providers/ai-sdk-providers/togetherai
-      case "@ai-sdk/xai":
-      // https://v5.ai-sdk.dev/providers/ai-sdk-providers/xai
       case "@ai-sdk/deepinfra":
       // https://v5.ai-sdk.dev/providers/ai-sdk-providers/deepinfra
       case "venice-ai-sdk-provider":
       // https://docs.venice.ai/overview/guides/reasoning-models#reasoning-effort
       case "@ai-sdk/openai-compatible":
-        return Object.fromEntries(WIDELY_SUPPORTED_EFFORTS.map((effort) => [effort, { reasoningEffort: effort }]))
+        return Object.fromEntries(
+          (efforts ?? WIDELY_SUPPORTED_EFFORTS).map((effort) => [effort, { reasoningEffort: effort }]),
+        )
 
       case "@ai-sdk/azure":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/azure
         if (id === "o1-mini") return {}
-        const azureEfforts = ["low", "medium", "high"]
-        if (id.includes("gpt-5-") || id === "gpt-5") {
+        const azureEfforts = efforts ? [...efforts] : ["low", "medium", "high"]
+        if (!efforts && (id.includes("gpt-5-") || id === "gpt-5")) {
           azureEfforts.unshift("minimal")
         }
         return Object.fromEntries(
@@ -482,7 +497,7 @@ export namespace ProviderTransform {
       case "@ai-sdk/openai":
         // https://v5.ai-sdk.dev/providers/ai-sdk-providers/openai
         if (id === "gpt-5-pro") return {}
-        const openaiEfforts = iife(() => {
+        const openaiEfforts = efforts ?? iife(() => {
           if (id.includes("codex")) {
             if (id.includes("5.2") || id.includes("5.3")) return [...WIDELY_SUPPORTED_EFFORTS, "xhigh"]
             return WIDELY_SUPPORTED_EFFORTS

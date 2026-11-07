@@ -12,6 +12,7 @@ import { Installation } from "../installation"
 
 import { Database, NotFoundError, eq, and, or, gte, isNull, desc, like, inArray } from "../storage/db"
 import { SessionTable, MessageTable, PartTable } from "./session.sql"
+import { SessionLog } from "./log"
 import { Storage } from "@/storage/storage"
 import { Log } from "../util/log"
 import { MessageV2 } from "./message-v2"
@@ -294,6 +295,19 @@ export namespace Session {
         }),
       )
     })
+    SessionLog.append({
+      sessionID: result.id,
+      type: "session.created",
+      data: {
+        sessionID: result.id,
+        projectID: result.projectID,
+        location: { directory: result.directory },
+        slug: result.slug,
+        version: result.version,
+        ...(result.parentID ? { parentID: result.parentID } : {}),
+        ...(result.title ? { title: result.title } : {}),
+      },
+    })
     const cfg = await Config.get()
     if (!result.parentID && (Flag.CYBERSTRIKE_AUTO_SHARE || cfg.share === "auto"))
       share(result.id).catch(() => {
@@ -356,6 +370,29 @@ export namespace Session {
         const row = db
           .update(SessionTable)
           .set({ title: input.title })
+          .where(eq(SessionTable.id, input.sessionID))
+          .returning()
+          .get()
+        if (!row) throw new NotFoundError({ message: `Session not found: ${input.sessionID}` })
+        const info = fromRow(row)
+        Database.effect(() => Bus.publish(Event.Updated, { info }))
+        return info
+      })
+    },
+  )
+
+  // Re-homes a session under another project and directory. The caller checks that the session is idle.
+  export const move = fn(
+    z.object({
+      sessionID: Identifier.schema("session"),
+      directory: z.string(),
+      projectID: z.string(),
+    }),
+    async (input) => {
+      return Database.use((db) => {
+        const row = db
+          .update(SessionTable)
+          .set({ directory: input.directory, project_id: input.projectID })
           .where(eq(SessionTable.id, input.sessionID))
           .returning()
           .get()

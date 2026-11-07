@@ -16,6 +16,8 @@ import { Bus } from "../bus"
 import { ProviderTransform } from "../provider/transform"
 import { SystemPrompt } from "./system"
 import { InstructionPrompt } from "./instruction"
+import { SessionInstructions } from "./instructions"
+import { SessionEnvironment } from "./environment"
 import { Plugin } from "../plugin"
 import BUILD_SWITCH from "../session/prompt/build-switch.txt"
 import MAX_STEPS from "../session/prompt/max-steps.txt"
@@ -265,6 +267,10 @@ export namespace SessionPrompt {
     return s[sessionID].abort.signal
   }
 
+  export function cancelled(error: unknown) {
+    return error instanceof DOMException && error.name === "AbortError"
+  }
+
   // stopCrawl defaults to FALSE: a bare cancel() is the loop/prompt turn-end
   // cleanup (fired by the two defer()s below and by child-session teardown),
   // and a background hackbrowser crawl must SURVIVE those turn boundaries so it
@@ -294,7 +300,7 @@ export namespace SessionPrompt {
     // The IngestQueue chain hits this whenever an ingest task is awaiting a
     // running parent loop and Esc fires; the orphaned callbacks froze the
     // chain (see hackbrowser INTEGRATION.md §13.7).
-    const error = new Error("session prompt cancelled")
+    const error = new DOMException("Session prompt cancelled", "AbortError")
     const callbacks = match.callbacks
     match.callbacks = []
     for (const cb of callbacks) cb.reject(error)
@@ -767,7 +773,11 @@ export namespace SessionPrompt {
       await Plugin.trigger("experimental.chat.messages.transform", {}, { messages: sessionMessages })
 
       // Build system prompt, adding structured output instruction if needed
-      const system = [...(await SystemPrompt.environment(model)), ...(await InstructionPrompt.system())]
+      const system = [
+        ...(await SystemPrompt.environment(model)),
+        ...(await InstructionPrompt.system()),
+        ...SessionInstructions.render(sessionID),
+      ]
       const format = lastUser.format ?? { type: "text" }
       if (format.type === "json_schema") {
         system.push(STRUCTURED_OUTPUT_SYSTEM_PROMPT)
@@ -1959,6 +1969,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       env: {
         ...process.env,
         ...shellEnv.env,
+        ...SessionEnvironment.get(input.sessionID),
         TERM: "dumb",
       },
     })

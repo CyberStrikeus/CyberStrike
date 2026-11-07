@@ -1,5 +1,6 @@
 import path from "path"
 import { Global } from "../global"
+import { NamedError } from "@cyberstrike-io/util/error"
 import z from "zod"
 
 export const OAUTH_DUMMY_KEY = "cyberstrike-oauth-dummy-key"
@@ -31,8 +32,45 @@ export namespace Auth {
     })
     .meta({ ref: "WellKnownAuth" })
 
-  export const Info = z.discriminatedUnion("type", [Oauth, Api, WellKnown]).meta({ ref: "Auth" })
+  // A reference, not a secret: the credential is the value of the named environment variable, read at use time.
+  export const External = z
+    .object({
+      type: z.literal("external"),
+      env: z.string(),
+    })
+    .meta({ ref: "ExternalAuth" })
+
+  export const Info = z.discriminatedUnion("type", [Oauth, Api, WellKnown, External]).meta({ ref: "Auth" })
   export type Info = z.infer<typeof Info>
+
+  export const ExternalUnavailableError = NamedError.create(
+    "AuthExternalUnavailable",
+    z.object({
+      env: z.string(),
+      message: z.string(),
+    }),
+  )
+
+  // The secret a record stands for. An external record whose variable is unset throws ExternalUnavailableError.
+  export function resolve(info: Info | undefined) {
+    if (info?.type === "api") return info.key
+    if (info?.type !== "external") return undefined
+    const value = process.env[info.env]
+    if (value === undefined || value === "") {
+      throw new ExternalUnavailableError({
+        env: info.env,
+        message: `Environment variable ${info.env} is not set`,
+      })
+    }
+    return value
+  }
+
+  // False only for an external record whose variable is unset, so listings can skip it without throwing.
+  export function available(info: Info | undefined) {
+    if (info?.type !== "external") return true
+    const value = process.env[info.env]
+    return value !== undefined && value !== ""
+  }
 
   const filepath = path.join(Global.Path.data, "auth.json")
 

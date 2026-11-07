@@ -1,0 +1,37 @@
+name: v2-contract
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck the v2 packages
+        run: |
+          (cd packages/api-v2 && bun run typecheck)
+          (cd packages/cyberstrike && ./node_modules/.bin/tsc --noEmit -p .)
+
+      - name: Check the generated OpenAPI document
+        run: (cd packages/api-v2 && bun run check:generated)
+
+      - name: Run the v2 unit and contract tests
+        run: |
+          (cd packages/api-v2 && bun test)
+          (cd packages/cyberstrike && bun test test/api-v2)
+
+      - name: Run the opencodex contract gate
+        # No provider secret: the prompt cases stay opt-in (V2_ALLOW_PROMPT=1) and do not run here.
+        env:
+          CYBERSTRIKE_SERVER_PASSWORD: v2-contract-ci
+        run: bun run v2:contract
