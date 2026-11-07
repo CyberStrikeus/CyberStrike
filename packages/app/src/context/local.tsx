@@ -309,6 +309,13 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
             })
             write({ model: item })
             if (!item) return
+            // Persist the selection server-side. The web/desktop UI only kept the model client-side,
+            // so server-side resolution (HackBrowser, the navigator, compaction, the idle watchdog)
+            // never saw it and fell back to the provider's catalog default. Mirrors what the TUI
+            // writes to state/model.json. Fire-and-forget — a failed persist must not block the UI.
+            void (sdk()?.client.provider as any)
+              ?.recordModel({ providerID: item.providerID, modelID: item.modelID })
+              ?.catch(() => {})
             models.setVisibility(item, true)
             if (!options?.recent) return
             models.recent.push(item)
