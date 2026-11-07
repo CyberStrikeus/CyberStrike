@@ -1,7 +1,7 @@
 {
   "name": "rea-agents",
   "mcpName": "io.github.morluto/rea",
-  "version": "6.8.0",
+  "version": "2.0.0",
   "description": "Reverse engineer anything from your terminal or agent with one CLI and MCP server.",
   "license": "MIT",
   "repository": {

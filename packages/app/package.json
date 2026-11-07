@@ -1,6 +1,6 @@
 {
   "name": "@cyberstrike-io/app",
-  "version": "1.18.32",
+  "version": "2.0.0",
   "description": "",
   "type": "module",
   "exports": {

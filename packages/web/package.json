@@ -1,6 +1,6 @@
 {
   "name": "@cyberstrike-io/web",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "type": "module",
   "license": "AGPL-3.0-only",
   "description": "CyberStrike Web Application assessment domain (template stub). Installs as a plugin; reaches core runtime via the host-injected input.core (works in the compiled binary).",

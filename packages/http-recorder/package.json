@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "1.18.32",
+  "version": "2.0.0",
   "name": "@cyberstrike-io/http-recorder",
   "description": "Record and replay Effect HTTP client traffic with deterministic cassettes",
   "type": "module",

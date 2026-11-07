@@ -1,6 +1,6 @@
 {
   "name": "@cyberstrike-io/re",
-  "version": "0.1.0",
+  "version": "2.0.0",
   "type": "module",
   "license": "AGPL-3.0-only",
   "description": "CyberStrike Reverse Engineering domain — multi-agent RE pipeline powered by REA MCP server (binary, mobile, firmware, web/JS, managed, network, smart contract analysis).",
