@@ -865,7 +865,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         const s = sdk()
         if (!s) return
         try {
-          await (s.client.session as any).hackbrowserStop({ sessionID })
+          await s.client.session.hackbrowserStop({ sessionID })
           showToast({ title: "HackBrowser stopped", variant: "success" })
         } catch {
           showToast({ title: "No active HackBrowser crawl", variant: "error" })
@@ -938,7 +938,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         const s = sdk()
         if (!s) return
         try {
-          await (s.client.session as any).queuePause({ sessionID })
+          await s.client.session.queuePause({ sessionID })
           showToast({ title: "Queue paused", variant: "success" })
         } catch {
           showToast({ title: "Failed to pause queue", variant: "error" })
@@ -957,7 +957,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         const s = sdk()
         if (!s) return
         try {
-          await (s.client.session as any).queueResume({ sessionID })
+          await s.client.session.queueResume({ sessionID })
           showToast({ title: "Queue resumed", variant: "success" })
         } catch {
           showToast({ title: "Failed to resume queue", variant: "error" })
@@ -976,17 +976,17 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         const s = sdk()
         if (!s) return
         try {
-          const res = await (s.client as any).methodology.state({ sessionID })
+          const res = await s.client.methodology.state({ sessionID })
           const state = res?.data
           if (!state) {
             showToast({ title: "No methodology data", variant: "error" })
             return
           }
-          const covered = state.covered ?? 0
-          const total = state.total ?? 0
+          const covered = state.completedCount ?? 0
+          const total = state.totalCount ?? 0
           showToast({
             title: `Methodology: ${covered}/${total} covered`,
-            description: state.phase ?? "Unknown phase",
+            description: state.currentPhase ?? "Unknown phase",
           })
         } catch {
           showToast({ title: "Failed to load methodology", variant: "error" })
@@ -1006,7 +1006,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
         if (!s) return
         try {
           showToast({ title: "Compiling report..." })
-          const res = await (s.client as any).methodology.reportCompile({ sessionID })
+          const res = await s.client.methodology.reportCompile({ sessionID })
           if (res?.data) {
             showToast({ title: "Report compiled", variant: "success" })
           }
