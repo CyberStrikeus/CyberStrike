@@ -458,7 +458,7 @@ function App() {
     },
     {
       title: "Toggle MCPs",
-      value: "mcp.list",
+      value: "mcp.toggle",
       category: "Agent",
       slash: {
         name: "mcp",
@@ -470,7 +470,7 @@ function App() {
     },
     {
       title: "Bolt",
-      value: "bolt",
+      value: "session.bolt.select",
       category: "Agent",
       slash: {
         name: "bolt",

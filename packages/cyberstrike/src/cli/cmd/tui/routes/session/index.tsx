@@ -566,7 +566,7 @@ export function Session() {
     },
     {
       title: "View web context",
-      value: "session.web.context",
+      value: "session.web",
       category: "Session",
       slash: {
         name: "web",
@@ -720,7 +720,7 @@ export function Session() {
     },
     {
       title: showTimestamps() ? "Hide timestamps" : "Show timestamps",
-      value: "session.toggle.timestamps",
+      value: "view.timestamps",
       category: "Session",
       slash: {
         name: "timestamps",
@@ -733,7 +733,7 @@ export function Session() {
     },
     {
       title: showThinking() ? "Hide thinking" : "Show thinking",
-      value: "session.toggle.thinking",
+      value: "view.thinking",
       keybind: "display_thinking",
       category: "Session",
       slash: {
