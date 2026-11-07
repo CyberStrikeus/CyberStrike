@@ -16,13 +16,14 @@ import { WebCredential, COMMON_AUTH_HEADERS } from "../session/web/web-credentia
 import { HttpMessage } from "../replay/message"
 import { Apply } from "../replay/apply"
 import { Send } from "../replay/send"
-import { Governor } from "../replay/governor"
-import { BackendFetch } from "../replay/backend-fetch"
 import { BackendSocket } from "../replay/backend-socket"
 import { ReplayResponse } from "../replay/response"
 import { Observe } from "../replay/observe"
 import { Mutate } from "../replay/mutate"
 import { Batch } from "../replay/batch"
+import { vortexRegisterCanary, vortexScanProbeResponse } from "../session/web/vortex-bridge"
+import { governedSend } from "../replay/govern"
+import { Verification } from "../inspection/verification"
 
 // Encode codecs mirrored as a zod enum for the tool schema (kept in sync with
 // Encode.Codec in ../replay/encode.ts).
@@ -85,7 +86,7 @@ const COMPARE_SIDE = z.object({
 })
 
 // Derive a sendable origin (scheme://host[:port]) from a captured request.
-function originOf(request: Request.Info): string | { error: string } {
+export function originOf(request: Request.Info): string | { error: string } {
   const host = request.host ?? (request.origin ? safeURL(request.origin)?.host : undefined)
   if (!host) return { error: "request has no host/origin — cannot resolve a sendable origin" }
   if (request.origin) return request.origin.replace(/\/+$/, "")
@@ -105,7 +106,7 @@ function safeURL(u: string): URL | undefined {
 // Every attack request must target a host the crawl already captured — closes
 // the SSRF-shaped hole where a mutated Host/target could aim at an arbitrary
 // host. Empty allowlist is refused, not waved through.
-function inScope(sessionID: string, host: string): boolean {
+export function inScope(sessionID: string, host: string): boolean {
   const allowed = new Set(
     Request.get(sessionID)
       .map((r) => r.host)
@@ -141,6 +142,40 @@ function buildFromTarget(t: {
   return { baseMsg, origin: `${url.protocol}//${url.host}` }
 }
 
+const REPLAY_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"] as const
+
+// A constructed-target exploit that actually elicited a response is real traffic we sent to an in-scope
+// host — persist it as a captured request so it becomes first-class: a stable request_id, retestable, and
+// able to mint a verification_token for the triage gate. Without this a constructed-target confirmation
+// had only a synthetic `replay:` id and no token, so the finding it proved stayed stuck in draft (#105).
+// Returns the new request_id (undefined if there was no response, or the method isn't one we store).
+function persistConstructed(
+  sessionID: string,
+  msg: HttpMessage.Request,
+  origin: string,
+  result: ReplayResponse.Result,
+): string | undefined {
+  const res = result.response
+  if (!res) return undefined
+  const method = msg.method.toUpperCase()
+  if (!(REPLAY_METHODS as readonly string[]).includes(method)) return undefined
+  const ou = safeURL(origin)
+  const headers: Record<string, string> = {}
+  for (const h of res.headers) headers[h.name] = h.value
+  const row = Request.add({
+    sessionID,
+    method: method as (typeof REPLAY_METHODS)[number],
+    normalizedPath: msg.target,
+    rawRequest: HttpMessage.toString(msg),
+    scheme: ou?.protocol === "https:" ? "https" : "http",
+    host: ou?.hostname,
+    port: ou?.port ? Number(ou.port) : undefined,
+    origin,
+    response: { status: res.status, headers, body: new TextDecoder("latin1").decode(res.body) },
+  })
+  return row?.id
+}
+
 const BODY_PREVIEW = 4096
 
 function summarize(result: ReplayResponse.Result, marker?: string): Record<string, unknown> {
@@ -167,7 +202,7 @@ function summarize(result: ReplayResponse.Result, marker?: string): Record<strin
 
 // ── Auth helpers ──────────────────────────────────────────────────────────────
 
-function stripAuthHeaders(msg: HttpMessage.Request): HttpMessage.Request {
+export function stripAuthHeaders(msg: HttpMessage.Request): HttpMessage.Request {
   let out = msg
   for (const h of COMMON_AUTH_HEADERS) {
     out = Mutate.removeHeader(out, h)
@@ -175,11 +210,16 @@ function stripAuthHeaders(msg: HttpMessage.Request): HttpMessage.Request {
   return out
 }
 
-function applyCredential(msg: HttpMessage.Request, credentialID: string): HttpMessage.Request | { error: string } {
+export function applyCredential(msg: HttpMessage.Request, credentialID: string): HttpMessage.Request | { error: string } {
   const cred = WebCredential.getById(credentialID)
   if (!cred) return { error: `Credential "${credentialID}" not found in this session.` }
+  // Auth is per-origin: apply the identity's auth FOR THE TARGET HOST only. If this identity never
+  // authenticated to this host, its auth set is empty and the request goes out unauthenticated (a
+  // truthful "this identity has no session here"), instead of injecting another host's session.
+  const host = (msg.headers.find((h) => h.name.toLowerCase() === "host")?.value ?? "").toLowerCase()
+  const auth = WebCredential.authForHost(cred.authByHost, host)
   let out = stripAuthHeaders(msg)
-  for (const [name, value] of Object.entries(cred.headers)) {
+  for (const [name, value] of Object.entries(auth)) {
     out = Mutate.setHeader(out, name, value)
   }
   return out
@@ -196,7 +236,10 @@ function applyAuthParams(
 
 // ── Governed send wrapper ─────────────────────────────────────────────────────
 
-async function sendGoverned(
+// Thin adapter over the shared governed-send primitive (replay/govern). Keeps this
+// tool's snake_case option shape at its many call sites while the budget/breaker/
+// Send.governed logic lives in ONE place, reused by the webhook smart tools too.
+export async function sendGoverned(
   msg: HttpMessage.Request,
   origin: string,
   opts: {
@@ -206,21 +249,12 @@ async function sendGoverned(
     signal?: AbortSignal
   },
 ): Promise<Send.Result> {
-  const budget = new Governor.GlobalBudget()
-  const breaker = new Governor.CircuitBreaker()
-  return Send.governed(
-    () =>
-      BackendFetch.send(msg, {
-        origin,
-        rejectUnauthorized: opts.insecure_tls === false,
-        totalTimeoutMs: opts.total_timeout_ms,
-        followRedirects: opts.follow_redirects,
-        signal: opts.signal,
-      }),
-    msg.method,
-    { budget, breaker },
-    {},
-  )
+  return governedSend(msg, origin, {
+    insecureTls: opts.insecure_tls,
+    totalTimeoutMs: opts.total_timeout_ms,
+    followRedirects: opts.follow_redirects,
+    signal: opts.signal,
+  })
 }
 
 // ── Diff builder ──────────────────────────────────────────────────────────────
@@ -402,6 +436,44 @@ export const HttpReplayTool = Tool.define("http_replay", {
       signal: ctx.abort,
     }
 
+    // Elicited-response write-back to Vortex (the single signal producer, #15). Feed each elicited
+    // response through Vortex's rules + canary so evidence an agent surfaces here (an error page, a
+    // path disclosure) is persisted and routed to retest instead of dying in this agent's context; and
+    // register `marker` as a Vortex canary so a later captured page that renders it is caught as stored
+    // reflection. vortexScanProbeResponse no-ops for a synthetic id (no Vortex tx → no retest FK), so a
+    // real row id (captured, or a persisted constructed target #105) is what routes. Best-effort, never
+    // throws. Wired for single + compare (the confirm paths); sweep is intentionally not scanned
+    // per-value (up to 50 sends on the hot path, and the agent already sees each value's signature).
+    const writeBack = (m: HttpMessage.Request, result: ReplayResponse.Result, withMarker: boolean, rid?: string) => {
+      const requestId = rid ?? `replay:${originHost}${m.target}`
+      try {
+        if (withMarker && params.marker) {
+          vortexRegisterCanary(sessionID, {
+            token: params.marker,
+            kind: "reflect",
+            requestId,
+            field: "(replay-marker)",
+            vulnClass: "reflection",
+            agent: ctx.agent,
+          })
+        }
+        const parsed = result.response
+        if (!parsed) return
+        const headers: Record<string, string> = {}
+        for (const h of parsed.headers) headers[h.name] = h.value
+        vortexScanProbeResponse(sessionID, {
+          requestId,
+          method: m.method,
+          url: origin + m.target,
+          status: parsed.status,
+          headers,
+          body: new TextDecoder("latin1").decode(parsed.body),
+        })
+      } catch {
+        // best-effort — detection must never break the replay path
+      }
+    }
+
     // ── Compare mode ──────────────────────────────────────────────────────
     if (params.compare) {
       const { compare } = params
@@ -428,11 +500,27 @@ export const HttpReplayTool = Tool.define("http_replay", {
         sendGoverned(baselineMsg, origin, sendOpts),
         sendGoverned(exploitMsg, origin, sendOpts),
       ])
+      // A constructed target confirmed via compare is persisted on the EXPLOIT side so it yields a
+      // stored, verifiable id just like a captured request (#105). Baseline is the control — not stored.
+      const exploitRid = params.request_id ?? persistConstructed(sessionID, exploitMsg, origin, exploitResult)
+      // Marker (the payload) lives on the exploit side; scan both, register once.
+      writeBack(baselineMsg, baselineResult, false, params.request_id)
+      writeBack(exploitMsg, exploitResult, true, exploitRid)
 
-      const output = {
+      const output: Record<string, unknown> = {
         baseline: { ...summarize(baselineResult, params.marker), curl: Apply.toCurl(baselineMsg, origin) },
         exploit: { ...summarize(exploitResult, params.marker), curl: Apply.toCurl(exploitMsg, origin) },
         diff: buildDiff(baselineResult, exploitResult),
+      }
+      if (exploitRid) output.request_id = exploitRid
+      if (exploitRid && exploitResult.response) {
+        const bodyText = new TextDecoder("latin1").decode(exploitResult.response.body)
+        output.verification_token = Verification.record({
+          sessionID: ctx.sessionID,
+          requestId: exploitRid,
+          responseStatus: exploitResult.response.status,
+          bodyPrefix: bodyText.slice(0, 256),
+        })
       }
 
       return {
@@ -493,11 +581,24 @@ export const HttpReplayTool = Tool.define("http_replay", {
     }
 
     const result = await sendGoverned(msg, origin, sendOpts)
+    // A constructed target that got a response is persisted so it too yields a stored, verifiable id (#105).
+    const rid = params.request_id ?? persistConstructed(sessionID, msg, origin, result)
+    writeBack(msg, result, true, rid)
 
-    const output = {
+    const output: Record<string, unknown> = {
       target: { method: msg.method, origin, request_target: msg.target },
       ...summarize(result, params.marker),
       curl: Apply.toCurl(msg, origin),
+    }
+    if (rid) output.request_id = rid
+    if (rid && result.response) {
+      const bodyText = new TextDecoder("latin1").decode(result.response.body)
+      output.verification_token = Verification.record({
+        sessionID: ctx.sessionID,
+        requestId: rid,
+        responseStatus: result.response.status,
+        bodyPrefix: bodyText.slice(0, 256),
+      })
     }
     return { title: `http_replay ${msg.method} ${originHost}`, output: JSON.stringify(output, null, 2), metadata: {} }
   },

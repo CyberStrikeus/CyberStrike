@@ -1,0 +1,23 @@
+---
+title: How Cyberstrike selects the model & provider
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 40
+    nodeSpacing: 34
+    padding: 10
+---
+flowchart TD
+    S(["cyberstrike starts"]):::start --> Q1{"model set<br/>in config?"}
+    Q1 -->|yes| M1["Use config model<br/>provider/model"]:::pick
+    Q1 -->|no| Q2{"recent model<br/>still available?"}
+    Q2 -->|yes| M2["Use most<br/>recent model"]:::pick
+    Q2 -->|no| P["Pick first available provider<br/>auth key · env var · built-in cyberstrike"]
+    P --> M3["Top model by priority:<br/>gpt-5 › claude-sonnet-4 › big-pickle › gemini-3-pro"]:::pick
+    M1 --> R["Override anytime: --model flag or leader+m"]:::note
+    M2 --> R
+    M3 --> R
+
+    classDef start fill:#0b1220,stroke:#00d4ff,stroke-width:2px,color:#00d4ff;
+    classDef pick fill:#0b1220,stroke:#00ff88,color:#00ff88;
+    classDef note fill:#0b1220,stroke:#555,color:#9fb3c8;

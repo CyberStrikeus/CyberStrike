@@ -1,0 +1,100 @@
+---
+import { Icon } from "astro-icon/components";
+
+interface Props {
+  variant: "tip" | "caution" | "danger" | "info";
+  title?: string;
+}
+
+const { variant, title } = Astro.props as Props;
+
+// create a switch statement that switches on "variant" and returns the appropriate icon
+const icon = (() => {
+  switch (variant) {
+    case "tip":
+      return "tabler/bulb";
+    case "caution":
+      return "tabler/alert-triangle";
+    case "danger":
+      return "tabler/flame";
+    case "info":
+      return "tabler/info-circle";
+  }
+})();
+
+if (!icon) {
+  throw new Error(`Invalid variant: ${variant}. Icon not found.`);
+}
+---
+
+<div
+  class:list={[
+    "docs-aside dark:text-foreground my-4 rounded-lg border px-4 py-3",
+
+    {
+      "border-success dark:border-success/80 text-success-foreground bg-success/5 docs-aside-success":
+        variant === "tip",
+    },
+    {
+      "border-warning dark:border-warning/80 text-foreground bg-warning/5 docs-aside-warning":
+        variant === "caution",
+    },
+    {
+      "border-error text-foreground bg-error/5 docs-aside-error": variant === "danger",
+    },
+    {
+      "border-info dark:border-info/80 text-info-foreground bg-info/5 docs-aside-info":
+        variant === "info",
+    },
+  ]}
+>
+  <div class="not-content flex items-center gap-2 pb-2">
+    <Icon
+      name={icon}
+      class:list={[
+        "h-6 w-6",
+        {
+          "text-success dark:text-success/80": variant === "tip",
+        },
+        {
+          "text-warning dark:text-warning/80": variant === "caution",
+        },
+        {
+          "text-error": variant === "danger",
+        },
+        {
+          "text-info dark:text-info/80": variant === "info",
+        },
+      ]}
+    />
+    <p class="font-medium">{title || variant.charAt(0).toUpperCase() + variant.slice(1)}</p>
+  </div>
+  <slot />
+</div>
+
+<style is:global>
+  @import "tailwindcss/theme" theme(reference);
+  @import "@/styles/tailwind-theme.css" theme(reference);
+
+  .docs-aside > :first-child {
+    @apply mt-0;
+  }
+  .docs-aside > :nth-child(2) {
+    @apply mt-0;
+  }
+  .docs-aside > :last-child {
+    @apply mb-0;
+  }
+  .docs-aside-success code {
+    @apply bg-success/20 border-none px-0.5;
+  }
+  .docs-aside-info code {
+    @apply bg-info/20 border-none px-0.5;
+  }
+  .docs-aside-warning code {
+    @apply bg-warning/20 border-none px-0.5;
+  }
+  .docs-aside-error code {
+    @apply bg-error/20 border-none px-0.5;
+  }
+</style>

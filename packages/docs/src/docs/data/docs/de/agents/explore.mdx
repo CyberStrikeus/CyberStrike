@@ -1,0 +1,45 @@
+---
+title: Explore-Agent
+description: Schneller schreibgeschuetzter Agent fuer Codebasis-Suche, Datei-Lookup und Musterabgleich
+sidebar:
+  order: 4
+  label: Explore
+---
+
+Der `explore`-Agent ist ein schneller, schreibgeschuetzter Agent, der auf das Durchsuchen von Codebasen und Dateisystemen spezialisiert ist. Er kann Dateien nach Mustern finden, Code nach Schluesselbegriffen durchsuchen und strukturelle Fragen zur Codebasis beantworten.
+
+## Uebersicht
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **Agenten-ID** | `explore` |
+| **Modus** | `subagent` |
+| **Werkzeugzugriff** | Schreibgeschuetzt (grep, glob, list, bash, read, Web-Suche) |
+
+## Wann er verwendet wird
+
+Der `cyberstrike`-Agent delegiert an `explore`, wenn er Folgendes benoetigt:
+
+- Dateien finden, die einem Muster entsprechen (z.B. `src/components/**/*.tsx`)
+- Code nach Schluesselbegriffen oder Symbolen durchsuchen (z.B. "API-Endpunkte")
+- Fragen zur Codestruktur beantworten
+- Schnelle Abfragen, die keine Aenderung erfordern
+
+## Gruendlichkeitsstufen
+
+Beim Delegieren an `explore` gibt der aufrufende Agent eine Gruendlichkeitsstufe an:
+
+| Stufe | Verhalten |
+|-------|-----------|
+| **quick** | Einfache gezielte Suche — ein Ort, erster Treffer |
+| **medium** | Moderate Erkundung — mehrere Orte |
+| **very thorough** | Umfassende Analyse ueber Namenskonventionen und Orte hinweg |
+
+## Einschraenkungen
+
+Der `explore`-Agent ist strikt schreibgeschuetzt. Er kann nicht:
+
+- Dateien schreiben, bearbeiten oder erstellen
+- Destruktive Befehle ausfuehren
+- Schwachstellen melden
+- Irgendeinen Zustand aendern

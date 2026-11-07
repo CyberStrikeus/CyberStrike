@@ -20,13 +20,18 @@ export namespace MethodologyContext {
    * Returns null if methodology is not active (no intel entries).
    */
   /**
-   * @param agentClass when set to a proxy-tester class (e.g. "idor"), the context
+   * @param agentClass when set to a wstg-tester class (e.g. "input-validation"), the context
    *   is scoped to that lane (Phase 2.3): the untested-items list is filtered to
    *   the lane and orchestrator-only sections (delegation briefing, work queue)
    *   are dropped — a tester is handed only its own work, not the routing view.
    *   Leave undefined for the orchestrator / non-tester agents (full context).
+   * @param opts.cloud when true, returns cloud-focused intel context instead of
+   *   web-proxy methodology. Cloud agents don't use VRT checks, delegation
+   *   briefing, work queue, or agent morale.
    */
-  export function generate(sessionID: string, agentClass?: string): string | null {
+  export function generate(sessionID: string, agentClass?: string, opts?: { cloud?: boolean }): string | null {
+    if (opts?.cloud) return generateCloudContext(sessionID)
+
     const isTester = !!agentClass
     // Check if any intel entries exist for this session
     const count = Database.use((db) =>
@@ -114,7 +119,7 @@ export namespace MethodologyContext {
       ? coverage.untestedItems.filter((item) => categoryInLane(agentClass!, item.vrtCategory))
       : coverage.untestedItems
     if (untested.length > 0) {
-      const scope = isTester ? ` for proxy-tester-${agentClass}` : ""
+      const scope = isTester ? ` for wstg-${agentClass}` : ""
       sections.push("")
       sections.push(`## Priority Untested${scope} (${untested.length} total)`)
       for (const item of untested.slice(0, 5)) {
@@ -185,11 +190,22 @@ export namespace MethodologyContext {
       return { force: true, directive }
     }
 
-    // Force continue if HIGH-confidence chains are untested
+    // Force continue if HIGH-confidence chains are untested — but auto-disprove stale ones
     const chains = Chain.load(sessionID)
-    const untestedHighChains = chains.filter((c) => c.status === "detected" && c.confidence >= 80)
-    if (untestedHighChains.length > 0) {
-      const chain = untestedHighChains[0]
+    const CHAIN_STALE_MS = 10 * 60 * 1000
+    const now = Date.now()
+    const stale: Chain.Candidate[] = []
+    const fresh: Chain.Candidate[] = []
+    for (const c of chains) {
+      if (c.status !== "detected" || c.confidence < 80) continue
+      if (now - c.detectedAt > CHAIN_STALE_MS) stale.push(c)
+      else fresh.push(c)
+    }
+    if (stale.length > 0) {
+      Chain.disprove(sessionID, stale.map((c) => c.id))
+    }
+    if (fresh.length > 0) {
+      const chain = fresh[0]
       const best = AgentPerformance.selectAgentForMission(sessionID, chain.pattern.replace(/_/g, " "))
       return {
         force: true,
@@ -254,7 +270,7 @@ export namespace MethodologyContext {
       // Generate specific fix instructions per violation type
       if (v.gate === "per_asset_coverage" && v.affectedAsset) {
         const ranked = state.currentPhase ? AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase) : []
-        const agent = ranked[0]?.name ?? "web-application"
+        const agent = ranked[0]?.name ?? "wstg-agent"
         lines.push(`  FIX: Delegate to ${agent} — focus testing on ${v.affectedAsset}`)
       } else if (v.gate === "evidence_quality") {
         lines.push(
@@ -303,7 +319,7 @@ export namespace MethodologyContext {
         lines.push("")
         lines.push("### Coverage Gaps")
         for (const asset of neglected.slice(0, 5)) {
-          const rec = ranked.length > 0 ? ranked[0].name : "web-application"
+          const rec = ranked.length > 0 ? ranked[0].name : "wstg-agent"
           lines.push(`- **${asset.asset}**: ${asset.coveragePercent}% (avg ${Math.round(avg)}%) → delegate to ${rec}`)
         }
       }
@@ -378,8 +394,8 @@ export namespace MethodologyContext {
     // Priority 2: Blocking violations (high)
     for (const v of state.violations.filter((v) => v.severity === "blocking").slice(0, 3)) {
       const agent = state.currentPhase
-        ? (AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase)[0]?.name ?? "web-application")
-        : "web-application"
+        ? (AgentPerformance.selectAgentsForPhase(sessionID, state.currentPhase)[0]?.name ?? "wstg-agent")
+        : "wstg-agent"
       items.push({
         priority: "high",
         action: `Fix violation: ${v.gate}`,
@@ -396,7 +412,7 @@ export namespace MethodologyContext {
       items.push({
         priority: "high",
         action: `Start testing on untouched asset`,
-        agent: "web-application",
+        agent: "wstg-agent",
         asset: asset.asset,
         context: `${asset.totalChecks} VRT checks pending, 0% coverage`,
       })
@@ -536,5 +552,74 @@ export namespace MethodologyContext {
     lines.push("**When re-delegating, include the specific fix instructions above in the agent's prompt.**")
 
     return lines.join("\n")
+  }
+
+  // --- Cloud Context (replaces full methodology for cloud agents) ---
+
+  function generateCloudContext(sessionID: string): string | null {
+    const entries = Intel.get(sessionID)
+    if (entries.length === 0) return null
+
+    const sections: string[] = ["# Cloud Intel Context", ""]
+
+    const byType = new Map<string, typeof entries>()
+    for (const e of entries) {
+      const list = byType.get(e.type) ?? []
+      list.push(e)
+      byType.set(e.type, list)
+    }
+
+    const iamEntries = byType.get("iam_principal") ?? []
+    if (iamEntries.length > 0) {
+      sections.push(`## Identity & Access (${iamEntries.length})`)
+      for (const e of iamEntries.slice(0, 15)) {
+        sections.push(`- [${e.severity ?? "info"}] ${e.title}`)
+        if (e.chainPotential) sections.push(`  Chain: ${e.chainPotential}`)
+      }
+      sections.push("")
+    }
+
+    const attackPaths = byType.get("attack_path") ?? []
+    if (attackPaths.length > 0) {
+      sections.push(`## Attack Paths (${attackPaths.length})`)
+      for (const e of attackPaths.slice(0, 10)) {
+        sections.push(`- [${e.severity ?? "info"}] ${e.title}`)
+        if (e.detail) sections.push(`  ${e.detail.slice(0, 200)}`)
+      }
+      sections.push("")
+    }
+
+    const lateralMovement = byType.get("lateral_movement") ?? []
+    if (lateralMovement.length > 0) {
+      sections.push(`## Lateral Movement (${lateralMovement.length})`)
+      for (const e of lateralMovement.slice(0, 10)) {
+        sections.push(`- [${e.severity ?? "info"}] ${e.title}`)
+      }
+      sections.push("")
+    }
+
+    const misconfigs = byType.get("cloud_misconfiguration") ?? []
+    const exposures = byType.get("cloud_exposure") ?? []
+    const combined = [...misconfigs, ...exposures]
+    if (combined.length > 0) {
+      sections.push(`## Misconfigurations & Exposures (${combined.length})`)
+      for (const e of combined.slice(0, 10)) {
+        sections.push(`- [${e.severity ?? "info"}] ${e.title} (${e.asset})`)
+      }
+      sections.push("")
+    }
+
+    const chains = entries.filter((e) => e.chainPotential)
+    if (chains.length > 0) {
+      sections.push(`## Chain Opportunities (${chains.length})`)
+      for (const e of chains.slice(0, 8)) {
+        sections.push(`- ${e.title} → ${e.chainPotential}`)
+      }
+      sections.push("")
+    }
+
+    sections.push(`Total intel entries: ${entries.length}`)
+
+    return sections.length > 3 ? sections.join("\n") : null
   }
 }

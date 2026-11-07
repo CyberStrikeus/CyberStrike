@@ -1,0 +1,310 @@
+---
+title: Web
+description: Browserbasierte Web-Oberflaeche fuer CyberStrike-Sicherheitsbewertungen
+sidebar:
+  order: 3
+  label: Web
+---
+
+CyberStrike kann als Webanwendung in Ihrem Browser laufen und bietet das volle KI-gestuetzte Sicherheitsbewertungs-Erlebnis ohne Terminal.
+
+{/* TODO: Screenshot — Web UI overview showing session list, chat, and side panel */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: web-ui-overview.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Web-Oberflaeche mit Sitzungs-Seitenleiste, Chat-Panel und Datei-Ueberpruefung</p>
+</div>
+
+## Erste Schritte
+
+Starten Sie die Web-Oberflaeche mit:
+
+```bash
+cyberstrike web
+```
+
+Dies startet einen lokalen Server auf `127.0.0.1` (Port `4096` standardmaessig) und oeffnet CyberStrike in Ihrem Standardbrowser.
+
+<Aside variant="caution">
+  **Sicherheit:** Wenn `CYBERSTRIKE_SERVER_PASSWORD` nicht gesetzt ist, ist der Server ungesichert. Das ist fuer lokale Nutzung in Ordnung, **muss aber gesetzt werden** fuer Netzwerkzugriff.
+</Aside>
+
+<Aside variant="info">
+  **Windows:** Fuehren Sie diesen Befehl von WSL statt PowerShell aus fuer korrekte Dateisystem- und Terminal-Integration.
+</Aside>
+
+## Konfiguration
+
+### Port
+
+```bash
+cyberstrike web --port 4096
+```
+
+Standardmaessig waehlt das System automatisch einen verfuegbaren Port.
+
+### Hostname
+
+```bash
+# Nur Localhost (Standard)
+cyberstrike web --hostname 127.0.0.1
+
+# Im Netzwerk erreichbar
+cyberstrike web --hostname 0.0.0.0
+```
+
+### mDNS-Erkennung
+
+Lokale Netzwerkauffindbarkeit aktivieren. Setzt den Hostnamen automatisch auf `0.0.0.0`.
+
+```bash
+cyberstrike web --mdns
+```
+
+Mit einer benutzerdefinierten Domain:
+
+```bash
+cyberstrike web --mdns --mdns-domain myproject.local
+```
+
+### CORS
+
+Cross-Origin-Anfragen von bestimmten Domains erlauben:
+
+```bash
+cyberstrike web --cors https://example.com
+```
+
+### Authentifizierung
+
+```bash
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike web
+```
+
+Standard-Benutzername ist `cyberstrike`, aenderbar ueber `CYBERSTRIKE_SERVER_USERNAME`.
+
+{/* TODO: Video — Launching cyberstrike web and browser opening with live session */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: web-launch-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">cyberstrike web ausfuehren und automatisches Browser-Oeffnen mit Live-Sitzung (~12s)</p>
+</div>
+
+## Funktionen
+
+Die Web-Oberflaeche umfasst:
+
+- **Sitzungsverwaltung** -- Sitzungen erstellen, wechseln, archivieren und loeschen
+- **Seitenpanel-Tabs** -- MCP, Bolt, Schwachstellen, Web-Kontext und Todo-Tracking
+- **Dateibrowser** -- Projektdateien mit Diff-Hervorhebung anzeigen und navigieren
+- **Ueberpruefungs-Panel** -- KI-generierte Code-Aenderungen vor dem Akzeptieren ueberpruefen
+- **Terminal** -- Integrierte Terminal-Tabs im Browser
+- **Echtzeit-Updates** -- SSE-Streaming fuer Live-Agentenausgabe
+- **Update-Benachrichtigungen** -- Automatische Abfrage neuer CyberStrike-Releases
+
+{/* TODO: Screenshot — Side panel showing MCP, Bolt, Vulns, Web, Todo tabs */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: web-side-panel-tabs.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Seitenpanel mit MCP-, Bolt-, Schwachstellen-, Web-Kontext- und Todo-Tabs</p>
+</div>
+
+### Web-Kontext-Panel
+
+In Kombination mit der [Chrome Capture-Erweiterung](https://github.com/CyberStrikeus/cyberstrike-chrome-ext) zeigt der Web-Tab im Seitenpanel:
+
+- **Endpunkte** -- Erfasste HTTP-Anfragen mit Methode und Pfad
+- **Rollen** -- Erkannte Benutzerrollen und Berechtigungsstufen
+- **Anmeldedaten** -- Authentifizierungs-Tokens und Sitzungskennungen
+- **Objekte** -- In API-Antworten entdeckte Datenobjekte
+- **Funktionen** -- Aus Verkehrsmustern zugeordnete CRUD-Operationen
+
+{/* TODO: Screenshot — Web Context panel showing captured endpoints and credentials */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: web-context-panel.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Web-Kontext-Panel mit Endpunkten, Rollen, Anmeldedaten, Objekten, Funktionen</p>
+</div>
+
+## Terminal-Anbindung
+
+Webserver und TUI gleichzeitig betreiben und dieselben Sitzungen teilen:
+
+```bash
+# Terminal 1: Webserver starten
+cyberstrike web --port 4096
+
+# Terminal 2: TUI mit demselben Server verbinden
+cyberstrike attach http://localhost:4096
+```
+
+Beide Oberflaechen sehen dieselben Sitzungen, Nachrichten und Agentenaktivitaeten in Echtzeit.
+
+## Fernzugriff
+
+CyberStrike unterstuetzt sicheren Fernzugriff, mit dem Sie den Server auf einem Rechner betreiben und sich von ueberall verbinden koennen. Dies ist nuetzlich fuer:
+
+- Bewertungen auf einer leistungsstarken Workstation durchfuehren und von einem Laptop aus steuern
+- Teamzusammenarbeit ueber einen gemeinsamen Server
+- CyberStrike ueber `app.cyberstrike.io` ohne lokale Installation nutzen
+- Lokale LLMs (Ollama, vLLM) auf einem GPU-Server verwenden und von einem leichteren Geraet aus arbeiten
+
+### Cloudflare Tunnel (Empfohlen)
+
+[Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) erstellt eine sichere, verschluesselte Verbindung zwischen Ihrem CyberStrike-Server und dem Internet, ohne Ports freizugeben.
+
+#### Schnelltunnel
+
+Der schnellste Einstieg -- kein Cloudflare-Konto erforderlich:
+
+```bash
+# Terminal 1: CyberStrike mit Passwort starten
+CYBERSTRIKE_SERVER_PASSWORD=your-secret cyberstrike web --port 4096
+
+# Terminal 2: Schnelltunnel erstellen
+cloudflared tunnel --url http://localhost:4096
+```
+
+`cloudflared` gibt eine oeffentliche URL wie `https://random-words.trycloudflare.com` aus. Teilen Sie diese URL zusammen mit Ihren Anmeldedaten, um CyberStrike von jedem Browser aus zu erreichen.
+
+<Aside variant="caution">
+  **Passwort erforderlich.** CyberStrike verweigert den Start im Server-Modus ohne `CYBERSTRIKE_SERVER_PASSWORD`. Dies ist beabsichtigt -- der Server laeuft nicht ohne.
+</Aside>
+
+#### Benannter Tunnel mit benutzerdefinierter Domain
+
+Fuer dauerhaften Zugriff erstellen Sie einen benannten Tunnel, der mit Ihrer Domain verknuepft ist:
+
+```bash
+# Terminal 1: CyberStrike mit Passwort starten
+CYBERSTRIKE_SERVER_PASSWORD=your-secret cyberstrike web --port 4096
+
+# Terminal 2: Einmalige Einrichtung
+cloudflared tunnel login
+cloudflared tunnel create cyberstrike
+cloudflared tunnel route dns cyberstrike pentest.your-domain.com
+
+# Tunnel ausfuehren
+cloudflared tunnel run --url http://localhost:4096 cyberstrike
+```
+
+<Aside variant="caution">
+  **Ersetzen Sie `pentest.your-domain.com`** durch eine Subdomain der Domain, die Sie zu Cloudflare hinzugefuegt haben. Beispiel: `pentest.example.com` → `pentest.mydomain.com`. Die Verwendung einer nicht von Cloudflare verwalteten Domain fuehrt zu DNS-Aufloesungsfehlern.
+</Aside>
+
+<Aside variant="info">
+  **Neue Domain?** Wenn Sie Ihre Domain kuerzlich zu Cloudflare hinzugefuegt haben, kann die Nameserver-Propagation je nach Registrar 1–24 Stunden dauern. DNS-Routen werden erst nach Abschluss der Propagation aufgeloest. Pruefen Sie den Status in Ihrem Cloudflare-Dashboard unter **Uebersicht**.
+</Aside>
+
+Dies gibt Ihnen eine stabile URL unter `https://pentest.your-domain.com`, die ueber Neustarts hinweg bestehen bleibt.
+
+Um zu ueberpruefen, ob Ihr Setup funktioniert:
+
+```bash
+# Tunnel-Verbindungsstatus pruefen
+cloudflared tunnel info cyberstrike
+
+# DNS-Aufloesung pruefen
+dig pentest.your-domain.com CNAME
+```
+
+<Aside variant="info">
+  **cloudflared installieren:** `brew install cloudflared` (macOS), `apt install cloudflared` (Debian/Ubuntu) oder Download von [Cloudflares Releases](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
+</Aside>
+
+#### Wie Authentifizierung mit Tunneln funktioniert
+
+Die Auth-Middleware von CyberStrike ist Tunnel-bewusst. Obwohl `cloudflared` sich von `127.0.0.1` verbindet, erkennt der Server Proxy-Header und erzwingt Authentifizierung:
+
+1. `cloudflared` leitet Anfragen aus dem Internet an `localhost:4096` weiter
+2. Es fuegt `CF-Connecting-IP`- und `X-Forwarded-For`-Header zu jeder Anfrage hinzu
+3. CyberStrike erkennt diese Header und behandelt die Anfrage als **remote**
+4. HTTP Basic Auth wird erzwungen -- die Web-UI fordert Benutzername und Passwort an
+5. Direkte lokale Anfragen (ohne Proxy-Header) umgehen Auth der Bequemlichkeit halber
+
+Das bedeutet, lokale `cyberstrike attach`-Verbindungen funktionieren ohne Passwort, waehrend der gesamte Tunnel-Verkehr Anmeldedaten erfordert.
+
+{/* TODO: Video — Setting up Cloudflare Tunnel and connecting from remote browser */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: remote-tunnel-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">CyberStrike starten, CF-Tunnel erstellen und von app.cyberstrike.io verbinden (~20s)</p>
+</div>
+
+### Verbindung ueber app.cyberstrike.io
+
+`app.cyberstrike.io` ist die gehostete Web-UI von CyberStrike. Anstatt die Web-Oberflaeche lokal auszufuehren, koennen Sie sie verwenden, um sich mit jedem Remote-CyberStrike-Server zu verbinden.
+
+1. Oeffnen Sie [app.cyberstrike.io](https://app.cyberstrike.io) in Ihrem Browser
+2. Klicken Sie auf die Serverauswahl (obere linke Ecke)
+3. Geben Sie Ihre Tunnel-URL ein (z.B. `https://pentest.example.com`)
+4. Geben Sie Benutzername (`cyberstrike` standardmaessig) und Passwort ein
+5. Ein gruener Gesundheitsindikator bestaetigt die Verbindung
+
+Sobald verbunden, erhalten Sie das volle CyberStrike-Erlebnis -- Sitzungen, Agenten, MCP-Tools, Seitenpanels und Echtzeit-Streaming -- alles ueber Ihren Tunnel.
+
+<Aside variant="info">
+  **Lokale KI-Anbieter:** Wenn Ihr Server Ollama oder andere lokale LLMs ausfuehrt, nutzt `app.cyberstrike.io` diese transparent. Die KI-Inferenz geschieht serverseitig -- die Web-UI verarbeitet nur Anzeige und Eingabe.
+</Aside>
+
+{/* TODO: Screenshot — Server selector dialog showing a remote server with green health indicator */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: remote-server-selector.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Serverauswahl mit Remote-Tunnel-URL, Anmeldedaten und gruenem Gesundheitscheck</p>
+</div>
+
+### Selbst gehostete Web-UI
+
+Sie koennen Ihre eigene Instanz der CyberStrike-Web-Oberflaeche erstellen und bereitstellen und sie dann auf einen beliebigen CyberStrike-Server richten.
+
+```bash
+# Web-UI klonen und erstellen
+git clone https://github.com/CyberStrikeus/CyberStrike.git
+cd CyberStrike/packages/app
+bun install && bun run build
+```
+
+Stellen Sie den `dist/`-Ordner auf einem beliebigen statischen Hosting bereit (Vercel, Netlify, Cloudflare Pages usw.). Konfigurieren Sie dann CORS auf Ihrem CyberStrike-Server, um Ihre Domain zuzulassen:
+
+```bash
+cyberstrike web --cors https://my-pentest-ui.example.com
+```
+
+Oder in `cyberstrike.json`:
+
+```json
+{
+  "server": {
+    "cors": ["https://my-pentest-ui.example.com"]
+  }
+}
+```
+
+### Sicherheitsarchitektur
+
+CyberStrike implementiert mehrere Sicherheitsebenen fuer den Fernzugriff:
+
+| Ebene | Schutz |
+|-------|--------|
+| **TLS-Verschluesselung** | Cloudflare Tunnel verschluesselt den gesamten Verkehr Ende-zu-Ende. Keine Klartextdaten durchqueren das Internet. |
+| **HTTP Basic Auth** | Jede Remote-Anfrage erfordert gueltigen Benutzernamen und Passwort. Anmeldedaten werden ueber den `Authorization`-Header gesendet. |
+| **Proxy-Erkennung** | Der Server prueft `CF-Connecting-IP`- und `X-Forwarded-For`-Header. Proxied Anfragen von Loopback werden dennoch authentifiziert. |
+| **Pflicht-Passwort** | `cyberstrike serve` und `cyberstrike web` verweigern den Start ohne `CYBERSTRIKE_SERVER_PASSWORD`. |
+| **Keine Port-Freigabe** | Cloudflare Tunnel erfordert keine eingehenden Ports. Der Server stellt nur ausgehende Verbindungen zu Cloudflares Edge her. |
+| **SPA-Auth-Flow** | Der Server laesst absichtlich `WWW-Authenticate`-Header weg, um Browser-Auth-Dialoge zu verhindern. Die Web-UI verarbeitet die Authentifizierung ueber ihr eigenes Anmeldeformular. |
+
+<Aside variant="danger">
+  **Setzen Sie CyberStrike niemals direkt dem Internet aus** ohne Tunnel oder VPN. Verwenden Sie immer Cloudflare Tunnel, einen Reverse Proxy mit TLS oder ein privates Netzwerk. Setzen Sie immer ein starkes, einzigartiges Passwort.
+</Aside>
+
+## Konfigurationsdatei
+
+Alle Web-Optionen koennen in `cyberstrike.json` statt ueber Kommandozeilen-Flags gesetzt werden:
+
+```json
+{
+  "server": {
+    "port": 4096,
+    "hostname": "0.0.0.0",
+    "mdns": true,
+    "cors": ["https://example.com"]
+  }
+}
+```
+
+Kommandozeilen-Flags ueberschreiben Konfigurationsdatei-Einstellungen.

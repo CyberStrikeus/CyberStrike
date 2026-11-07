@@ -13,9 +13,46 @@ import { Bus } from "@/bus"
 import { Session } from "@/session"
 import { Discovery } from "./discovery"
 import { SkillSigning } from "./signing"
+import { Installation } from "@/installation"
+import fs from "fs/promises"
 
 export namespace Skill {
   const log = Log.create({ service: "skill" })
+
+  // Ensure the built-in skill corpus is present for compiled binaries. It is NOT bundled in the
+  // npm tarball (the offensive skill content trips npm's publish-time automated review — #114),
+  // and the AWS Marketplace AMI strips it to pass the image scan; both fetch `skills.tar.gz` on
+  // first run into the XDG data dir. The corpus changes far less often than the app version, so it
+  // lives at ONE stable release URL (the `skills` tag), not a per-version asset; override with
+  // CYBERSTRIKE_SKILLS_URL (e.g. to a CDN). Degrades gracefully if the download fails; dev/source
+  // builds use the in-repo .cyberstrike/skill tree (VERSION "local") and skip this entirely.
+  async function ensureInstalledSkills(installedDir: string) {
+    if (Installation.VERSION === "local") return
+    if (await Filesystem.isDir(installedDir)) {
+      const entries = await fs.readdir(installedDir).catch(() => [] as string[])
+      if (entries.length > 0) return
+    }
+    const url =
+      process.env.CYBERSTRIKE_SKILLS_URL ||
+      "https://github.com/CyberStrikeus/CyberStrike/releases/download/skills/skills.tar.gz"
+    const tmp = path.join(Global.Path.cache, "skills.tar.gz")
+    try {
+      process.stderr.write("\n  \x1b[36m◆ CyberStrike\x1b[0m — first run: downloading the skill corpus…\n")
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      await Bun.write(tmp, res)
+      await Bun.$`tar -xzf ${tmp} -C ${Global.Path.data}`.quiet()
+      await fs.rm(tmp, { force: true })
+      process.stderr.write("  \x1b[32m✓\x1b[0m skill corpus ready\n\n")
+      log.info("installed skill corpus from release", { version: Installation.VERSION })
+    } catch (error) {
+      process.stderr.write("  \x1b[33m⚠\x1b[0m couldn't download skills (offline?) — skill search will be limited\n\n")
+      log.warn("could not fetch skill corpus; built-in skills unavailable", {
+        url,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
   export const Info = z.object({
     name: z.string(),
     description: z.string(),
@@ -38,6 +75,7 @@ export namespace Skill {
     chains_with: z.array(z.string()).optional(),
     prerequisites: z.array(z.string()).optional(),
     severity_boost: z.record(z.string(), z.string()).optional(),
+    slash: z.boolean().optional(),
   })
   export type Info = z.infer<typeof Info>
 
@@ -66,6 +104,18 @@ export namespace Skill {
 
   const CYBERSTRIKE_SKILL_GLOB = new Bun.Glob("{skill,skills}/**/SKILL.md")
   const SKILL_GLOB = new Bun.Glob("**/SKILL.md")
+
+  // Run `fn` over `items` at most `limit` at a time. Skill loading opens each file (parse + read),
+  // so loading thousands of external skills with an unbounded Promise.all can exhaust file
+  // descriptors (EMFILE/ENFILE). A bounded pool keeps concurrent opens capped regardless of count.
+  async function mapLimit<T>(items: T[], limit: number, fn: (t: T) => Promise<void>): Promise<void> {
+    let i = 0
+    const worker = async () => {
+      while (i < items.length) await fn(items[i++]!)
+    }
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker))
+  }
+  const SKILL_LOAD_CONCURRENCY = 48
 
   export const state = Instance.state(async () => {
     const skills: Record<string, Info> = {}
@@ -98,7 +148,16 @@ export namespace Skill {
       dirs.add(path.dirname(match))
 
       const raw = md.data as Record<string, unknown>
-      const fileContent = await Bun.file(match).text()
+      let fileContent: string
+      try {
+        fileContent = await Bun.file(match).text()
+      } catch (err) {
+        // A per-file I/O failure — most importantly EMFILE/ENFILE when the machine is out of file
+        // descriptors — must NOT crash the whole skill load and abort startup. Skip this one skill
+        // and keep going; a crowded machine then loses a few skills instead of failing to boot.
+        log.warn("skill load skipped (io error)", { skill: match, err: String(err) })
+        return
+      }
       const verified = await SkillSigning.verify({
         content: fileContent,
         sha256: typeof raw.sha256 === "string" ? raw.sha256 : undefined,
@@ -141,6 +200,7 @@ export namespace Skill {
           typeof raw.severity_boost === "object" && raw.severity_boost !== null && !Array.isArray(raw.severity_boost)
             ? (raw.severity_boost as Record<string, string>)
             : undefined,
+        slash: raw.slash === true ? true : undefined,
       }
     }
 
@@ -154,7 +214,7 @@ export namespace Skill {
           dot: true,
         }),
       )
-        .then((matches) => Promise.all(matches.map(addSkill)))
+        .then((matches) => mapLimit(matches, SKILL_LOAD_CONCURRENCY, addSkill))
         .catch((error) => {
           log.error(`failed to scan ${scope} skills`, { dir: root, error })
         })
@@ -207,10 +267,31 @@ export namespace Skill {
         }
       }
 
-      // Installed skills: XDG data dir (npm postinstall copies skills here)
-      // This is the fallback for compiled binaries where import.meta.dir
-      // resolves to bunfs and can't find skills on the filesystem.
+      // Bundled skills beside the compiled binary — the flat archive (GitLab / standalone
+      // download) ships skill/ next to the exe, mirroring the web-dir resolution in server.ts.
+      // This loads the full offensive corpus OFFLINE on every OS: import.meta.dir resolves to
+      // bunfs in a compiled binary (built-in scan above misses), and the GitHub fetch below only
+      // has assets for npm-published versions (a GitLab-only release 404s). Check beside the exe,
+      // then one level up (npm bin/ subdirectory layout).
+      let bundledFound = false
+      for (const dir of [
+        path.join(path.dirname(process.execPath), "skill"),
+        path.join(path.dirname(process.execPath), "..", "skill"),
+      ]) {
+        if (!(await Filesystem.isDir(dir))) continue
+        for await (const match of SKILL_GLOB.scan({ cwd: dir, absolute: true, onlyFiles: true, followSymlinks: true })) {
+          await addSkill(match)
+          bundledFound = true
+        }
+        if (bundledFound) break
+      }
+
+      // Installed skills: XDG data dir. Not bundled in the npm tarball (offensive skill
+      // content trips npm's automated review — #114); fetched from the GitHub Release on
+      // first run for npm-published binaries. Skipped when the corpus was already found bundled
+      // beside the exe (GitLab/standalone archive), where the GitHub fetch would 404.
       const installedDir = path.join(Global.Path.data, "skill")
+      if (!bundledFound) await ensureInstalledSkills(installedDir)
       if (await Filesystem.isDir(installedDir)) {
         for await (const match of SKILL_GLOB.scan({
           cwd: installedDir,

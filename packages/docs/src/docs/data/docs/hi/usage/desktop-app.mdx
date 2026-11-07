@@ -1,0 +1,64 @@
+---
+title: Desktop App
+description: macOS, Windows और Linux के लिए CyberStrike नेटिव डेस्कटॉप एप्लिकेशन
+sidebar:
+  order: 4
+  label: Desktop App
+  badge:
+    text: जल्द आ रहा है
+    variant: caution
+---
+
+CyberStrike Desktop एक नेटिव एप्लिकेशन है जो पूर्ण हार्नेस — एजेंट्स, टूल्स, Vortex, HackBrowser, Bolt — को एक स्टैंडअलोन ऐप में बंडल करता है। किसी टर्मिनल की आवश्यकता नहीं।
+
+<Aside variant="caution">
+  डेस्कटॉप ऐप सक्रिय विकास में है। प्रारंभिक रिलीज़ के लिए तीनों प्लेटफ़ॉर्म की योजना बनाई गई है।
+</Aside>
+
+## macOS <Badge text="जल्द आ रहा है" variant="caution" size="md" />
+
+Apple Silicon और Intel समर्थन के साथ नेटिव macOS ऐप। `.dmg` इंस्टॉलर के रूप में वितरित।
+
+- macOS 12 Monterey या बाद का
+- Apple Silicon (M1+) या Intel
+- 500 MB डिस्क स्पेस
+
+## Windows <Badge text="जल्द आ रहा है" variant="caution" size="md" />
+
+NSIS के माध्यम से `.exe` इंस्टॉलर के रूप में वितरित नेटिव Windows ऐप।
+
+- Windows 10 (1809) या बाद का
+- x64 आर्किटेक्चर
+- 500 MB डिस्क स्पेस
+
+<Aside variant="info">
+  WSL **आवश्यक नहीं** है। डेस्कटॉप ऐप Windows पर नेटिव रूप से चलता है।
+</Aside>
+
+## Linux <Badge text="जल्द आ रहा है" variant="caution" size="md" />
+
+Linux बिल्ड `.AppImage` और `.deb` पैकेज के रूप में वितरित।
+
+- Ubuntu 20.04+, Fedora 38+, या समकक्ष
+- x64 आर्किटेक्चर
+- 500 MB डिस्क स्पेस
+
+## क्या अपेक्षा करें
+
+डेस्कटॉप ऐप `cyberstrike web` के समान क्षमताएँ प्रदान करता है लेकिन नेटिव विंडो के रूप में:
+
+- पूर्ण TUI फ़ीचर समानता — सभी स्लैश कमांड्स, एजेंट्स और टूल्स
+- एकीकृत HackBrowser — ऐप के भीतर से Chromium लॉन्च करता है
+- Bolt सर्वर प्रबंधन — कंटेनराइज़्ड टूल्स को पेयर और प्रबंधित करें
+- MCP सर्वर पैनल — MCP कनेक्शन कॉन्फ़िगर और मॉनिटर करें
+- सेशन टैब्स — एक साथ कई मूल्यांकन खोलें
+- ऑफ़लाइन-सक्षम — Ollama जैसे स्थानीय प्रदाताओं के साथ काम करता है
+
+## अपडेट रहें
+
+विकास प्रगति का अनुसरण करें:
+
+- [GitHub Releases](https://github.com/CyberStrikeus/CyberStrike/releases) — Desktop बिल्ड यहाँ दिखाई देंगे
+- [Discord](https://discord.gg/dr97wVJVbn) — घोषणाएँ और अर्ली एक्सेस
+
+इस बीच, [TUI](/docs/usage/tui), [CLI](/docs/usage/cli), या [Web](/docs/usage/web) इंटरफ़ेस का उपयोग करें।

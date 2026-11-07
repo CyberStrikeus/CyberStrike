@@ -1,0 +1,218 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+interface Props extends HTMLAttributes<"div"> {
+  defaultValue?: string;
+  syncKey?: string;
+}
+
+const { defaultValue, syncKey, class: className, ...rest } = Astro.props;
+---
+
+<div
+  class:list={["docs-tabs", className]}
+  data-default-value={defaultValue}
+  data-sync-key={syncKey}
+  {...rest}
+>
+  <slot />
+</div>
+
+<script>
+  type TabValue = string;
+
+  interface TabsSyncEventDetail {
+    value: TabValue;
+  }
+
+  interface TabsSyncEvent extends CustomEvent<TabsSyncEventDetail> {
+    type: `docs-tabs-sync:${string}`;
+  }
+
+  class TabsHandler {
+    private tabs: HTMLElement;
+    private triggers: HTMLElement[];
+    private contents: HTMLElement[];
+    private currentTabIndex: number = 0;
+    private tabsId: string;
+    private syncKey?: string;
+    private storageKey: string;
+    private valueToTriggerMap: Map<string, HTMLElement>;
+    private valueToContentMap: Map<string, HTMLElement>;
+
+    constructor(tabs: HTMLElement, idx: number) {
+      this.tabs = tabs;
+      this.triggers = Array.from(tabs.querySelectorAll("[data-docs-tabs-trigger]"));
+      this.contents = Array.from(tabs.querySelectorAll("[data-docs-tabs-content]"));
+      this.tabsId = `docs-tabs${idx}`;
+      this.syncKey = tabs.dataset.syncKey;
+      this.storageKey = this.syncKey ? `docs-tabs-${this.syncKey}` : `docs-tabs-${this.tabsId}`;
+
+      // Create maps for faster lookups
+      this.valueToTriggerMap = new Map(
+        this.triggers.map((trigger) => [trigger.getAttribute("data-value") ?? "", trigger]),
+      );
+      this.valueToContentMap = new Map(
+        this.contents.map((content) => [content.getAttribute("data-value") ?? "", content]),
+      );
+
+      this.setupIds();
+      this.initializeTab();
+      this.addEventListeners();
+
+      if (this.syncKey) {
+        this.setupSyncListener();
+      }
+    }
+
+    private initializeTab(): void {
+      const value = this.syncKey
+        ? (localStorage.getItem(this.storageKey) ?? this.tabs.dataset.defaultValue)
+        : this.tabs.dataset.defaultValue;
+
+      if (value) {
+        this.showTab(value);
+        this.currentTabIndex = this.triggers.findIndex(
+          (trigger) => trigger.getAttribute("data-value") === value,
+        );
+        this.setTabIndex();
+      }
+    }
+
+    private setupSyncListener(): void {
+      document.addEventListener(`docs-tabs-sync:${this.syncKey}`, ((e: TabsSyncEvent) => {
+        const value = e.detail.value;
+        const trigger = this.valueToTriggerMap.get(value);
+        const index = trigger ? this.triggers.indexOf(trigger) : -1;
+
+        if (index !== -1) {
+          this.showTab(value);
+          this.currentTabIndex = index;
+          this.setTabIndex();
+        }
+      }) as EventListener);
+    }
+
+    private setupIds(): void {
+      this.triggers.forEach((trigger, idx) => {
+        const triggerId = `${this.tabsId}-t${idx}`;
+        const contentId = `${this.tabsId}-c${idx}`;
+        const value = trigger.getAttribute("data-value");
+
+        trigger.id = triggerId;
+
+        if (value) {
+          trigger.setAttribute("aria-controls", contentId);
+          const content = this.valueToContentMap.get(value);
+          if (content) {
+            content.id = contentId;
+            content.setAttribute("aria-labelledby", triggerId);
+          }
+        }
+      });
+    }
+
+    private setTabIndex(): void {
+      this.triggers.forEach((trigger, index) => {
+        trigger.setAttribute("tabindex", index === this.currentTabIndex ? "0" : "-1");
+      });
+    }
+
+    private dispatchSyncEvent(value: TabValue): void {
+      if (!this.syncKey) return;
+
+      document.dispatchEvent(
+        new CustomEvent(`docs-tabs-sync:${this.syncKey}`, {
+          detail: { value },
+        }),
+      );
+
+      localStorage.setItem(this.storageKey, value);
+    }
+
+    private handleKeyNavigation = (e: KeyboardEvent, trigger: HTMLElement): void => {
+      const key = e.key;
+      let newIndex = this.currentTabIndex;
+
+      switch (key) {
+        case "ArrowRight":
+          newIndex = (this.currentTabIndex + 1) % this.triggers.length;
+          break;
+        case "ArrowLeft":
+          newIndex = (this.currentTabIndex - 1 + this.triggers.length) % this.triggers.length;
+          break;
+        case "Home":
+          newIndex = 0;
+          break;
+        case "End":
+          newIndex = this.triggers.length - 1;
+          break;
+        default:
+          return;
+      }
+
+      e.preventDefault();
+      const newTrigger = this.triggers[newIndex];
+      const value = newTrigger.getAttribute("data-value");
+      if (value) {
+        this.showTab(value);
+        this.currentTabIndex = newIndex;
+        this.setTabIndex();
+        newTrigger.focus();
+        this.dispatchSyncEvent(value);
+      }
+    };
+
+    private handleClick = (trigger: HTMLElement, index: number): void => {
+      const value = trigger.getAttribute("data-value");
+      if (value) {
+        this.showTab(value);
+        this.currentTabIndex = index;
+        this.setTabIndex();
+        trigger.focus();
+        this.dispatchSyncEvent(value);
+      }
+    };
+
+    private addEventListeners(): void {
+      this.triggers.forEach((trigger, index) => {
+        trigger.addEventListener("click", () => this.handleClick(trigger, index));
+        trigger.addEventListener("keydown", (e) => this.handleKeyNavigation(e, trigger));
+      });
+    }
+
+    private showTab(value: TabValue): void {
+      const trigger = this.valueToTriggerMap.get(value);
+      const content = this.valueToContentMap.get(value);
+
+      if (!trigger || !content) return;
+
+      // Update all triggers and contents
+      this.triggers.forEach((t) => {
+        const isActive = t === trigger;
+        t.setAttribute("data-state", isActive ? "active" : "inactive");
+        t.setAttribute("aria-selected", isActive.toString());
+      });
+
+      this.contents.forEach((c) => {
+        const isActive = c === content;
+        c.setAttribute("data-state", isActive ? "active" : "inactive");
+        c.hidden = !isActive;
+      });
+    }
+  }
+
+  // Store instances in a WeakMap to avoid memory leaks
+  const tabInstances = new WeakMap<HTMLElement, TabsHandler>();
+
+  const setupTabs = () => {
+    document.querySelectorAll<HTMLElement>(".docs-tabs").forEach((tabs, idx) => {
+      if (!tabInstances.has(tabs)) {
+        tabInstances.set(tabs, new TabsHandler(tabs, idx));
+      }
+    });
+  };
+
+  setupTabs();
+  document.addEventListener("astro:after-swap", setupTabs);
+</script>

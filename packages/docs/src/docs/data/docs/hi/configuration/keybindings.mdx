@@ -1,0 +1,215 @@
+---
+title: कीबाइंडिंग कॉन्फ़िगरेशन
+description: Cyberstrike के लिए कीबोर्ड शॉर्टकट कस्टमाइज़ करें
+sidebar:
+  order: 5
+  label: कीबाइंडिंग
+---
+
+अपने वर्कफ़्लो से मेल खाने के लिए कीबोर्ड शॉर्टकट कस्टमाइज़ करें। कीबाइंड आपकी कॉन्फ़िग फ़ाइल में `keybinds` ऑब्जेक्ट के अंतर्गत परिभाषित होती हैं।
+
+{/* TODO: Screenshot - Keybindings configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: keybindings-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">कीबाइंडिंग कॉन्फ़िगरेशन विकल्प</p>
+</div>
+
+## कॉन्फ़िगरेशन स्थान
+
+कीबाइंडिंग आपकी वैश्विक या प्रोजेक्ट कॉन्फ़िग फ़ाइल में कॉन्फ़िगर होती हैं:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "session_new": "<leader>n"
+  }
+}
+```
+
+केवल इस पृष्ठ पर सूचीबद्ध कुंजियां मान्य हैं — `keybinds` ऑब्जेक्ट कड़ाई से मान्य होता है, इसलिए अज्ञात कुंजियां अस्वीकार कर दी जाती हैं।
+
+## लीडर कुंजी
+
+लीडर कुंजी कई शॉर्टकट के लिए उपसर्ग है (डिफ़ॉल्ट `ctrl+x`):
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## कुंजी सिंटैक्स
+
+### मॉडिफ़ायर
+
+| मॉडिफ़ायर | सिंटैक्स |
+|----------|--------|
+| Control | `ctrl` |
+| Alt/Option | `alt` |
+| Shift | `shift` |
+| Super/Command | `super` |
+
+### विशेष कुंजियां
+
+| कुंजी | सिंटैक्स |
+|-----|--------|
+| Enter | `return` |
+| Escape | `escape` |
+| Tab | `tab` |
+| Backspace | `backspace` |
+| Delete | `delete` |
+| तीर | `up` `down` `left` `right` |
+| Page Up / Down | `pageup` `pagedown` |
+| Home / End | `home` `end` |
+| फ़ंक्शन कुंजियां | `f2`, `shift+f2` |
+
+### संयोजन, विकल्प और लीडर
+
+```
+ctrl+alt+d          # Ctrl + Alt + D
+<leader>n           # लीडर फिर N
+pageup,ctrl+alt+b   # एक क्रिया के लिए दो वैकल्पिक बाइंडिंग (अल्पविराम-पृथक)
+```
+
+अल्पविराम एक ही क्रिया के लिए **वैकल्पिक** बाइंडिंग अलग करता है। किसी क्रिया को अक्षम करने के लिए मान `none` पर सेट करें।
+
+## उपलब्ध क्रियाएं
+
+नीचे प्रत्येक क्रिया अपनी डिफ़ॉल्ट बाइंडिंग दिखाती है। अपने `keybinds` ऑब्जेक्ट में किसी भी उपसमूह को ओवरराइड करें।
+
+### सत्र
+
+| क्रिया | डिफ़ॉल्ट | विवरण |
+|--------|---------|-------------|
+| `session_new` | `<leader>n` | नया सत्र बनाएं |
+| `session_list` | `<leader>l` | सभी सत्र सूचीबद्ध करें |
+| `session_compact` | `<leader>c` | सत्र कॉम्पैक्ट करें |
+| `session_timeline` | `<leader>g` | सत्र टाइमलाइन दिखाएं |
+| `session_rename` | `ctrl+r` | सत्र का नाम बदलें |
+| `session_delete` | `ctrl+d` | सत्र हटाएं |
+| `session_export` | `<leader>x` | सत्र को एडिटर में निर्यात करें |
+| `session_interrupt` | `escape` | वर्तमान सत्र बाधित करें |
+| `session_fork` | `none` | संदेश से सत्र फ़ोर्क करें |
+| `session_share` | `none` | वर्तमान सत्र साझा करें |
+| `session_child_cycle` | `<leader>right` | अगला चाइल्ड सत्र |
+| `session_parent` | `<leader>up` | पैरेंट सत्र पर जाएं |
+
+### संदेश और नेविगेशन
+
+| क्रिया | डिफ़ॉल्ट | विवरण |
+|--------|---------|-------------|
+| `messages_page_up` | `pageup,ctrl+alt+b` | एक पृष्ठ ऊपर स्क्रॉल करें |
+| `messages_page_down` | `pagedown,ctrl+alt+f` | एक पृष्ठ नीचे स्क्रॉल करें |
+| `messages_half_page_up` | `ctrl+alt+u` | आधा पृष्ठ ऊपर स्क्रॉल करें |
+| `messages_half_page_down` | `ctrl+alt+d` | आधा पृष्ठ नीचे स्क्रॉल करें |
+| `messages_first` | `ctrl+g,home` | पहले संदेश पर जाएं |
+| `messages_last` | `ctrl+alt+g,end` | अंतिम संदेश पर जाएं |
+| `messages_copy` | `<leader>y` | संदेश कॉपी करें |
+| `messages_undo` | `<leader>u` | संदेश पूर्ववत करें |
+| `messages_redo` | `<leader>r` | संदेश पुनः करें |
+| `messages_toggle_conceal` | `<leader>h` | कोड-ब्लॉक छिपाव टॉगल करें |
+
+### सूचियां और डायलॉग
+
+| क्रिया | डिफ़ॉल्ट | विवरण |
+|--------|---------|-------------|
+| `model_list` | `<leader>m` | उपलब्ध मॉडल सूचीबद्ध करें |
+| `agent_list` | `<leader>a` | एजेंट सूचीबद्ध करें |
+| `agent_cycle` | `tab` | अगला एजेंट |
+| `agent_cycle_reverse` | `shift+tab` | पिछला एजेंट |
+| `theme_list` | `<leader>t` | उपलब्ध थीम सूचीबद्ध करें |
+| `command_list` | `ctrl+p` | उपलब्ध कमांड सूचीबद्ध करें |
+
+### इंटरफ़ेस
+
+| क्रिया | डिफ़ॉल्ट | विवरण |
+|--------|---------|-------------|
+| `sidebar_toggle` | `<leader>b` | साइडबार टॉगल करें |
+| `status_view` | `<leader>s` | स्थिति देखें |
+| `editor_open` | `<leader>e` | बाहरी एडिटर खोलें |
+| `tips_toggle` | `<leader>h` | होम-स्क्रीन टिप्स टॉगल करें |
+
+### एप्लिकेशन और इनपुट
+
+| क्रिया | डिफ़ॉल्ट | विवरण |
+|--------|---------|-------------|
+| `app_exit` | `ctrl+c,ctrl+d,<leader>q` | एप्लिकेशन से बाहर निकलें |
+| `terminal_suspend` | `ctrl+z` | टर्मिनल सस्पेंड करें |
+| `input_submit` | `return` | इनपुट सबमिट करें |
+| `input_newline` | `shift+return,ctrl+return,alt+return,ctrl+j` | नई लाइन डालें |
+| `input_clear` | `ctrl+c` | इनपुट फ़ील्ड साफ़ करें |
+| `input_paste` | `ctrl+v` | क्लिपबोर्ड से पेस्ट करें |
+
+<Aside variant="info">
+  इनपुट फ़ील्ड में कर्सर-मूवमेंट और एडिटिंग बाइंड (`input_move_*`, `input_word_*`, `input_delete_*`, आदि) का एक बड़ा सेट भी है। वे समान `keybinds` नामकरण का पालन करते हैं और उसी तरह ओवरराइड किए जा सकते हैं।
+</Aside>
+
+## पूर्ण कॉन्फ़िगरेशन उदाहरण
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "session_compact": "<leader>c",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r",
+    "session_export": "<leader>x",
+
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "command_list": "ctrl+p",
+
+    "sidebar_toggle": "<leader>b",
+    "status_view": "<leader>s",
+    "editor_open": "<leader>e",
+
+    "messages_half_page_up": "ctrl+alt+u",
+    "messages_half_page_down": "ctrl+alt+d",
+    "messages_undo": "<leader>u",
+
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+## एकाधिक बाइंडिंग
+
+अल्पविराम के साथ एक क्रिया को एकाधिक शॉर्टकट असाइन करें:
+
+```json
+{
+  "keybinds": {
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "model_list": "<leader>m,ctrl+shift+m"
+  }
+}
+```
+
+अल्पविराम वैकल्पिक बाइंडिंग अलग करता है — यह कॉर्ड सीक्वेंस नहीं है।
+
+## कीबाइंडिंग रीसेट करना
+
+कोई रीसेट कमांड नहीं है। डिफ़ॉल्ट पुनर्स्थापित करने के लिए, अपने `keybinds` ऑब्जेक्ट से कुंजी हटाएं (या सभी डिफ़ॉल्ट पुनर्स्थापित करने के लिए पूरा ऑब्जेक्ट हटाएं)।
+
+## समस्या निवारण
+
+1. अपने टर्मिनल एमुलेटर के साथ विरोधों की जांच करें
+2. सत्यापित करें कि कॉन्फ़िग वैध JSON है और कुंजी का नाम इस पृष्ठ से बिल्कुल मेल खाता है (अज्ञात कुंजियां मान्यता में विफल होती हैं)
+3. TUI में `command_list` (`ctrl+p`) के साथ रजिस्टर्ड कमांड ब्राउज़ करें
+
+<Aside variant="tip">
+  सक्रिय कीबाइंडिंग का त्वरित संदर्भ देखने के लिए Cyberstrike में `/help` का उपयोग करें।
+</Aside>
+
+## संबंधित दस्तावेज़
+
+- [कॉन्फ़िगरेशन संदर्भ](/docs/configuration) - सभी कॉन्फ़िगरेशन विकल्प
+- [कीबोर्ड शॉर्टकट](/docs/getting-started/keyboard-shortcuts) - शॉर्टकट संदर्भ
+- [वैश्विक कॉन्फ़िग](/docs/configuration/global-config) - कॉन्फ़िगरेशन गाइड

@@ -1,0 +1,1 @@
+Firmware reverse engineer — embedded systems, IoT firmware extraction, bootloader analysis

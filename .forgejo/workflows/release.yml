@@ -1,0 +1,132 @@
+name: release
+# Self-hosted release pipeline — runs on the home ("kasa") Forgejo runner, no GitHub/GitLab needed.
+# Trigger: push a tag like v2.0.0-canary.9. Builds every OS target (bun cross-compile in one job —
+# single runner, no cross-job artifact passing), packages the archives, uploads them to Forgejo's
+# generic package registry, and creates a Forgejo Release.
+on:
+  push:
+    tags:
+      - "v*"
+
+# One release at a time per tag; never cancel a running release mid-upload (let it finish so the
+# registry/release isn't left half-populated).
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: docker
+    container:
+      image: oven/bun:1.3.9-debian
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Install build tools
+        run: |
+          apt-get update -qq
+          apt-get install -y -qq git zip tar curl jq ca-certificates
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Version from tag
+        id: ver
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          case "$V" in
+            *-canary.*) echo "channel=canary" >> "$GITHUB_OUTPUT" ;;
+            *-beta.*)   echo "channel=beta"   >> "$GITHUB_OUTPUT" ;;
+            *)          echo "channel=latest" >> "$GITHUB_OUTPUT" ;;
+          esac
+          echo "building $V"
+
+      # act_runner points GITHUB_API_URL / GITHUB_SERVER_URL at THIS Forgejo instance (so actions
+      # resolve from it). bun uses GITHUB_API_URL to fetch `github:` deps (ghostty-web@github:
+      # anomalyco/...), so they 404 against Forgejo. Override to real github.com for the bun steps
+      # ONLY — the release step below still needs the Forgejo GITHUB_SERVER_URL. GITHUB_TOKEN is
+      # cleared so the Forgejo token isn't sent to github (the dep is public; anonymous is fine).
+      - name: Build web UI
+        env:
+          CYBERSTRIKE_VERSION: ${{ steps.ver.outputs.version }}
+          GITHUB_API_URL: https://api.github.com
+          GITHUB_SERVER_URL: https://github.com
+          GITHUB_TOKEN: ""
+        run: |
+          bun install --frozen-lockfile
+          bun turbo build --filter=@cyberstrike-io/app
+
+      - name: Install cross-platform native deps
+        env:
+          GITHUB_API_URL: https://api.github.com
+          GITHUB_SERVER_URL: https://github.com
+          GITHUB_TOKEN: ""
+        run: |
+          OTUI_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@opentui/core'])")
+          PW_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@parcel/watcher'])")
+          bun install --os="*" --cpu="*" \
+            @opentui/core@$OTUI_VER \
+            @opentui/core-darwin-x64@$OTUI_VER \
+            @opentui/core-darwin-arm64@$OTUI_VER \
+            @opentui/core-linux-x64@$OTUI_VER \
+            @opentui/core-linux-arm64@$OTUI_VER \
+            @opentui/core-win32-x64@$OTUI_VER \
+            @opentui/core-win32-arm64@$OTUI_VER \
+            @parcel/watcher@$PW_VER
+
+      - name: Build CLI (all OS targets)
+        env:
+          CYBERSTRIKE_VERSION: ${{ steps.ver.outputs.version }}
+          CYBERSTRIKE_BUMP: ${{ steps.ver.outputs.channel }}
+          CYBERSTRIKE_RELEASE: ""
+        run: |
+          # CI is set by the runner -> build.ts builds every target (not --single). --skip-install:
+          # the opentui/parcel platform packages are already added in the step above.
+          bun run ./packages/cyberstrike/script/build.ts --skip-install
+
+      - name: Package archives (extension + web + skill beside the binary)
+        run: |
+          mkdir -p archives
+          ROOT=$(pwd)
+          for dir in packages/cyberstrike/dist/cyberstrike-*/; do
+            name=$(basename "$dir")
+            [ -d "$dir/extension" ] && cp -r "$dir/extension" "$dir/bin/extension"
+            [ -d packages/app/dist ] && cp -r packages/app/dist "$dir/bin/web"
+            [ -d .cyberstrike/skill ] && cp -r .cyberstrike/skill "$dir/bin/skill"
+            if echo "$name" | grep -q linux; then
+              tar -czf "$ROOT/archives/${name}.tar.gz" -C "$dir/bin" .
+            else
+              ( cd "$dir/bin" && zip -qr "$ROOT/archives/${name}.zip" . )
+            fi
+          done
+          ls -lh archives/
+
+      - name: Create Release with all-OS binaries attached
+        env:
+          # PUBLISH_TOKEN is a repo secret (a Forgejo access token with repo write). Attach the
+          # archives as RELEASE ASSETS (not the generic package registry) so every platform shows
+          # up as a download on the release page.
+          TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        run: |
+          API="${GITHUB_SERVER_URL}/api/v1/repos/${GITHUB_REPOSITORY}"
+          BODY="## CyberStrike ${GITHUB_REF_NAME}\n\nSelf-hosted build on the home runner. Download your platform's archive below."
+          # Create the release (reuse it if the tag already has one, e.g. a re-run) and capture id.
+          RID=$(curl -fsSL -X POST -H "Authorization: token ${TOKEN}" -H "Content-Type: application/json" \
+            "${API}/releases" \
+            -d "{\"tag_name\":\"${GITHUB_REF_NAME}\",\"name\":\"CyberStrike ${GITHUB_REF_NAME}\",\"body\":\"${BODY}\",\"target_commitish\":\"${GITHUB_SHA}\"}" \
+            | jq -r '.id')
+          if [ -z "$RID" ] || [ "$RID" = "null" ]; then
+            RID=$(curl -fsSL -H "Authorization: token ${TOKEN}" "${API}/releases/tags/${GITHUB_REF_NAME}" | jq -r '.id')
+          fi
+          echo "release id: $RID"
+          for f in archives/*; do
+            fn=$(basename "$f")
+            echo "attaching $fn"
+            curl -fsSL -X POST -H "Authorization: token ${TOKEN}" \
+              -F "attachment=@${f};filename=${fn}" \
+              "${API}/releases/${RID}/assets?name=${fn}" >/dev/null
+          done
+          echo "release ${GITHUB_REF_NAME} ready with $(ls archives | wc -l) OS archives attached"

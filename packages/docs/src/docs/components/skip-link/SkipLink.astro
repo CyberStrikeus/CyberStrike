@@ -1,0 +1,21 @@
+---
+interface Props {
+  href: string;
+}
+
+const { href } = Astro.props;
+---
+
+<a
+  {href}
+  class="docs-primary-focus bg-background fixed left-2 z-50 -translate-y-[150%] rounded-md px-4 py-2 text-sm font-medium transition focus:translate-y-2 focus:shadow-lg"
+>
+  Skip to main content
+</a>
+
+<style>
+  /* Ensure the skip link is always on top */
+  a {
+    outline-offset: 2px;
+  }
+</style>

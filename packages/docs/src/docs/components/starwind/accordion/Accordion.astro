@@ -1,0 +1,241 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+type Props = HTMLAttributes<"div"> & {
+  /**
+   * The type of accordion.  If "single", only one item can be open at a time.
+   */
+  type?: "single" | "multiple";
+  /**
+   * The value of the item that should be open by default
+   */
+  defaultValue?: string;
+};
+
+const accordion = tv({ base: "starwind-accordion" });
+
+const { type = "single", defaultValue, class: className, ...rest } = Astro.props;
+---
+
+<div class={accordion({ class: className })} data-type={type} data-value={defaultValue} {...rest}>
+  <slot />
+</div>
+
+<script>
+  type AccordionType = "single" | "multiple";
+  type AccordionState = "open" | "closed";
+
+  /** Represents a single accordion item with its associated elements */
+  interface AccordionItem {
+    element: HTMLElement;
+    trigger: HTMLElement;
+    content: HTMLElement;
+    value: string;
+  }
+
+  /**
+   * Handles the functionality of an accordion component.
+   * Supports single and multiple open items, keyboard navigation,
+   * and maintains ARIA accessibility standards.
+   */
+  class AccordionHandler {
+    private accordion: HTMLElement;
+    private type: AccordionType;
+    private items: AccordionItem[];
+    private itemsByValue: Map<string, AccordionItem>;
+    private accordionId: string;
+
+    /**
+     * Creates a new AccordionHandler instance
+     * @param accordion - The root accordion element
+     * @param idx - Unique index for this accordion instance
+     */
+    constructor(accordion: HTMLElement, idx: number) {
+      this.accordion = accordion;
+      this.type = (accordion.dataset.type || "single") as AccordionType;
+      this.accordionId = `starwind-accordion${idx}`;
+
+      // Cache all items and create lookup maps
+      this.items = this.initializeItems();
+      this.itemsByValue = new Map(this.items.map((item) => [item.value, item]));
+
+      this.setupItems();
+      this.setInitialState();
+    }
+
+    /**
+     * Initializes accordion items by querying the DOM and setting up data structures
+     * @returns Array of AccordionItem objects
+     */
+    private initializeItems(): AccordionItem[] {
+      return Array.from(this.accordion.querySelectorAll<HTMLElement>(".starwind-accordion-item"))
+        .map((element, idx) => {
+          const trigger = element.querySelector<HTMLElement>(".starwind-accordion-trigger");
+          const content = element.querySelector<HTMLElement>(".starwind-accordion-content");
+          const value = element.getAttribute("data-value") || String(idx);
+
+          if (!trigger || !content) return null;
+
+          return { element, trigger, content, value };
+        })
+        .filter((item): item is AccordionItem => item !== null);
+    }
+
+    /**
+     * Sets up initial state and event listeners for all accordion items
+     */
+    private setupItems(): void {
+      this.items.forEach((item, idx) => {
+        this.setupAccessibility(item, idx);
+        this.setContentHeight(item.content);
+        this.setupEventListeners(item);
+      });
+    }
+
+    /**
+     * Sets up ARIA attributes and IDs for accessibility
+     * @param item - The accordion item to setup
+     * @param idx - Index of the item
+     */
+    private setupAccessibility(item: AccordionItem, idx: number): void {
+      const triggerId = `${this.accordionId}-t${idx}`;
+      const contentId = `${this.accordionId}-c${idx}`;
+
+      item.trigger.id = triggerId;
+      item.trigger.setAttribute("aria-controls", contentId);
+      item.trigger.setAttribute("aria-expanded", "false");
+
+      item.content.id = contentId;
+      item.content.setAttribute("aria-labelledby", triggerId);
+      item.content.setAttribute("role", "region");
+    }
+
+    /**
+     * Calculates and sets the content height CSS variable for animations
+     * @param content - The content element to measure
+     */
+    private setContentHeight(content: HTMLElement): void {
+      const contentInner = content.firstElementChild as HTMLElement;
+      if (contentInner) {
+        const height = contentInner.getBoundingClientRect().height;
+        content.style.setProperty("--starwind-accordion-content-height", `${height}px`);
+      }
+    }
+
+    /**
+     * Sets the initial state based on the default value attribute
+     */
+    private setInitialState(): void {
+      const defaultValue = this.accordion.dataset.value;
+      if (defaultValue) {
+        const item = this.itemsByValue.get(defaultValue);
+        if (item) {
+          this.setItemState(item, true);
+        }
+      }
+    }
+
+    /**
+     * Sets up click and keyboard event listeners for an accordion item
+     * @param item - The accordion item to setup listeners for
+     */
+    private setupEventListeners(item: AccordionItem): void {
+      item.trigger.addEventListener("click", () => this.handleClick(item));
+      item.trigger.addEventListener("keydown", (e) => this.handleKeyDown(e, item));
+    }
+
+    /**
+     * Handles click events on accordion triggers
+     * @param item - The clicked accordion item
+     */
+    private handleClick(item: AccordionItem): void {
+      const isOpen = item.element.getAttribute("data-state") === "open";
+      this.toggleItem(item, !isOpen);
+    }
+
+    /**
+     * Handles keyboard navigation events
+     * @param event - The keyboard event
+     * @param item - The current accordion item
+     */
+    private handleKeyDown(event: KeyboardEvent, item: AccordionItem): void {
+      const index = this.items.indexOf(item);
+
+      const keyActions: Record<string, () => void> = {
+        ArrowDown: () => this.focusItem(index + 1),
+        ArrowUp: () => this.focusItem(index - 1),
+        Home: () => this.focusItem(0),
+        End: () => this.focusItem(this.items.length - 1),
+      };
+
+      const action = keyActions[event.key];
+      if (action) {
+        event.preventDefault();
+        action();
+      }
+    }
+
+    /**
+     * Focuses an accordion item by index with wrapping
+     * @param index - The target index to focus
+     */
+    private focusItem(index: number): void {
+      const targetIndex = (index + this.items.length) % this.items.length;
+      this.items[targetIndex].trigger.focus();
+    }
+
+    /**
+     * Toggles an accordion item's state
+     * @param item - The item to toggle
+     * @param shouldOpen - Whether the item should be opened
+     */
+    private toggleItem(item: AccordionItem, shouldOpen: boolean): void {
+      if (this.type === "single" && shouldOpen) {
+        // Close other items if in single mode
+        this.items.forEach((otherItem) => {
+          if (otherItem !== item && otherItem.element.getAttribute("data-state") === "open") {
+            this.setItemState(otherItem, false);
+          }
+        });
+      }
+
+      this.setItemState(item, shouldOpen);
+    }
+
+    /**
+     * Sets the state of an accordion item
+     * @param item - The item to update
+     * @param isOpen - Whether the item should be open
+     */
+    private setItemState(item: AccordionItem, isOpen: boolean): void {
+      const state: AccordionState = isOpen ? "open" : "closed";
+
+      if (isOpen) {
+        item.content.style.removeProperty("animation");
+      }
+
+      // Set content height variable for animations
+      this.setContentHeight(item.content);
+
+      item.element.setAttribute("data-state", state);
+      item.content.setAttribute("data-state", state);
+      item.trigger.setAttribute("data-state", state);
+      item.trigger.setAttribute("aria-expanded", isOpen.toString());
+    }
+  }
+
+  // Store instances in a WeakMap to avoid memory leaks
+  const accordionInstances = new WeakMap<HTMLElement, AccordionHandler>();
+
+  const setupAccordions = () => {
+    document.querySelectorAll<HTMLElement>(".starwind-accordion").forEach((accordion, idx) => {
+      if (!accordionInstances.has(accordion)) {
+        accordionInstances.set(accordion, new AccordionHandler(accordion, idx));
+      }
+    });
+  };
+
+  setupAccordions();
+  document.addEventListener("astro:after-swap", setupAccordions);
+</script>

@@ -1,0 +1,36 @@
+---
+title: General-Agent
+description: Universeller Recherche-Agent fuer komplexe Fragen und parallele Mehrstufen-Aufgaben
+sidebar:
+  order: 3
+  label: General
+---
+
+Der `general`-Agent uebernimmt Recherche, komplexe Fragen und mehrstufige Aufgaben. Der primaere `cyberstrike`-Agent delegiert an ihn fuer Arbeit, die von paralleler Ausfuehrung profitiert oder keinen sicherheitsspezifischen Spezialisten erfordert.
+
+## Uebersicht
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **Agenten-ID** | `general` |
+| **Modus** | `subagent` |
+| **Werkzeugzugriff** | Breit (keine Schwachstellenmeldung oder Triage) |
+
+## Wann er verwendet wird
+
+Der `cyberstrike`-Agent delegiert an `general` fuer:
+
+- Recherche komplexer Fragen ueber mehrere Quellen hinweg
+- Parallele Ausfuehrung mehrerer unabhaengiger Arbeitseinheiten
+- Aufgaben, die kein domaenenspezifisches Sicherheitswissen erfordern
+- Dateianalyse, Code-Review und allgemeines Reasoning
+
+## Einschraenkungen
+
+Der `general`-Agent kann nicht:
+
+- Schwachstellen melden (`report_vulnerability`: verweigert)
+- Ergebnisse triagieren (`triage_vulnerability`: verweigert)
+- Auf TODO-Lese/Schreiboperationen zugreifen
+
+Diese Einschraenkungen stellen sicher, dass sicherheitskritische Operationen bei den entsprechenden Spezialistenagenten verbleiben.

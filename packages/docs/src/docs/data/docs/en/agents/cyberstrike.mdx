@@ -1,0 +1,120 @@
+---
+title: Cyberstrike Agent
+description: The default primary agent for AI-powered offensive security testing with full tool access
+sidebar:
+  order: 2
+  label: Cyberstrike
+---
+
+The `cyberstrike` agent is the default primary agent. It provides AI-powered offensive security testing with full tool access and can delegate to specialized subagents for domain-specific tasks.
+
+## Overview
+
+When you run `cyberstrike` without specifying an agent, the `cyberstrike` agent starts automatically. It is a general-purpose offensive security agent designed to handle a wide range of tasks — from reconnaissance and vulnerability assessment to exploitation and reporting.
+
+### Agent Configuration
+
+| Property | Value |
+|----------|-------|
+| **Agent ID** | `cyberstrike` |
+| **Mode** | `primary` |
+| **Tool Access** | Full (all tools allowed) |
+| **Can Ask Questions** | Yes |
+
+## Launch the Agent
+
+The `cyberstrike` agent is the default — it starts automatically when you launch:
+
+```bash
+cyberstrike
+```
+
+Switch agents anytime in the TUI with `/agents` or `<leader>a`.
+
+## Capabilities
+
+The `cyberstrike` agent has access to all available tools and is not restricted to a specific security domain. It can:
+
+- Perform web application security testing
+- Conduct cloud infrastructure audits
+- Execute network penetration testing
+- Run automated scans with tools like Nuclei, Nmap, and SQLMap
+- Browse and interact with web applications
+- Read, write, and analyze files
+- Ask clarifying questions when the task is ambiguous
+
+## Delegating to Specialized Agents
+
+When a task requires deep domain expertise, the `cyberstrike` agent delegates to specialized subagents:
+
+| Subagent | When Used |
+|----------|-----------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | OWASP WSTG web security pipeline — dispatches 13 specialist agents |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | Cross-cutting correlation — chains findings, escalates impact |
+| [`triage`](/docs/agents/triage) | Independent verification of draft vulnerability findings |
+| [`general`](/docs/agents/general) | Research, multi-step parallel tasks |
+| [`explore`](/docs/agents/explore) | Read-only codebase and file system search |
+
+Delegation happens automatically based on the task. The web security pipeline (WSTG agents) is triggered when HTTP traffic is captured via [HackBrowser](/docs/features/hackbrowser) or the [Chrome Extension](/docs/tools/chrome-extension).
+
+## Permission Model
+
+The `cyberstrike` agent uses the broadest permission set:
+
+- All tools are allowed by default
+- Can ask clarifying questions (`question: allow`)
+- `.env` files require confirmation before reading
+- External directory access outside the project requires confirmation
+- User-configured `deny` rules in `cyberstrike.json` are always respected
+
+## Example Session
+
+```
+You: Test the web application at https://app.example.com for common vulnerabilities
+
+Agent: I'll start with reconnaissance and then launch HackBrowser to crawl the app.
+
+[Launching /hackbrowser against https://app.example.com...]
+[Crawling 23 pages, capturing HTTP traffic...]
+[Dispatching wstg-config-deploy for server misconfiguration checks...]
+[Dispatching wstg-input-validation for injection testing...]
+
+Found 3 medium-severity findings:
+- Missing Content-Security-Policy header
+- Server version disclosure in headers
+- X-Frame-Options not set
+
+[wstg-authentication testing login endpoint...]
+⚠ FINDING: JWT Algorithm Confusion
+Location: Authorization header
+Severity: Critical (CVSS 9.8)
+```
+
+## Configuration
+
+### Set as Default Agent
+
+The `cyberstrike` agent is the default and requires no configuration. To explicitly set it:
+
+```json title="cyberstrike.json"
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### Custom Instructions
+
+`instructions` is a list of files (or globs) whose contents are appended to the system prompt — put your project context in a file and reference it:
+
+```json title="cyberstrike.json"
+{
+  "instructions": ["AGENTS.md", "docs/security-context.md"]
+}
+```
+
+## Related Documentation
+
+- [WSTG Agent](/docs/agents/wstg-agent) — Web security testing pipeline orchestrator
+- [Escalation Hunter](/docs/agents/escalation-hunter) — Cross-cutting correlation agent
+- [Triage Agent](/docs/agents/triage) — Finding verification
+- [Custom Agents](/docs/agents/custom-agents) — Create your own agents

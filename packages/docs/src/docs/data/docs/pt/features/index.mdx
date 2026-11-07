@@ -1,0 +1,30 @@
+---
+title: Funcionalidades
+description: Capacidades principais que impulsionam as avaliacoes de seguranca do Cyberstrike
+sidebar:
+  order: 1
+  label: Visao Geral
+---
+
+O Cyberstrike vem com funcionalidades desenvolvidas especificamente para testes de penetracao automatizados. Cada funcionalidade e profundamente integrada com o agente de IA — o agente decide quando e como usa-las com base no alvo e no contexto da conversa.
+
+## Funcionalidades Principais
+
+| Funcionalidade | O Que Faz |
+|----------------|-----------|
+| [Vortex](/docs/features/vortex) | Engine de trafego HTTP — intercepta, reproduz e aplica regras a requisicoes com uma DSL |
+| [HackBrowser](/docs/features/hackbrowser) | Crawler web autonomo orientado por IA com captura de contexto de UI |
+| [Bolt](/docs/features/bolt) | Servidor de ferramentas de seguranca containerizado (nmap, nuclei, sqlmap e mais de 30) |
+| [MCP](/docs/features/mcp) | Model Context Protocol — conecte qualquer servidor de ferramentas externo |
+
+## Como Funcionam Juntas
+
+Uma avaliacao tipica de aplicacao web usa multiplas funcionalidades em conjunto:
+
+1. **HackBrowser** rastreia o alvo, capturando trafego HTTP com contexto de UI
+2. **Vortex** processa o trafego capturado — aplica regras, sinaliza anomalias, correlaciona sinais
+3. O **proxy-agent** analisa requisicoes sinalizadas e despacha testadores de vulnerabilidades
+4. **Bolt** fornece as ferramentas pesadas (templates nuclei, fuzzing, enumeracao de subdominios) quando o agente precisa
+5. Servidores **MCP** estendem o conjunto de ferramentas com integracoes personalizadas ou de terceiros
+
+Cada funcionalidade tambem pode ser usada independentemente. O HackBrowser funciona sem o Vortex, o Bolt funciona sem o HackBrowser e servidores MCP funcionam independentemente do que mais esteja configurado.

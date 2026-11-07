@@ -33,6 +33,11 @@ export interface OpenaiCompatibleProviderSettings {
    * Custom fetch implementation.
    */
   fetch?: FetchFunction
+
+  /**
+   * Whether to request token usage in streaming responses.
+   */
+  includeUsage?: boolean
 }
 
 export interface OpenaiCompatibleProvider {
@@ -71,6 +76,7 @@ export function createOpenaiCompatible(options: OpenaiCompatibleProviderSettings
       headers: getHeaders,
       url: ({ path }) => `${baseURL}${path}`,
       fetch: options.fetch,
+      includeUsage: options.includeUsage,
     })
   }
 

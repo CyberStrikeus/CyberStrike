@@ -1,0 +1,178 @@
+---
+title: Installation
+description: Install Cyberstrike using npm or curl
+sidebar:
+  order: 2
+  label: Installation
+---
+
+Cyberstrike can be installed through multiple package managers. Choose the method that best fits your development environment.
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="Cyberstrike TUI after installation" className="w-full" />
+</div>
+
+## npm (Recommended)
+
+The recommended installation method for most users.
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+Verify the installation:
+
+```bash
+cyberstrike --version
+```
+
+## Bun <Badge text="Coming Soon" variant="caution" size="md" />
+
+Bun support is not yet available.
+
+## Homebrew (macOS) <Badge text="Coming Soon" variant="caution" size="md" />
+
+Homebrew support is not yet available.
+
+## curl (Linux/macOS)
+
+Direct installation via shell script:
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+## iwr (Windows/Powershell)
+
+Run the installation script:
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+
+<Aside variant="caution">
+  Always review installation scripts before executing them. The script source is available at [github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike).
+</Aside>
+
+## Docker
+
+<Aside variant="caution">
+  Docker image is coming soon. For now, use npm or curl.
+</Aside>
+
+
+## Verifying Installation
+
+After installation, verify Cyberstrike is working:
+
+```bash
+# Check version
+cyberstrike --version
+
+# List available commands
+cyberstrike --help
+```
+
+You should see the Cyberstrike banner and version number, followed by a list of available commands.
+
+## Updating Cyberstrike
+
+Update to the latest version:
+
+```bash
+# npm
+npm update -g @cyberstrike-io/cyberstrike@latest
+
+# Self-update (recommended)
+cyberstrike upgrade
+```
+
+## Uninstalling
+
+Remove Cyberstrike from your system:
+
+```bash
+# npm
+npm uninstall -g @cyberstrike-io/cyberstrike@latest
+```
+
+Configuration is stored in `~/.config/cyberstrike/` (credentials live in `~/.local/share/cyberstrike/`) and can be removed manually if needed.
+
+## Troubleshooting
+
+### Command Not Found
+
+If `cyberstrike` is not found after installation:
+
+1. Check your PATH includes npm global bin directory
+2. Restart your terminal
+3. Run `npm bin -g` to find the global bin path
+
+### Permission Errors
+
+On Linux/macOS, if you encounter permission errors:
+
+```bash
+# Fix npm permissions
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Version Conflicts
+
+If you have multiple Node versions:
+
+```bash
+# Use nvm to manage versions
+nvm use 20
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+### Corporate Networks (SSL Inspection / Zscaler)
+
+On a corporate network with an SSL-inspection proxy (Zscaler, Netskope, and similar), outbound HTTPS is intercepted and re-signed with the company's own root certificate. If Cyberstrike doesn't trust that certificate, TLS verification fails and you'll see errors such as:
+
+```
+error: unable_to_get_issuer_cert_locally  downloading package manifest @cyberstrike-io/plugin
+hackbrowser:navigator  TypeError: unable to get local issuer certificate — planPage failed, retrying once
+```
+
+The HackBrowser crawler is especially affected: its planner calls fail, so the crawl explores only a handful of pages and stops early.
+
+**Fix — trust your corporate root CA via `NODE_EXTRA_CA_CERTS`.** The corporate root is already in your OS trust store (that's why your browser works), so export the store to a PEM bundle and point Cyberstrike at it. This propagates to the HackBrowser worker automatically.
+
+**Windows (PowerShell)** — export every machine root CA (the corporate one is included, no need to identify it):
+
+```powershell
+$out = "$env:USERPROFILE\corp-ca.pem"
+Get-ChildItem Cert:\LocalMachine\Root | ForEach-Object {
+  "-----BEGIN CERTIFICATE-----"
+  [Convert]::ToBase64String($_.RawData, 'InsertLineBreaks')
+  "-----END CERTIFICATE-----"
+} | Set-Content -Encoding ascii $out
+
+$env:NODE_EXTRA_CA_CERTS = $out       # current session
+setx NODE_EXTRA_CA_CERTS "$out"       # persist for new sessions
+```
+
+**macOS**:
+
+```bash
+security find-certificate -a -p /Library/Keychains/System.keychain > ~/corp-ca.pem
+security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain >> ~/corp-ca.pem
+export NODE_EXTRA_CA_CERTS=~/corp-ca.pem
+```
+
+Then run Cyberstrike in the same shell. The `unable to get local issuer certificate` errors should disappear and crawls should run to completion.
+
+<Aside variant="tip">
+  Quick check: `Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Zscaler*" }` (Windows) confirms the corporate root is present in the store before you export it.
+</Aside>
+
+<Aside variant="caution">
+  As a last-resort test only, `NODE_TLS_REJECT_UNAUTHORIZED=0` disables certificate verification entirely and will also get you past the error — but it turns off TLS validation for all connections, so it is **not** recommended for regular use. Prefer `NODE_EXTRA_CA_CERTS`.
+</Aside>
+

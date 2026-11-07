@@ -1,0 +1,9 @@
+fixture [arm64]:
+    -exports:
+        offset      symbol
+        0x00000598  _$s1M1SV1fSiyF
+        0x00000594  _$s1M1SVACycfC
+        0x000005A4  _$s1M1SVMa
+        0x000005CC  _$s1M1SVMn
+        0x00004010  _$s1M1SVN
+        0x00000588  _$s1M5helloSiyF

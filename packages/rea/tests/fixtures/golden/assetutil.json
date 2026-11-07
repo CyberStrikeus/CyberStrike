@@ -1,0 +1,34 @@
+[
+  {
+    "AssetStorageVersion": "Xcode 26.5 (17F42) via AssetCatalogAgent-AssetRuntime",
+    "Authoring Tool": "@(#)PROGRAM:CoreThemeDefinition  PROJECT:CoreThemeDefinition-653.4 [LAR] [IIO-2784.5.4][LAR] AppleJPEG[1][32]  CMPhoto[1][174]]",
+    "CoreUIVersion": 975,
+    "DumpToolVersion": 973.1,
+    "Key Format": [
+      "kCRThemeAppearanceName",
+      "kCRThemeLocalizationName",
+      "kCRThemeElementName",
+      "kCRThemePartName",
+      "kCRThemeSizeName",
+      "kCRThemeIdentifierName",
+      "kCRThemeLayerName",
+      "kCRThemeScaleName"
+    ],
+    "MainVersion": "@(#)PROGRAM:CoreUI  PROJECT:CoreUI-975 [LAR]",
+    "Platform": "macosx",
+    "PlatformVersion": "12.0",
+    "SchemaVersion": 2,
+    "StorageVersion": 17,
+    "Timestamp": 1791093487
+  },
+  {
+    "AssetType": "Color",
+    "Color components": [0.125, 0.5, 0.875, 1],
+    "Colorspace": "srgb",
+    "Name": "FixtureColor",
+    "NameIdentifier": 14784,
+    "Scale": 1,
+    "SHA1Digest": "267FA6EDABB4F306584AFF0827A9A614B416CA3AC93B262160080910B446C2BA",
+    "SizeOnDisk": 260
+  }
+]

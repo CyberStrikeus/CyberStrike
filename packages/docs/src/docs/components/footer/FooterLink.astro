@@ -1,0 +1,19 @@
+---
+interface Props {
+  href: string;
+  newTab?: boolean; // defaults to false
+  rest?: Partial<HTMLAnchorElement>; // catch-all for any additional parameters, such as "aria-label"
+}
+
+const { href, newTab = false, ...rest } = Astro.props as Props;
+---
+
+<a
+  href={href}
+  class="docs-primary-focus docs-nav__link--sidebar mr-auto"
+  target={newTab ? "_blank" : undefined}
+  rel={newTab ? "noopener noreferrer" : undefined}
+  {...rest}
+>
+  <slot />
+</a>

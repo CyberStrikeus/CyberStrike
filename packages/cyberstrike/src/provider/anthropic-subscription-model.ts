@@ -1,11 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk"
 import type {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2Prompt,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3Prompt,
 } from "@ai-sdk/provider"
 import { getValidAnthropicToken } from "../auth/anthropic-oauth"
 import { Log } from "../util/log"
@@ -36,23 +36,26 @@ export const SUBSCRIPTION_BETAS = [
   "context-management-2025-06-27",
 ]
 
-function mapStop(reason: string | null | undefined): LanguageModelV2FinishReason {
-  switch (reason) {
-    case "end_turn":
-    case "stop_sequence":
-      return "stop"
-    case "max_tokens":
-      return "length"
-    case "tool_use":
-      return "tool-calls"
-    case "refusal":
-      return "content-filter"
-    default:
-      return reason ? "unknown" : "stop"
-  }
+function mapStop(reason: string | null | undefined): LanguageModelV3FinishReason {
+  const unified = ((): LanguageModelV3FinishReason["unified"] => {
+    switch (reason) {
+      case "end_turn":
+      case "stop_sequence":
+        return "stop"
+      case "max_tokens":
+        return "length"
+      case "tool_use":
+        return "tool-calls"
+      case "refusal":
+        return "content-filter"
+      default:
+        return reason ? "other" : "stop"
+    }
+  })()
+  return { unified, raw: reason ?? undefined }
 }
 
-function mapToolChoice(tc: LanguageModelV2CallOptions["toolChoice"]): any {
+function mapToolChoice(tc: LanguageModelV3CallOptions["toolChoice"]): any {
   if (!tc) return undefined
   switch (tc.type) {
     case "auto":
@@ -106,7 +109,7 @@ function mapFilePart(part: any): any {
   return null
 }
 
-function mapPrompt(prompt: LanguageModelV2Prompt): { system: any[]; messages: any[] } {
+function mapPrompt(prompt: LanguageModelV3Prompt): { system: any[]; messages: any[] } {
   const systemTexts: string[] = []
   const messages: any[] = []
 
@@ -217,7 +220,7 @@ function fromWireToolName(name: string): string {
   return name
 }
 
-function mapTools(tools: LanguageModelV2CallOptions["tools"]): any[] | undefined {
+function mapTools(tools: LanguageModelV3CallOptions["tools"]): any[] | undefined {
   if (!tools?.length) return undefined
   const out: any[] = []
   for (const t of tools as any[]) {
@@ -230,7 +233,7 @@ function mapTools(tools: LanguageModelV2CallOptions["tools"]): any[] | undefined
 
 async function buildParams(
   modelID: string,
-  options: LanguageModelV2CallOptions,
+  options: LanguageModelV3CallOptions,
   userId: () => string,
   supportsThinking: boolean,
 ) {
@@ -307,15 +310,15 @@ async function makeClient(): Promise<Anthropic> {
 export function createAnthropicSubscriptionModel(
   modelID: string,
   deps: { userId: () => string; supportsThinking?: boolean },
-): LanguageModelV2 {
+): LanguageModelV3 {
   const supportsThinking = deps.supportsThinking ?? false
   return {
-    specificationVersion: "v2",
+    specificationVersion: "v3",
     provider: "anthropic",
     modelId: modelID,
     supportedUrls: {},
 
-    async doStream(options: LanguageModelV2CallOptions) {
+    async doStream(options: LanguageModelV3CallOptions) {
       const client = await makeClient()
       const params = await buildParams(modelID, options, deps.userId, supportsThinking)
 
@@ -340,7 +343,6 @@ export function createAnthropicSubscriptionModel(
       const usage = {
         inputTokens: undefined as number | undefined,
         outputTokens: undefined as number | undefined,
-        totalTokens: undefined as number | undefined,
         cachedInputTokens: undefined as number | undefined,
       }
       // cache_creation_input_tokens (cache WRITE). Surfaced via providerMetadata
@@ -348,7 +350,7 @@ export function createAnthropicSubscriptionModel(
       // true (Anthropic's input_tokens already excludes cached/created tokens).
       let cacheCreationInputTokens: number | undefined
 
-      const stream = new ReadableStream<LanguageModelV2StreamPart>({
+      const stream = new ReadableStream<LanguageModelV3StreamPart>({
         async start(controller) {
           controller.enqueue({ type: "stream-start", warnings: [] })
           try {
@@ -413,15 +415,26 @@ export function createAnthropicSubscriptionModel(
                   break
                 }
                 case "message_stop": {
-                  usage.totalTokens =
-                    (usage.inputTokens ?? 0) +
-                    (usage.outputTokens ?? 0) +
-                    (usage.cachedInputTokens ?? 0) +
-                    (cacheCreationInputTokens ?? 0)
+                  // V3 usage is nested. Anthropic's input_tokens already EXCLUDES cached/created
+                  // tokens, so inputTokens.total == noCache keeps parity with the old flat shape
+                  // (session/index.ts sets excludesCachedTokens from providerMetadata.anthropic and
+                  // records cache read/write separately). cacheWrite stays on providerMetadata.
                   controller.enqueue({
                     type: "finish",
                     finishReason: mapStop(stopReason),
-                    usage,
+                    usage: {
+                      inputTokens: {
+                        total: usage.inputTokens,
+                        noCache: usage.inputTokens,
+                        cacheRead: usage.cachedInputTokens,
+                        cacheWrite: cacheCreationInputTokens,
+                      },
+                      outputTokens: {
+                        total: usage.outputTokens,
+                        text: undefined,
+                        reasoning: undefined,
+                      },
+                    },
                     providerMetadata: { anthropic: { cacheCreationInputTokens: cacheCreationInputTokens ?? 0 } },
                   })
                   break
@@ -444,7 +457,7 @@ export function createAnthropicSubscriptionModel(
       return { stream }
     },
 
-    async doGenerate(options: LanguageModelV2CallOptions) {
+    async doGenerate(options: LanguageModelV3CallOptions) {
       const client = await makeClient()
       const params = await buildParams(modelID, options, deps.userId, supportsThinking)
       const res: any = await client.beta.messages.create(
@@ -452,7 +465,7 @@ export function createAnthropicSubscriptionModel(
         { signal: options.abortSignal },
       )
 
-      const content: LanguageModelV2Content[] = []
+      const content: LanguageModelV3Content[] = []
       for (const b of res.content ?? []) {
         if (b.type === "text") content.push({ type: "text", text: b.text })
         else if (b.type === "thinking") content.push({ type: "reasoning", text: b.thinking })
@@ -468,14 +481,17 @@ export function createAnthropicSubscriptionModel(
         content,
         finishReason: mapStop(res.stop_reason),
         usage: {
-          inputTokens: res.usage?.input_tokens,
-          outputTokens: res.usage?.output_tokens,
-          totalTokens:
-            (res.usage?.input_tokens ?? 0) +
-            (res.usage?.output_tokens ?? 0) +
-            (res.usage?.cache_read_input_tokens ?? 0) +
-            (res.usage?.cache_creation_input_tokens ?? 0),
-          cachedInputTokens: res.usage?.cache_read_input_tokens,
+          inputTokens: {
+            total: res.usage?.input_tokens,
+            noCache: res.usage?.input_tokens,
+            cacheRead: res.usage?.cache_read_input_tokens,
+            cacheWrite: res.usage?.cache_creation_input_tokens,
+          },
+          outputTokens: {
+            total: res.usage?.output_tokens,
+            text: undefined,
+            reasoning: undefined,
+          },
         },
         providerMetadata: {
           anthropic: { cacheCreationInputTokens: res.usage?.cache_creation_input_tokens ?? 0 },

@@ -14,7 +14,6 @@ import type {
   McpResource,
   FormatterStatus,
   SessionStatus,
-  SessionQueueStatus,
   ProviderListResponse,
   ProviderAuthMethod,
   VcsInfo,
@@ -28,7 +27,6 @@ import { useExit } from "./exit"
 import { useArgs } from "./args"
 import { batch, onMount } from "solid-js"
 import { Log } from "@/util/log"
-import { singleflight } from "@/util/singleflight"
 import type { Path } from "@cyberstrike-io/sdk"
 
 export const { use: useSync, provider: SyncProvider } = createSimpleContext({
@@ -54,7 +52,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         [sessionID: string]: SessionStatus
       }
       session_queue_status: {
-        [sessionID: string]: SessionQueueStatus
+        [sessionID: string]: { paused: boolean; pending: number }
       }
       // Hackbrowser tool status — populated by SSE event "session.hackbrowser.status".
       // Inline type until SDK regenerator picks up the new BusEvent — keeping it
@@ -138,6 +136,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           protocol?: string
           operation?: string
           key_hash?: string
+          page_url?: string
         }>
       }
       web_credential: {
@@ -153,6 +152,29 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           name: string
           level?: number
         }>
+      }
+      web_js: {
+        [sessionID: string]: Array<{
+          id: string
+          url: string
+          origin?: string
+          analyzed?: boolean
+        }>
+      }
+      // The Captures view, sourced from the session's Vortex store (single source of truth) via
+      // GET /vortex/captures — the sidebar reads THIS, not the session-web request/web_js copies.
+      vortex_captures: {
+        [sessionID: string]: {
+          requests: Array<{ id: string; method: string; host: string; port?: number; normalized_path: string; page_url?: string; key_hash?: string; status?: number; identity?: string; operation?: string }>
+          jsFiles: Array<{ url: string; hit: boolean }>
+        }
+      }
+      // The Vortex Signals view (issue #14), from GET /vortex/signals — what Vortex found on its own,
+      // which class owns each, whether it auto-routed, and its endpoint's retest-queue status.
+      vortex_signals: {
+        [sessionID: string]: {
+          signals: Array<{ ruleId: string; category: string; severity: string; title: string; method?: string; endpoint?: string; keyHash?: string; owner?: string; routed: boolean; status?: "pending" | "examined"; triage?: "new" | "reviewed" | "confirmed" | "dismissed" | "escalated" }>
+        }
       }
       web_object: {
         [sessionID: string]: Array<{
@@ -172,7 +194,18 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           id: string
           status: string
           priority: string
+          key_hash: string
+          method?: string
+          endpoint?: string
+          flags?: { object_value?: string[]; role?: string[]; signal?: string[]; credential?: string[] }
         }>
+      }
+      inspection_lifecycle: {
+        [sessionID: string]: {
+          phase: "idle" | "discovering" | "inspecting" | "draining" | "complete"
+          sources: Array<{ name: string; active: boolean }>
+          counts: { pending: number; examined: number; total: number }
+        }
       }
       message: {
         [sessionID: string]: Message[]
@@ -221,9 +254,13 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       request: {},
       web_credential: {},
       web_role: {},
+      web_js: {},
+      vortex_captures: {},
+      vortex_signals: {},
       web_object: {},
       web_function: {},
       web_retest: {},
+      inspection_lifecycle: {},
       message: {},
       part: {},
       lsp: [],
@@ -291,6 +328,31 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         if (tree && Array.isArray(tree.params)) setStore("request_observation", keyHash, tree)
       } catch {
         /* ignore — expanded row simply shows nothing */
+      }
+    }
+
+    // Poll the Vortex-sourced captures for a session — the sidebar's single source of truth
+    // (requests + JS files, from GET /vortex/captures). Best-effort: on failure keep the last
+    // snapshot rather than blanking the sidebar.
+    async function refreshCaptures(sessionID: string) {
+      try {
+        const r = await sdk.fetch(`${sdk.url}/session/${sessionID}/vortex/captures`)
+        const c = (await r.json()) as (typeof store)["vortex_captures"][string]
+        if (c && Array.isArray(c.requests) && Array.isArray(c.jsFiles)) setStore("vortex_captures", sessionID, c)
+      } catch {
+        /* ignore — sidebar keeps the last captures snapshot */
+      }
+    }
+
+    // Poll the Vortex-sourced signals for a session (issue #14) — what Vortex found on its own +
+    // each one's retest-pipeline status. Best-effort: keep the last snapshot on failure.
+    async function refreshSignals(sessionID: string) {
+      try {
+        const r = await sdk.fetch(`${sdk.url}/session/${sessionID}/vortex/signals`)
+        const s = (await r.json()) as (typeof store)["vortex_signals"][string]
+        if (s && Array.isArray(s.signals)) setStore("vortex_signals", sessionID, s)
+      } catch {
+        /* ignore — sidebar keeps the last signals snapshot */
       }
     }
 
@@ -380,7 +442,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           break
 
         case "session.diff":
-          setStore("session_diff", event.properties.sessionID, event.properties.diff)
+          setStore("session_diff", event.properties.sessionID, event.properties.diff as any)
           break
 
         case "session.deleted": {
@@ -415,20 +477,6 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           break
         }
 
-        case "session.queue.status": {
-          setStore("session_queue_status", event.properties.sessionID, event.properties.status)
-          break
-        }
-
-        case "session.hackbrowser.status": {
-          setStore("session_hackbrowser_status", event.properties.sessionID, event.properties.status as never)
-          break
-        }
-
-        case "intel.updated": {
-          void refreshMethodology(event.properties.sessionID)
-          break
-        }
 
         case "message.updated": {
           const messages = store.message[event.properties.info.sessionID]
@@ -449,7 +497,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             }),
           )
           const updated = store.message[event.properties.info.sessionID]
-          if (updated.length > 100) {
+          if (updated.length > 500) {
             const oldest = updated[0]
             batch(() => {
               setStore(
@@ -545,23 +593,33 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           setStore("vcs", { branch: event.properties.branch })
           break
         }
-        case "vulnerability.updated": {
-          setStore("vulnerability", event.properties.sessionID, event.properties.vulnerabilities)
-          break
-        }
-        case "request.updated": {
-          setStore("request", event.properties.sessionID, event.properties.requests)
-          break
-        }
       }
 
       const raw = event as { type: string; properties: Record<string, any> }
       switch (raw.type) {
+        case "session.queue.status":
+          setStore("session_queue_status", raw.properties.sessionID, raw.properties.status)
+          break
+        case "session.hackbrowser.status":
+          setStore("session_hackbrowser_status", raw.properties.sessionID, raw.properties.status as never)
+          break
+        case "intel.updated":
+          void refreshMethodology(raw.properties.sessionID)
+          break
+        case "vulnerability.updated":
+          setStore("vulnerability", raw.properties.sessionID, raw.properties.vulnerabilities)
+          break
+        case "request.updated":
+          setStore("request", raw.properties.sessionID, raw.properties.requests)
+          break
         case "web_credential.updated":
           setStore("web_credential", raw.properties.sessionID, raw.properties.credentials)
           break
         case "web_role.updated":
           setStore("web_role", raw.properties.sessionID, raw.properties.roles)
+          break
+        case "web_js.updated":
+          setStore("web_js", raw.properties.sessionID, raw.properties.js)
           break
         case "web_object.updated":
           setStore("web_object", raw.properties.sessionID, raw.properties.objects)
@@ -569,8 +627,29 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         case "web_function.updated":
           setStore("web_function", raw.properties.sessionID, raw.properties.functions)
           break
-        case "web_retest.updated":
-          setStore("web_retest", raw.properties.sessionID, raw.properties.queue)
+        case "inspection.updated":
+          // The inspection queue (#19) replaced the old WebRetest queue. Map its Target+Evidence items
+          // to the sidebar's row shape (key_hash/method/endpoint/flags) so the queue updates live.
+          setStore(
+            "web_retest",
+            raw.properties.sessionID,
+            (raw.properties.queue as Array<Record<string, any>>).map((it) => ({
+              id: it.id,
+              status: it.status,
+              priority: it.priority,
+              key_hash: it.target_key,
+              method: it.target_meta?.method,
+              endpoint: it.target_label,
+              flags: it.evidence,
+            })),
+          )
+          break
+        case "session.phase":
+          setStore("inspection_lifecycle", raw.properties.sessionID, {
+            phase: raw.properties.phase,
+            sources: [],
+            counts: { pending: 0, examined: 0, total: 0 },
+          })
           break
       }
     })
@@ -578,7 +657,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
     const exit = useExit()
     const args = useArgs()
 
-    const bootstrap = singleflight(async function () {
+    async function bootstrap() {
       console.log("bootstrapping")
       const start = Date.now() - 30 * 24 * 60 * 60 * 1000
       const sessionListPromise = sdk.client.session
@@ -665,7 +744,7 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
           })
           await exit(e)
         })
-    })
+    }
 
     onMount(() => {
       bootstrap()
@@ -683,6 +762,10 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
       refreshUsage,
       // Fetch per-endpoint observed values on demand (sidebar expand).
       fetchObservations,
+      // Poll the Vortex-sourced captures for a session (sidebar Captures single source).
+      refreshCaptures,
+      // Poll the Vortex-sourced signals for a session (sidebar Vortex Signals view, issue #14).
+      refreshSignals,
       get status() {
         return store.status
       },
@@ -708,9 +791,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
         async sync(sessionID: string) {
           if (fullSyncedSessions.has(sessionID)) return
           const http = (sdk.client as any).client as { get: (opts: { url: string }) => Promise<{ data?: any }> }
-          const [session, messages, todo, diff, vuln, req, wCred, wRole, wObj, wFunc, wRetest] = await Promise.all([
+          const [session, messages, todo, diff, vuln, req, wCred, wRole, wObj, wFunc, wRetest, wJs, iLifecycle] = await Promise.all([
             sdk.client.session.get({ sessionID }, { throwOnError: true }),
-            sdk.client.session.messages({ sessionID, limit: 100 }),
+            sdk.client.session.messages({ sessionID }),
             sdk.client.session.todo({ sessionID }),
             sdk.client.session.diff({ sessionID }),
             sdk.client.session.vulnerability({ sessionID }).catch(() => ({ data: [] })),
@@ -719,7 +802,9 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
             http.get({ url: `/session/${sessionID}/web/roles` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/objects` }).catch(() => ({ data: [] })),
             http.get({ url: `/session/${sessionID}/web/functions` }).catch(() => ({ data: [] })),
-            http.get({ url: `/session/${sessionID}/web/retest-queue` }).catch(() => ({ data: { pending: [] } })),
+            http.get({ url: `/session/${sessionID}/inspection/queue` }).catch(() => ({ data: { pending: [] } })),
+            http.get({ url: `/session/${sessionID}/web/js` }).catch(() => ({ data: [] })),
+            http.get({ url: `/session/${sessionID}/inspection/lifecycle` }).catch(() => ({ data: { phase: "idle", sources: [], counts: { pending: 0, examined: 0, total: 0 } } })),
           ])
           setStore(
             produce((draft) => {
@@ -727,18 +812,20 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
               if (match.found) draft.session[match.index] = session.data!
               if (!match.found) draft.session.splice(match.index, 0, session.data!)
               draft.todo[sessionID] = todo.data ?? []
-              draft.vulnerability[sessionID] = vuln?.data ?? []
-              draft.request[sessionID] = req?.data ?? []
+              draft.vulnerability[sessionID] = (vuln?.data ?? []) as any
+              draft.request[sessionID] = (req?.data ?? []) as any
               draft.web_credential[sessionID] = wCred?.data ?? []
               draft.web_role[sessionID] = wRole?.data ?? []
               draft.web_object[sessionID] = wObj?.data ?? []
               draft.web_function[sessionID] = wFunc?.data ?? []
               draft.web_retest[sessionID] = wRetest?.data?.pending ?? []
+              draft.web_js[sessionID] = wJs?.data ?? []
+              draft.inspection_lifecycle[sessionID] = iLifecycle?.data ?? { phase: "idle", sources: [], counts: { pending: 0, examined: 0, total: 0 } }
               draft.message[sessionID] = messages.data!.map((x) => x.info)
               for (const message of messages.data!) {
                 draft.part[message.info.id] = message.parts
               }
-              draft.session_diff[sessionID] = diff.data ?? []
+              draft.session_diff[sessionID] = (diff.data ?? []) as any
             }),
           )
           fullSyncedSessions.add(sessionID)

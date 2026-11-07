@@ -123,6 +123,26 @@ export namespace Database {
     }
     sqlite.run("DROP TABLE IF EXISTS web_credential_new")
 
+    // web_retest_queue is fully retired (#19) — the live path is inspection_queue. reconcile() runs
+    // AFTER migrate() created inspection_queue, so the target always exists here; the tableExists guard
+    // keeps the drop data-loss-safe regardless. Migrate any existing per-endpoint (key_hash-shaped)
+    // rows into inspection_queue one last time, then drop the old table for good. Very old
+    // request_id-shaped rows were always transient (regenerated from live discoveries) — dropped, not
+    // migrated.
+    if (tableExists(sqlite, "web_retest_queue") && tableExists(sqlite, "inspection_queue")) {
+      if (tableColumns(sqlite, "web_retest_queue").has("key_hash")) {
+        const migrated = sqlite.prepare("SELECT COUNT(*) as c FROM inspection_queue WHERE domain = 'web'").get() as { c: number }
+        if (migrated.c === 0) {
+          sqlite.run(`INSERT OR IGNORE INTO inspection_queue (id, session_id, domain, target_key, target_label, target_meta, status, priority, evidence, examined_evidence, time_created, time_updated)
+            SELECT id, session_id, 'web', key_hash, NULL, NULL, status, priority, flags, examined_flags, time_created, time_updated
+            FROM web_retest_queue`)
+          log.info("migrated web_retest_queue rows into inspection_queue")
+        }
+      }
+      sqlite.run("DROP TABLE IF EXISTS web_retest_queue")
+      log.info("dropped retired web_retest_queue table (#19)")
+    }
+
     // Phase 2: Schema-driven column reconciliation
     // Drizzle's migrator uses sqlite3_prepare_v2 which only compiles the first SQL statement.
     // Multi-statement migrations without "--> statement-breakpoint" delimiters only ran their

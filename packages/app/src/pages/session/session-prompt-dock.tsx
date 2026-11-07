@@ -123,6 +123,7 @@ export function SessionPromptDock(props: {
             }
           >
             <PromptInput
+              controls={undefined as any}
               ref={props.inputRef}
               newSessionWorktree={props.newSessionWorktree}
               onNewSessionWorktreeReset={props.onNewSessionWorktreeReset}

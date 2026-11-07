@@ -1,0 +1,206 @@
+---
+/**
+ * * This is a search component that uses Pagefind to provide search functionality
+ *
+ * In order to work in development mode, you need to:
+ *   Run `npm run build` to create Pagefind data
+ *   Run `npm run winsearch` (for windows OS) or `npm run osxsearch` (for macOS or linux) to copy the pagefind data to the public folder
+ *   Then you can run `npm run dev` to start the dev server
+ */
+import "@pagefind/default-ui/css/ui.css";
+
+import CommandIcon from "@tabler/icons/outline/command.svg";
+import SearchIcon from "@tabler/icons/outline/search.svg";
+
+import { Dialog, DialogClose, DialogContent, DialogTrigger } from "./search-dialog";
+
+interface Props {
+  class?: string; // any additional classes
+  rest?: any; // catch-all for any additional parameters, such as "aria-label"
+}
+
+const { class: classList, ...rest } = Astro.props as Props;
+---
+
+<Dialog>
+  <DialogTrigger
+    class="docs-nav__link--base docs-primary-focus flex h-8 items-center justify-center rounded-md"
+  >
+    <SearchIcon class="size-5 md:hidden" aria-label="search bar" />
+    <div
+      class="bg-muted text-muted-foreground hover:text-foreground mx-1 hidden h-8 gap-2 rounded-full border px-3 text-xs transition-colors md:flex"
+    >
+      <div class="flex items-center gap-2">
+        <SearchIcon class="size-3.5" aria-label="search bar" />
+        <span class="inline pb-px">Search </span>
+      </div>
+      <kbd class="flex items-center gap-0.5">
+        <CommandIcon class="-mr-0.5 mb-0.5 size-3.5 max-h-full" aria-label="command key" />
+        K
+      </kbd>
+    </div>
+  </DialogTrigger>
+  <div class="relative">
+    <DialogContent
+      class="min-h-[100vh] overflow-hidden sm:max-h-[calc(100vh-(var(--nav-height)*2))] sm:min-h-[16rem]"
+    >
+      <div class="dialog-frame relative flex grow flex-col overflow-y-auto p-6">
+        <DialogClose
+          class="text-foreground absolute z-10 h-[calc(64px*var(--pagefind-ui-scale))] items-center self-end border-0 bg-transparent px-2 sm:hidden"
+        >
+          Cancel
+        </DialogClose>
+        <div class="search-container">
+          <div id="search"></div>
+        </div>
+      </div>
+    </DialogContent>
+  </div>
+</Dialog>
+
+<script>
+  const initPagefind = () => {
+    const onIdle = window.requestIdleCallback || ((cb) => setTimeout(cb, 1));
+    onIdle(async () => {
+      const { PagefindUI } = await import("@pagefind/default-ui");
+      new PagefindUI({
+        element: "#search",
+        showImages: false,
+        showSubResults: true,
+      });
+    });
+  };
+
+  initPagefind();
+
+  document.addEventListener("astro:after-swap", initPagefind);
+</script>
+
+<style is:global>
+  @import "tailwindcss/theme" theme(reference);
+  @import "@/styles/tailwind-theme.css" theme(reference);
+
+  #search,
+  .dialog-frame {
+    --pagefind-ui-scale: 0.7;
+  }
+
+  #search {
+    .pagefind-ui__form::before {
+      @apply bg-muted-foreground opacity-100;
+    }
+
+    .pagefind-ui__search-input {
+      @apply border-border text-foreground bg-muted w-[calc(100%-5rem)] border font-normal sm:w-full;
+
+      &:focus-visible {
+        @apply outline-foreground border ring-0 outline-2;
+      }
+    }
+
+    .pagefind-ui__search-clear {
+      @apply focus-visible:outline-foreground end-[5rem] w-12 overflow-hidden bg-transparent p-0 focus:outline sm:end-0;
+
+      &::before {
+        @apply bg-foreground block h-full w-full;
+        content: "";
+        -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m13.41 12 6.3-6.29a1 1 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1 1 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 .33 1.64 1 1 0 0 0 1.09-.22l6.29-6.3 6.29 6.3a1 1 0 0 0 1.64-.33 1 1 0 0 0-.22-1.09L13.41 12Z'/%3E%3C/svg%3E")
+          center / 50% no-repeat;
+        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='m13.41 12 6.3-6.29a1 1 0 1 0-1.42-1.42L12 10.59l-6.29-6.3a1 1 0 0 0-1.42 1.42l6.3 6.29-6.3 6.29a1 1 0 0 0 .33 1.64 1 1 0 0 0 1.09-.22l6.29-6.3 6.29 6.3a1 1 0 0 0 1.64-.33 1 1 0 0 0-.22-1.09L13.41 12Z'/%3E%3C/svg%3E")
+          center / 50% no-repeat;
+      }
+    }
+
+    .pagefind-ui__results > * + * {
+      @apply mt-4;
+    }
+    .pagefind-ui__result {
+      @apply border-none p-0;
+    }
+
+    .pagefind-ui__result-nested {
+      @apply relative px-3 py-2;
+    }
+
+    .pagefind-ui__result-title:not(:where(.pagefind-ui__result-nested *)),
+    .pagefind-ui__result-nested {
+      @apply bg-muted relative transition;
+    }
+
+    .pagefind-ui__result-title:not(:where(.pagefind-ui__result-nested *)):hover,
+    .pagefind-ui__result-title:not(:where(.pagefind-ui__result-nested *)):focus-within,
+    .pagefind-ui__result-nested:hover,
+    .pagefind-ui__result-nested:focus-within {
+      @apply outline-foreground ring-0 outline-1 !transition-none;
+    }
+
+    .pagefind-ui__message {
+      @apply text-foreground font-medium;
+    }
+
+    .pagefind-ui__result-title:not(:where(.pagefind-ui__result-nested *)):focus-within,
+    .pagefind-ui__result-nested:focus-within {
+      @apply bg-muted;
+    }
+
+    .pagefind-ui__result-thumb,
+    .pagefind-ui__result-inner {
+      @apply text-foreground mt-0;
+
+      p {
+        @apply leading-5;
+      }
+    }
+
+    .pagefind-ui__result-inner > :first-child {
+      @apply rounded-t-md rounded-b-none;
+    }
+    .pagefind-ui__result-inner > :last-child {
+      @apply rounded-t-none rounded-b-md;
+    }
+
+    .pagefind-ui__result-inner > .pagefind-ui__result-title {
+      @apply p-3;
+    }
+
+    .pagefind-ui__result-inner {
+      @apply items-stretch gap-px;
+    }
+
+    .pagefind-ui__result-link {
+      @apply text-foreground font-medium;
+      position: unset;
+    }
+
+    .pagefind-ui__result-link:hover {
+      text-decoration: none;
+    }
+
+    .pagefind-ui__result-nested .pagefind-ui__result-link::before {
+      content: unset;
+    }
+
+    .pagefind-ui__result-link::after {
+      @apply absolute inset-0;
+      content: "";
+    }
+
+    .pagefind-ui__result-excerpt {
+      @apply font-normal;
+      overflow-wrap: anywhere;
+    }
+
+    .pagefind-ui__result-title:not(:where(.pagefind-ui__result-nested *))
+      ~ .pagefind-ui__result-excerpt {
+      @apply hidden;
+    }
+
+    .pagefind-ui__button {
+      @apply border-border bg-muted text-foreground hover:border-foreground font-medium;
+    }
+
+    mark {
+      @apply text-foreground decoration-primary bg-transparent font-medium underline underline-offset-2;
+    }
+  }
+</style>

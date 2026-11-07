@@ -1,0 +1,115 @@
+---
+title: Bolt
+description: Servidor de ferramentas de seguranca containerizado com mais de 30 ferramentas pre-instaladas
+sidebar:
+  order: 4
+  label: Bolt
+---
+
+O Bolt e um servidor MCP containerizado que fornece ferramentas de seguranca. Ele executa em um container Docker (Ubuntu 24.04) e expoe cada ferramenta diretamente — sem meta-ferramentas, sem carregamento dinamico, apenas chame a ferramenta que voce precisa.
+
+## Por Que o Bolt?
+
+| Recurso | Sem o Bolt | Com o Bolt |
+|---------|------------|------------|
+| Instalacao de ferramentas | Manual para cada ferramenta | Pre-instalado |
+| Suporte a plataformas | Apenas Linux para a maioria das ferramentas | Qualquer plataforma com Docker |
+| Isolamento | Ferramentas executam no seu sistema | Sandboxed no container |
+| Atualizacoes | Manual | `docker pull` |
+
+## O Que Ha Dentro
+
+O Bolt expoe ferramentas de duas formas:
+
+- **7 plugins nativos** — `subfinder`, `nmap`, `nuclei`, `httpx`, `ffuf`, `run-command`, `wordlist`
+- **~26 servidores MCP stdio agregados** — `dnsx`, `amass`, `katana`, `sqlmap`, `wpscan`, `gobuster`, `masscan`, `hydra`, `hashcat`, `john`, `impacket` e mais
+
+Cada uma e uma ferramenta diretamente invocavel — o agente a chama em um unico turno.
+
+## Inicio Rapido
+
+### 1. Inicie o container Bolt
+
+```bash
+docker run -d \
+  --name bolt \
+  --restart unless-stopped \
+  -p 3001:3001 \
+  -v bolt-data:/data \
+  -e MCP_ADMIN_TOKEN=$(openssl rand -hex 32) \
+  --cap-add NET_RAW \
+  --cap-add NET_ADMIN \
+  ghcr.io/cyberstrikeus/bolt:latest
+
+docker logs bolt | grep -i token
+```
+
+### 2. Pareie com o Cyberstrike
+
+Execute `/bolt` na TUI, pressione **a** para adicionar, insira a URL `http://localhost:3001` e forneca o token de administrador.
+
+### 3. Use as ferramentas
+
+Digite sua tarefa diretamente — o agente chama ferramentas do Bolt automaticamente:
+
+```
+> Run nmap against 192.168.1.1 with service detection
+> Use subfinder to enumerate subdomains of example.com
+> Scan https://target.com with nuclei
+```
+
+## Configuracao
+
+Servidores Bolt sao configurados sob a chave **`bolt`** — nao sob `mcp`:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "bolt": {
+    "local": {
+      "url": "http://localhost:3001",
+      "enabled": true,
+      "timeout": 30000
+    }
+  }
+}
+```
+
+<Aside variant="caution">
+  O Bolt **nao** e uma entrada `mcp`. A autenticacao e feita por pareamento Ed25519, e o token de administrador existe apenas na etapa de pareamento.
+</Aside>
+
+## Autenticacao
+
+O Bolt usa **assinatura de requisicao Ed25519**, iniciada por um pareamento unico:
+
+1. `POST /pair` com o token de administrador → um codigo de pareamento
+2. O Cyberstrike gera um par de chaves Ed25519
+3. `POST /pair/exchange` com o codigo + chave publica do cliente → chave publica do servidor + ID do cliente
+4. Cada requisicao subsequente e **assinada** com a chave privada do cliente
+
+O token de administrador e usado apenas durante o passo 1 — nunca e armazenado na configuracao.
+
+## Gerenciamento na TUI
+
+- **`/bolt`** — gerencia servidores Bolt (adicionar/parear, alternar, remover)
+- **`/mcps`** — gerencia servidores MCP regulares
+
+## Exemplos de Uso
+
+```
+> Use bolt to scan 192.168.1.0/24 for open ports and services   # nmap
+> Find all subdomains of example.com                            # subfinder
+> Scan https://target.com with nuclei                           # nuclei
+> Fuzz directories on https://target.com                        # ffuf
+> Run "dig +short example.com"                                  # run-command
+```
+
+## Solucao de Problemas
+
+- **Conexao recusada** — verifique se o container esta ativo (`docker ps`) e `curl http://localhost:3001/health` responde.
+- **Re-pareamento necessario** — se a URL do Bolt mudar, pareie novamente via `/bolt`.
+- **Ferramentas nao disponiveis** — confirme que o servidor esta conectado em `/bolt`, use um modelo de API direta.
+
+<Aside variant="danger">
+  Use ferramentas do Bolt apenas contra alvos autorizados. Testes de penetracao nao autorizados sao ilegais.
+</Aside>

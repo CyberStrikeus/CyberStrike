@@ -37,7 +37,7 @@ import { createAlibaba } from "@ai-sdk/alibaba"
 import { createVenice } from "venice-ai-sdk-provider"
 import { createGitLab } from "@gitlab/gitlab-ai-provider"
 
-export const BUNDLED_PROVIDERS: Record<string, (options: any) => SDK> = {
+export const BUNDLED_PROVIDERS: Record<string, (...args: any[]) => any> = {
   "@ai-sdk/amazon-bedrock": createAmazonBedrock,
   "@ai-sdk/anthropic": createAnthropic,
   "@ai-sdk/azure": createAzure,

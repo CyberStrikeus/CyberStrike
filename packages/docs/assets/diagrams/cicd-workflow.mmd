@@ -1,0 +1,20 @@
+---
+title: Headless run permission flow
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 34
+    nodeSpacing: 28
+    padding: 12
+---
+flowchart TD
+    A["CI: cyberstrike run … --format json"]:::start --> B["Agent wants to run a tool"]
+    B --> C{"Pre-approved?<br/>CYBERSTRIKE_PERMISSION / config"}
+    C -->|allow| D["Tool runs"]:::ok
+    C -->|would prompt| E["Auto-rejected<br/>no one to ask"]:::deny
+    D --> F["Results → stdout (JSON)"]:::start
+    E --> F
+
+    classDef start fill:#0b1220,stroke:#00d4ff,stroke-width:2px,color:#00d4ff;
+    classDef ok fill:#0b1220,stroke:#00ff88,color:#00ff88;
+    classDef deny fill:#0b1220,stroke:#ff4444,color:#ff4444;

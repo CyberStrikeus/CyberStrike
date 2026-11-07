@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your First Reverse Engineering Investigation — REA</title>
+    <meta
+      name="description"
+      content="Try REA on a small Notes app. Set up your agent, ask where exported notes go, and check the CSV formatter with a sample title."
+    />
+    <!-- website:sharing:start -->
+    <!-- prettier-ignore -->
+    <link rel="canonical" href="https://rea.tools/first-investigation/" />
+    <!-- website:languages:start -->
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="en" href="https://rea.tools/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="zh-CN" href="https://rea.tools/zh-CN/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="zh-TW" href="https://rea.tools/zh-TW/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ja" href="https://rea.tools/ja/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ko" href="https://rea.tools/ko/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="tr" href="https://rea.tools/tr/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ru" href="https://rea.tools/ru/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="vi" href="https://rea.tools/vi/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="th" href="https://rea.tools/th/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="de" href="https://rea.tools/de/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="es" href="https://rea.tools/es/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="fr" href="https://rea.tools/fr/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="uk" href="https://rea.tools/uk/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="pl" href="https://rea.tools/pl/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="pt-BR" href="https://rea.tools/pt-BR/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ar" href="https://rea.tools/ar/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="fa" href="https://rea.tools/fa/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="id" href="https://rea.tools/id/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="it" href="https://rea.tools/it/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="el" href="https://rea.tools/el/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ml" href="https://rea.tools/ml/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ur-Latn" href="https://rea.tools/ur-Latn/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ro" href="https://rea.tools/ro/first-investigation/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="x-default" href="https://rea.tools/first-investigation/" />
+    <!-- website:languages:end -->
+    <!-- prettier-ignore -->
+    <meta property="og:type" content="website" />
+    <!-- prettier-ignore -->
+    <meta property="og:site_name" content="REA" />
+    <!-- prettier-ignore -->
+    <meta property="og:title" content="Your First Reverse Engineering Investigation — REA" />
+    <!-- prettier-ignore -->
+    <meta property="og:description" content="Try REA on a small Notes app. Set up your agent, ask where exported notes go, and check the CSV formatter with a sample title." />
+    <!-- prettier-ignore -->
+    <meta property="og:url" content="https://rea.tools/first-investigation/" />
+    <!-- prettier-ignore -->
+    <meta property="og:image" content="https://rea.tools/assets/social-card.png" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:type" content="image/png" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:width" content="1200" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:height" content="630" />
+    <!-- prettier-ignore -->
+    <meta
+      property="og:image:alt"
+      content="REA: Find out how software works. Reverse engineering with your coding agent."
+    />
+    <!-- prettier-ignore -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- prettier-ignore -->
+    <meta name="twitter:title" content="Your First Reverse Engineering Investigation — REA" />
+    <!-- prettier-ignore -->
+    <meta name="twitter:description" content="Try REA on a small Notes app. Set up your agent, ask where exported notes go, and check the CSV formatter with a sample title." />
+    <!-- prettier-ignore -->
+    <meta name="twitter:image" content="https://rea.tools/assets/social-card.png" />
+    <!-- prettier-ignore -->
+    <meta
+      name="twitter:image:alt"
+      content="REA: Find out how software works. Reverse engineering with your coding agent."
+    />
+    <!-- website:sharing:end -->
+    <!-- website:theme:start -->
+    <meta name="theme-color" content="#ffffff" />
+    <!-- Apply the saved theme before styles load, to avoid a flash on navigation. -->
+    <script src="../assets/theme.js"></script>
+    <!-- website:theme:end -->
+    <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../assets/styles.css" />
+    <script src="../assets/main.js" defer></script>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- website:header:start -->
+    <!-- prettier-ignore -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="../" aria-label="REA home"
+          ><span class="brand-name">REA</span
+          ><span class="brand-caption" data-i18n-skip>Reverse Engineer Anything</span></a
+        >
+        <nav class="navigation" aria-label="Main navigation">
+          <a href="../get-started/" class="nav-start">Get started</a>
+          <a href="../showcase/">Showcases</a>
+          <a href="../blog/">Blog</a>
+          <a href="../guides/">Guides</a>
+        </nav>
+        <div class="header-social">
+          <details class="language-picker" data-i18n-skip><summary><span aria-hidden="true">文 / A</span> <span>English</span></summary><nav aria-label="English"><a href="../first-investigation/" lang="en" dir="ltr" data-language="en" aria-current="true">English</a><a href="../zh-CN/first-investigation/" lang="zh-CN" dir="ltr" data-language="zh-CN">简体中文</a><a href="../zh-TW/first-investigation/" lang="zh-TW" dir="ltr" data-language="zh-TW">繁體中文</a><a href="../ja/first-investigation/" lang="ja" dir="ltr" data-language="ja">日本語</a><a href="../ko/first-investigation/" lang="ko" dir="ltr" data-language="ko">한국어</a><a href="../tr/first-investigation/" lang="tr" dir="ltr" data-language="tr">Türkçe</a><a href="../ru/first-investigation/" lang="ru" dir="ltr" data-language="ru">Русский</a><a href="../vi/first-investigation/" lang="vi" dir="ltr" data-language="vi">Tiếng Việt</a><a href="../th/first-investigation/" lang="th" dir="ltr" data-language="th">ไทย</a><a href="../de/first-investigation/" lang="de" dir="ltr" data-language="de">Deutsch</a><a href="../es/first-investigation/" lang="es" dir="ltr" data-language="es">Español</a><a href="../fr/first-investigation/" lang="fr" dir="ltr" data-language="fr">Français</a><a href="../uk/first-investigation/" lang="uk" dir="ltr" data-language="uk">Українська</a><a href="../pl/first-investigation/" lang="pl" dir="ltr" data-language="pl">Polski</a><a href="../pt-BR/first-investigation/" lang="pt-BR" dir="ltr" data-language="pt-BR">Português (Brasil)</a><a href="../ar/first-investigation/" lang="ar" dir="rtl" data-language="ar">العربية</a><a href="../fa/first-investigation/" lang="fa" dir="rtl" data-language="fa">فارسی</a><a href="../id/first-investigation/" lang="id" dir="ltr" data-language="id">Bahasa Indonesia</a><a href="../it/first-investigation/" lang="it" dir="ltr" data-language="it">Italiano</a><a href="../el/first-investigation/" lang="el" dir="ltr" data-language="el">Ελληνικά</a><a href="../ml/first-investigation/" lang="ml" dir="ltr" data-language="ml">മലയാളം</a><a href="../ur-Latn/first-investigation/" lang="ur-Latn" dir="ltr" data-language="ur-Latn">Roman Urdu</a><a href="../ro/first-investigation/" lang="ro" dir="ltr" data-language="ro">Română</a></nav></details>
+          <button class="theme-toggle" type="button" data-theme-toggle hidden>
+            <svg class="theme-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M20.9 13a9 9 0 0 1-9.9-9.9A9 9 0 1 0 20.9 13Z" />
+            </svg>
+            <svg class="theme-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+            </svg>
+          </button>
+          <a
+            class="nav-github"
+            href="https://github.com/morluto/rea"
+            aria-label="REA on GitHub"
+            title="REA on GitHub"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+              />
+            </svg>
+            <span class="nav-github-count" hidden aria-hidden="true"></span>
+          </a>
+          <a
+            class="nav-discord"
+            href="https://discord.gg/GkcryMnJDM"
+            aria-label="Join REA on Discord"
+            title="Join REA on Discord"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286ZM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189Zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"
+              />
+            </svg>
+          </a>
+          <a
+            class="nav-x"
+            href="https://x.com/reatools"
+            aria-label="Follow REA on X"
+            title="Follow REA on X"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"
+              />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </header>
+    <!-- website:header:end -->
+    <main id="main" class="container">
+      <div class="page-heading">
+        <p class="breadcrumb">
+          <a href="../">Home</a> / Your first investigation
+        </p>
+        <h1>Find out where<br />exported notes go.</h1>
+        <p class="lede">
+          Use REA to inspect a small app, follow its Export notes button and
+          check one detail yourself.
+        </p>
+        <p class="page-meta">
+          A supplied example · <span translate="no">Node.js</span> and npm ·
+          Your coding agent
+        </p>
+      </div>
+      <div class="article-layout">
+        <nav class="contents" aria-label="On this page">
+          <p>In this exercise</p>
+          <ul>
+            <li><a href="#setup">1. Set up</a></li>
+            <li><a href="#ask">2. Ask about export</a></li>
+            <li><a href="#answer">3. Follow the answer</a></li>
+            <li><a href="#check">4. Check a prediction</a></li>
+            <li><a href="#next">5. Ask another question</a></li>
+          </ul>
+        </nav>
+        <article class="article" aria-label="Your first REA investigation">
+          <section class="article-section" id="setup">
+            <h2>1. Connect your agent to REA</h2>
+            <p>
+              Use a coding agent such as Claude Code, Codex or Cursor. You’ll
+              need <span translate="no">Node.js</span> and npm; the
+              <a href="../get-started/">setup guide lists supported versions</a
+              >.
+            </p>
+            <div class="agent-terminal">
+              <div class="terminal-header">
+                <span class="terminal-title"
+                  ><span class="terminal-dots" aria-hidden="true"
+                    ><i></i><i></i><i></i></span
+                  >Your coding agent</span
+                >
+                <button
+                  class="copy-button"
+                  type="button"
+                  data-copy="first-install-prompt"
+                  aria-label="Copy REA installation prompt"
+                >
+                  Copy
+                </button>
+              </div>
+              <p class="terminal-prompt">
+                <span class="prompt-symbol" aria-hidden="true">›</span
+                ><span id="first-install-prompt"
+                  >Install REA and connect it to this coding agent using
+                  <span translate="no">npx rea-agents@latest setup</span>. Show
+                  me the setup plan for approval, then verify the
+                  installation.</span
+                ><span class="terminal-cursor" aria-hidden="true"></span>
+              </p>
+            </div>
+            <p class="caption">Or run this command in your terminal:</p>
+            <div class="code-block code-inline">
+              <code id="first-setup-command">npx rea-agents@latest setup</code>
+              <button
+                class="copy-button"
+                type="button"
+                data-copy="first-setup-command"
+                aria-label="Copy setup command"
+              >
+                Copy
+              </button>
+            </div>
+            <p>
+              Review the plan, approve the setup, then restart your agent.
+              Already connected? Continue below.
+            </p>
+          </section>
+          <section class="article-section" id="ask">
+            <h2>2. Ask where the CSV is written</h2>
+            <p>
+              The example is a six-file Electron app with an
+              <strong>Export notes</strong> button. Your agent can inspect its
+              code without installing or launching Electron.
+            </p>
+            <div class="agent-terminal">
+              <div class="terminal-header">
+                <span class="terminal-title"
+                  ><span class="terminal-dots" aria-hidden="true"
+                    ><i></i><i></i><i></i></span
+                  >Your coding agent</span
+                >
+                <button
+                  class="copy-button"
+                  type="button"
+                  data-copy="first-analysis-prompt"
+                  aria-label="Copy Notes investigation prompt"
+                >
+                  Copy
+                </button>
+              </div>
+              <p class="terminal-prompt">
+                <span class="prompt-symbol" aria-hidden="true">›</span
+                ><span id="first-analysis-prompt"
+                  >Download
+                  <span translate="no"
+                    >https://rea.tools/examples/notes-example.zip</span
+                  >
+                  into a new example folder and unpack it. Use REA to find what
+                  happens when I click Export notes. Show where
+                  <span translate="no">notes.csv</span> is written, which fields
+                  it contains, and the relevant files and lines.</span
+                ><span class="terminal-cursor" aria-hidden="true"></span>
+              </p>
+            </div>
+            <p>
+              Your agent downloads the files and gives the unpacked folder to
+              REA for inspection.
+            </p>
+            <p>
+              <a
+                class="button"
+                href="../examples/notes-example.zip"
+                download="notes-example.zip"
+                >Download example ZIP</a
+              >
+            </p>
+            <p class="caption">
+              If your agent can’t download files, unzip this archive yourself.
+              Give it the path to the <code>notes-example</code> folder and the
+              same export question.
+            </p>
+          </section>
+          <section class="article-section" id="answer">
+            <h2>3. Follow the answer back to the code</h2>
+            <p>Look for a short explanation with file and line references:</p>
+            <blockquote class="prompt">
+              <p>
+                The button sends a <code>notes:export</code> message. The main
+                process formats the notes as CSV and writes
+                <code>notes.csv</code> in the user’s Downloads folder. The
+                columns are <code>id</code> and <code>title</code>.
+              </p>
+            </blockquote>
+            <figure class="workflow-figure">
+              <p class="figure-title">From the button to the file writer</p>
+              <ol class="flow-steps">
+                <li>
+                  <span class="flow-label"
+                    >Page · <span translate="no">renderer.js</span></span
+                  ><span class="flow-node">Export notes</span
+                  ><span class="flow-note"
+                    >Calls <code>notes.exportCsv()</code>.</span
+                  >
+                </li>
+                <li>
+                  <span class="flow-label"
+                    >Bridge · <span translate="no">preload.js</span></span
+                  ><span class="flow-node"><code>notes:export</code></span
+                  ><span class="flow-note"
+                    >Sends a named message to the main process.</span
+                  >
+                </li>
+                <li>
+                  <span class="flow-label"
+                    >Handler · <span translate="no">main.js</span></span
+                  ><span class="flow-node"
+                    >Write <span translate="no">notes.csv</span></span
+                  ><span class="flow-note"
+                    >Calls the formatter in <code>csv.js</code> and writes the
+                    file.</span
+                  >
+                </li>
+              </ol>
+              <figcaption>
+                REA’s static analysis pairs the message with its handler. The
+                destination is read from code.
+              </figcaption>
+            </figure>
+            <div class="code-block">
+              <div class="code-header">
+                <span><span translate="no">main.js</span> · lines 8–12</span
+                ><a href="../examples/notes-electron/main.js">Source</a>
+              </div>
+              <pre><code>ipcMain.handle("notes:export", () =&gt; {
+  const destination = path.join(app.getPath("downloads"), "notes.csv");
+  writeFileSync(destination, toCsv(notes), "utf8");
+  return destination;
+});</code></pre>
+            </div>
+            <p>
+              The file path, formatter and write call are together in this
+              handler. Ask your agent to show these lines if its answer leaves
+              them out.
+            </p>
+            <p>
+              <a href="../guides/javascript/#follow"
+                >See the full code trace and recorded REA result</a
+              >.
+            </p>
+          </section>
+          <section class="article-section" id="check">
+            <h2>4. Check a prediction</h2>
+            <p>
+              A comma separates CSV columns. What happens when a note title
+              itself contains a comma or quotation marks?
+            </p>
+            <div class="agent-terminal">
+              <div class="terminal-header">
+                <span class="terminal-title"
+                  ><span class="terminal-dots" aria-hidden="true"
+                    ><i></i><i></i><i></i></span
+                  >Your coding agent</span
+                >
+                <button
+                  class="copy-button"
+                  type="button"
+                  data-copy="first-check-prompt"
+                  aria-label="Copy CSV check prompt"
+                >
+                  Copy
+                </button>
+              </div>
+              <p class="terminal-prompt">
+                <span class="prompt-symbol" aria-hidden="true">›</span
+                ><span id="first-check-prompt"
+                  >Predict the CSV for a note with id 1 and title
+                  <span translate="no">Hello, "REA"</span>. Then run the
+                  example’s <span translate="no">toCsv</span> formatter with
+                  <span translate="no">Node.js</span> to check it. Show the
+                  prediction and actual output.</span
+                ><span class="terminal-cursor" aria-hidden="true"></span>
+              </p>
+            </div>
+            <div class="code-block">
+              <div class="code-header">
+                <span>Expected formatter output</span>
+              </div>
+              <pre><code>id,title
+1,"Hello, ""REA"""</code></pre>
+            </div>
+            <p>
+              The title stays in one quoted field; each quotation mark is
+              doubled. This checks the formatter directly with
+              <span translate="no">Node.js</span>.
+            </p>
+            <details class="evidence-details">
+              <summary>Run the check yourself</summary>
+              <p>
+                Open a terminal in the unpacked
+                <code>notes-example</code> folder:
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">macOS / Linux · Bash / Zsh</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="first-check-command"
+                    aria-label="Copy formatter check command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="first-check-command">node &lt;&lt;'JS'
+const { toCsv } = require('./csv.js');
+process.stdout.write(toCsv([{ id: 1, title: 'Hello, "REA"' }]));
+JS</code></pre>
+              </div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span translate="no">Windows · PowerShell</span>
+                  <button
+                    class="copy-button"
+                    type="button"
+                    data-copy="first-check-powershell"
+                    aria-label="Copy formatter check command"
+                  >
+                    Copy
+                  </button>
+                </div>
+                <pre><code id="first-check-powershell">@'
+const { toCsv } = require('./csv.js');
+process.stdout.write(toCsv([{ id: 1, title: 'Hello, "REA"' }]));
+'@ | node</code></pre>
+              </div>
+            </details>
+          </section>
+          <section class="article-section" id="next">
+            <h2>5. Ask another question</h2>
+            <p>Try a follow-up in the same conversation:</p>
+            <blockquote class="prompt">
+              <p>
+                What happens if the file can’t be written? Follow the error back
+                to the page.
+              </p>
+            </blockquote>
+            <p>
+              Or give your agent an app of your own and ask about one button,
+              file or behavior.
+            </p>
+            <ul class="reading-list">
+              <li>
+                <a href="../showcase/notion/">How Notion copies text and HTML</a
+                ><span
+                  >Follow a clipboard feature in a packaged Electron app.</span
+                >
+              </li>
+              <li>
+                <a href="../showcase/dx-ball/"
+                  >How DX-Ball calculates sound panning</a
+                ><span
+                  >Read the original instructions and the reconstruction’s
+                  checks.</span
+                >
+              </li>
+              <li>
+                <a href="../faq/#troubleshooting"
+                  >Troubleshoot setup or analysis</a
+                ><span
+                  >Update REA and check the connection if you get stuck.</span
+                >
+              </li>
+            </ul>
+          </section>
+        </article>
+      </div>
+    </main>
+    <!-- website:footer:start -->
+    <!-- prettier-ignore -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>REA · Reverse Engineer Anything</p>
+        <div class="footer-links">
+          <a href="../faq/">FAQ</a
+          ><a href="../contributors/">Contributors</a
+          ><a href="https://github.com/morluto/rea">Source</a
+          ><a href="https://github.com/morluto/rea/blob/main/LICENSE">MIT license</a
+          ><a href="https://discord.gg/GkcryMnJDM">Join the community</a
+          ><a href="https://x.com/reatools">Follow us on X</a>
+        </div>
+      </div>
+    </footer>
+    <p class="sr-only" id="copy-status" role="status" aria-live="polite"></p>
+    <a class="back-to-top" href="#top" aria-label="Back to top">
+      <span aria-hidden="true">↑</span> Top
+    </a>
+    <!-- website:footer:end -->
+  </body>
+</html>

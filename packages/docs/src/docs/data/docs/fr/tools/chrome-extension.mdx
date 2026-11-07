@@ -1,0 +1,198 @@
+---
+title: Extension Chrome
+description: Installez l'extension Chrome CyberStrike pour capturer le trafic depuis votre propre navigateur
+sidebar:
+  order: 8
+  label: Chrome Extension
+---
+
+L'extension Chrome CyberStrike capture le trafic HTTP de votre navigateur et le transmet a l'API CyberStrike pour des tests de securite automatises.
+
+## Quand utiliser l'extension
+
+Lorsque vous lancez `/hackbrowser`, CyberStrike demarre un navigateur Chromium dedie avec l'extension **deja integree**. Ce navigateur automatise gere l'exploration, la capture de trafic et la navigation pilotee par IA sans configuration supplementaire. Vous n'avez rien a installer separement pour ce workflow.
+
+L'extension Chrome autonome repond a un autre cas d'utilisation : **utiliser votre propre navigateur**. Installez-la lorsque vous souhaitez capturer le trafic depuis votre Chrome habituel — celui avec vos favoris, vos mots de passe enregistres, vos extensions existantes et vos sessions deja connectees. C'est utile lorsque :
+
+- L'application cible necessite une configuration de navigateur specifique que vous avez deja
+- Vous devez tester avec vos sessions authentifiees et cookies reels
+- Vous souhaitez naviguer manuellement pendant que CyberStrike analyse chaque requete en arriere-plan
+- L'application utilise du SSO, de la MFA ou d'autres flux d'authentification plus faciles a gerer dans votre propre navigateur
+
+Les deux chemins alimentent le meme pipeline de test et peuvent etre combines au sein d'une meme session.
+
+## Installation
+
+Le code source de l'extension est inclus dans le depot CyberStrike dans `packages/hackbrowser/extension/`.
+
+1. Clonez le depot :
+
+```bash
+git clone https://github.com/CyberStrikeus/CyberStrike.git
+```
+
+2. Ouvrez Chrome et naviguez vers `chrome://extensions`
+3. Activez le **Mode developpeur** dans le coin superieur droit
+4. Cliquez sur **Charger l'extension non empaquetee**
+5. Selectionnez le repertoire `packages/hackbrowser/extension/` dans le depot clone
+
+L'icone de l'extension apparait dans la barre d'outils Chrome une fois chargee.
+
+<Aside variant="caution">
+  Demarrez CyberStrike avant d'ouvrir le popup de l'extension. L'extension se connecte a l'API CyberStrike au demarrage.
+</Aside>
+
+## Configuration
+
+Ouvrez le popup de l'extension en cliquant sur l'icone de la barre d'outils.
+
+### URL du serveur
+
+L'extension se connecte a CyberStrike a :
+
+```
+http://127.0.0.1:4096
+```
+
+Modifiez cela dans le champ **URL du serveur** si vous executez CyberStrike sur une adresse ou un port different. Si vous utilisez un tunnel Cloudflare pour l'acces a distance, entrez l'URL du tunnel ici.
+
+### Portee
+
+Entrez le domaine cible dans le champ **Portee** :
+
+```
+shop.example.com
+```
+
+Seules les requetes dont le nom d'hote correspond a cette portee sont capturees. Les requetes vers d'autres domaines sont ignorees.
+
+Les caracteres generiques de sous-domaines sont pris en charge :
+
+```
+*.example.com
+```
+
+### Session
+
+Selectionnez une session existante dans le menu deroulant ou creez-en une nouvelle. Toutes les requetes capturees et le contexte decouvert sont stockes dans la session active.
+
+## Demarrer et arreter la capture
+
+Cliquez sur **Start** pour commencer l'interception du trafic. Le compteur de requetes s'incremente au fur et a mesure que l'extension capture les requetes correspondantes.
+
+Cliquez sur **Stop** pour mettre en pause la capture. La session reste active et CyberStrike continue de traiter les requetes en file d'attente.
+
+## Gestion des identifiants
+
+Les identifiants representent les identites d'utilisateurs authentifies. L'extension suit les en-tetes d'authentification par profil Chrome et associe chaque requete capturee a l'identifiant approprie.
+
+### Pourquoi les identifiants sont importants
+
+CyberStrike utilise les identifiants pour tester les vulnerabilites inter-utilisateurs :
+
+- **IDOR** — l'identifiant A peut-il acceder aux ressources de l'identifiant B ?
+- **Contournement d'autorisation** — un identifiant moins privilegie peut-il acceder aux endpoints necessitant des privileges superieurs ?
+- **Assignation en masse** — un utilisateur standard peut-il injecter des champs reserves aux administrateurs ?
+
+Plus vous enregistrez d'identifiants (admin, utilisateur standard, invite, etc.), plus la couverture des tests inter-utilisateurs est large.
+
+### Profils Chrome
+
+Les profils Chrome isolent les sessions de navigateur afin que vous puissiez etre connecte en tant que plusieurs utilisateurs simultanement. Chaque profil maintient ses propres cookies et stockage local.
+
+**Configuration :**
+
+1. Cliquez sur l'icone de votre profil dans le coin superieur droit de Chrome
+2. Cliquez sur **Ajouter** pour creer un nouveau profil pour chaque role utilisateur :
+   - `Admin`
+   - `Utilisateur standard`
+   - `Invite`
+3. Ouvrez l'application cible dans chaque profil et connectez-vous avec le compte correspondant
+4. Dans le popup CyberStrike, ajoutez un identifiant pour chaque profil (voir ci-dessous)
+
+### Ajouter un identifiant
+
+Dans le popup :
+
+1. Cliquez sur **Add Credential**
+2. Entrez un libelle descriptif — par exemple `admin-user` ou `regular-user`
+3. Selectionnez le profil Chrome lie a ce compte
+4. Cliquez sur **Save**
+
+L'identifiant est enregistre aupres de l'API CyberStrike. A partir de ce moment, les requetes capturees depuis ce profil sont automatiquement etiquetees avec l'ID d'identifiant.
+
+### Synchronisation automatique des en-tetes
+
+Lorsque l'extension detecte qu'un en-tete d'authentification a change dans un profil — par exemple apres un rafraichissement de token — elle synchronise automatiquement les en-tetes mis a jour vers l'identifiant. Vous n'avez pas besoin de mettre a jour manuellement les identifiants apres les rotations de tokens.
+
+### En-tetes d'authentification suivis
+
+L'extension surveille ces en-tetes pour le suivi des identifiants :
+
+| En-tete | Description |
+|---------|-------------|
+| `Authorization` | Tokens Bearer, authentification Basic |
+| `Cookie` | Cookies de session |
+| `X-Auth-Token` | Tokens d'authentification personnalises |
+| `X-API-Key` | Cles API |
+| `X-Access-Token` | Tokens d'acces OAuth |
+| `X-Session-Token` | Tokens de session |
+| `X-CSRF-Token` | Tokens CSRF |
+
+## Filtrage des requetes
+
+L'extension ignore automatiquement les ressources statiques pour reduire le bruit :
+
+| Categorie | Extensions |
+|-----------|-----------|
+| Images | `.png` `.jpg` `.jpeg` `.gif` `.svg` `.ico` `.webp` |
+| Feuilles de style et scripts | `.css` `.js` `.mjs` |
+| Polices | `.woff` `.woff2` `.ttf` `.eot` `.otf` |
+| Media | `.mp4` `.mp3` `.avi` `.mov` `.webm` |
+| Archives et documents | `.pdf` `.zip` `.gz` `.br` |
+| Source Maps | `.map` |
+
+Seules les requetes de niveau applicatif (appels API, soumissions de formulaires, navigations de pages) sont transmises.
+
+## Ce qui est envoye a l'API
+
+Pour chaque requete capturee, l'extension envoie un payload a `POST /session/ingest` :
+
+```json
+{
+  "text": "POST /api/orders HTTP/1.1\r\nHost: shop.example.com\r\nAuthorization: Bearer eyJ...\r\nContent-Type: application/json\r\n\r\n{\"item_id\": 42, \"qty\": 1}",
+  "sessionID": "session-abc123",
+  "credential_id": "web_credential-xyz789",
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": "{\"order_id\": 573, \"total\": 29.99, \"status\": \"pending\"}"
+  }
+}
+```
+
+Le champ `text` contient la requete HTTP brute complete. Le corps de la reponse est limite a 500 Ko par l'extension ; l'API le reduit ensuite a 100 Ko avant l'analyse.
+
+## Detection des doublons
+
+CyberStrike deduplique les requetes cote serveur. Une requete est ignoree si elle a la meme methode HTTP, le meme chemin normalise, la meme structure de corps et les memes cles de parametres de requete qu'une requete precedemment traitee. Cela empeche les tests redondants sur des endpoints identiques.
+
+## Panneau de contexte
+
+Le popup affiche le contexte que CyberStrike a accumule a travers toutes les requetes traitees :
+
+| Panneau | Contenu |
+|---------|---------|
+| **Identifiants** | Tous les identifiants enregistres et leurs roles associes |
+| **Roles** | Roles utilisateur decouverts lors de l'analyse |
+| **Objets** | Entites de donnees (Utilisateur, Commande, Produit) et leurs champs |
+| **Fonctions** | Associations endpoint-fonction avec types d'actions CRUD |
+
+Ce panneau est en lecture seule. CyberStrike le remplit progressivement au fur et a mesure qu'il traite plus de requetes.
+
+
+## Documentation connexe
+
+- [HackBrowser](/docs/tools/hacker-browser) - Crawler IA autonome — l'alternative automatisee

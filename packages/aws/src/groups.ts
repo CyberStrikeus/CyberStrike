@@ -1,0 +1,250 @@
+import type { CloudAnalysis } from "cyberstrike/public"
+
+export const CLOUD_GROUPS: CloudAnalysis.GroupDef[] = [
+  {
+    key: "identity",
+    label: "IAM & Identity",
+    analyst: "cloud-analyst-identity",
+    description:
+      "IAM users/roles/policies, trust relationships, permission boundaries, access keys, MFA status, SSO/Organizations. Foundation for all other groups.",
+    programs: [
+      "iam_enum",
+      "iam_deep_audit",
+      "identity_summary",
+      "role_trust_audit",
+      "service_linked_roles",
+      "iam_access_last_used",
+      "identity_provider_enum",
+      "sso_enum",
+      "sso_permission_audit",
+      "org_enum",
+      "organization_policy_enum",
+      "cognito_security_audit",
+      "group_membership_audit",
+      "permission_boundary_audit",
+      "service_recon",
+      "sts_enum",
+      "sts_session_audit",
+      "access_key_enum",
+      "iam_policy_simulation",
+      "cross_account_enum",
+      "password_spray_aws",
+    ],
+  },
+  {
+    key: "compute",
+    label: "Compute & Containers",
+    analyst: "cloud-analyst-compute",
+    description:
+      "EC2 instances, ECS clusters, EKS clusters, Lambda functions, SageMaker notebooks. Includes instance metadata, user data, security groups, container exec, lateral movement via compute.",
+    programs: [
+      "ec2_enum",
+      "ecs_enum",
+      "eks_enum",
+      "lambda_enum",
+      "sagemaker_enum",
+      "app_runner_enum",
+      "emr_enum",
+      "ecr_enum",
+      "ec2_user_data",
+      "metadata_harvest",
+      "ssm_exec",
+      "ssm_session",
+      "ecs_exec",
+      "eks_lateral",
+      "lightsail_exec",
+      "lambda_vpc_pivot",
+    ],
+  },
+  {
+    key: "network",
+    label: "Network & Exposure",
+    analyst: "cloud-analyst-network",
+    description:
+      "VPCs, security groups, NACLs, Route53, API Gateway, ELB/ALB, WAF, VPC peering, Transit Gateway. Public exposure and network pivot analysis.",
+    programs: [
+      "vpc_enum",
+      "route53_enum",
+      "elb_enum",
+      "apigw_enum",
+      "waf_enum",
+      "cfn_enum",
+      "acm_enum",
+      "transfer_family_enum",
+      "vpc_peering_enum",
+      "transit_gateway_enum",
+      "public_exposure_scan",
+    ],
+  },
+  {
+    key: "data",
+    label: "Data Stores",
+    analyst: "cloud-analyst-data",
+    description:
+      "S3 buckets, RDS/Aurora, DynamoDB, ElastiCache, Redshift, OpenSearch, EFS, KMS, Secrets Manager. Data exposure, encryption, exfiltration paths.",
+    programs: [
+      "s3_enum",
+      "rds_enum",
+      "dynamodb_enum",
+      "elasticache_enum",
+      "redshift_enum",
+      "opensearch_enum",
+      "efs_enum",
+      "secrets_manager_enum",
+      "kms_enum",
+      "athena_enum",
+      "athena_query",
+      "msk_enum",
+      "backup_vault_enum",
+      "s3_dump",
+      "rds_dump",
+      "dynamodb_dump",
+      "ebs_direct_read",
+      "secrets_dump",
+      "secrets_bulk_export",
+      "cloudwatch_logs_dump",
+      "codecommit_dump",
+      "ecr_dump",
+    ],
+  },
+  {
+    key: "serverless",
+    label: "Serverless & Integration",
+    analyst: "cloud-analyst-serverless",
+    description:
+      "SNS/SQS messaging, EventBridge, CodePipeline CI/CD, Step Functions, Cognito, SSM, CloudWatch. Secrets in env vars, trigger misconfigurations, CI/CD secret extraction.",
+    programs: [
+      "sns_sqs_enum",
+      "eventbridge_enum",
+      "codepipeline_enum",
+      "step_functions_enum",
+      "glue_enum",
+      "cognito_enum",
+      "ssm_enum",
+      "cloudwatch_enum",
+      "backup_enum",
+      "amplify_enum",
+      "lambda_env_harvest",
+      "ssm_parameter_mine",
+      "cfn_secret_extract",
+      "ci_cd_secret_extract",
+      "code_exec_lambda",
+      "sns_sqs_siphon",
+      "kinesis_tap",
+    ],
+  },
+  {
+    key: "privesc",
+    label: "Privilege Escalation",
+    analyst: "cloud-analyst-privesc",
+    description:
+      "IAM privilege escalation paths — automated scanning of 21+ Rhino Security vectors, PassRole abuse, role chaining, policy manipulation, SSM/EC2/Lambda/Glue/SageMaker escalation.",
+    programs: [
+      "auto_privesc_scan",
+      "iam_privesc",
+      "policy_version_rollback",
+      "role_chain",
+      "lambda_privesc",
+      "glue_privesc",
+      "cloudformation_privesc",
+      "ssm_privesc",
+      "ec2_privesc",
+      "permission_boundary_bypass",
+      "sagemaker_privesc",
+    ],
+  },
+  {
+    key: "persistence",
+    label: "Persistence & Credential Access",
+    analyst: "cloud-analyst-persistence",
+    description:
+      "Backdoor IAM users/roles, Lambda/EventBridge/SSM persistence, cross-account re-entry, credential harvesting from metadata/secrets/parameters/env vars.",
+    programs: [
+      "iam_backdoor",
+      "lambda_backdoor",
+      "eventbridge_backdoor",
+      "ssm_document_backdoor",
+      "codebuild_backdoor",
+      "ami_backdoor",
+      "cross_account_role",
+      "cognito_backdoor",
+      "ec2_instance_connect",
+      "ssm_state_manager",
+      "ecs_scheduled_task",
+      "metadata_harvest",
+      "access_key_enum",
+      "role_credential",
+      "federation_token",
+      "cognito_token",
+      "console_login",
+      "ecr_token",
+      "codecommit_cred",
+    ],
+  },
+  {
+    key: "compliance",
+    label: "CIS Compliance",
+    analyst: "cloud-analyst-compliance",
+    description:
+      "CIS AWS Foundations Benchmark — CloudTrail logging, password policy, root MFA, encryption at rest, VPC flow logs, S3/RDS public access, secret rotation, network segmentation.",
+    programs: [
+      "cis_benchmark",
+      "access_key_rotation",
+      "mfa_audit",
+      "password_policy_check",
+      "root_account_audit",
+      "encryption_audit",
+      "public_access_audit",
+      "logging_audit",
+      "network_segmentation_audit",
+      "data_classification_audit",
+      "backup_compliance_audit",
+      "iam_best_practices",
+      "vpc_flow_log_audit",
+      "s3_public_audit",
+      "rds_public_audit",
+      "secret_rotation_audit",
+      "account_security_audit",
+      "cloudtrail_enum",
+      "config_enum",
+      "guardduty_enum",
+      "security_hub_enum",
+      "inspector_enum",
+      "service_quota_audit",
+    ],
+  },
+  {
+    key: "exposure",
+    label: "Exposure Analysis",
+    analyst: "cloud-analyst-exposure",
+    description:
+      "Public-facing resources, internet-exposed endpoints, cross-service resource-based policies with external/wildcard access, stale permissions. Attack surface from the outside.",
+    programs: [
+      "public_exposure_scan",
+      "stale_permission_audit_recon",
+      "cross_service_policy_audit",
+      "public_ebs_snapshot_enum",
+      "public_rds_snapshot_enum",
+      "tag_compliance_audit",
+      "multi_region_scan",
+    ],
+  },
+]
+
+export function groupByKey(key: string): CloudAnalysis.GroupDef | undefined {
+  return CLOUD_GROUPS.find((g) => g.key === key)
+}
+
+export function groupByAnalyst(analyst: string): CloudAnalysis.GroupDef | undefined {
+  return CLOUD_GROUPS.find((g) => g.analyst === analyst)
+}
+
+export function identityGroup(): CloudAnalysis.GroupDef {
+  const g = CLOUD_GROUPS.find((g) => g.key === "identity")
+  if (!g) throw new Error("identity group not found in CLOUD_GROUPS")
+  return g
+}
+
+export function parallelGroups(): CloudAnalysis.GroupDef[] {
+  return CLOUD_GROUPS.filter((g) => g.key !== "identity")
+}

@@ -1,0 +1,126 @@
+import { describe, expect, test } from "bun:test"
+import { Hono } from "hono"
+import { SessionRoutes } from "../../src/server/routes/session"
+import { PageState } from "../../src/session/web/page-state"
+import { WebControl } from "../../src/session/web/control"
+import { Instance } from "../../src/project/instance"
+import { tmpdir } from "../fixture/fixture"
+
+// The /web/action "allow → relay" branch and the WS /web/control channel need a live WS
+// client, so they are NOT exercised here (WebControl unit tests cover send/ack). We test
+// observe → page-state, and the guard branches of /web/action (deny 403 / confirm 409 /
+// no-extension 503) via Hono app.request.
+async function withApp(fn: (app: Hono, sid: string) => Promise<void>) {
+  await using dir = await tmpdir({ git: true })
+  await Instance.provide({
+    directory: dir.path,
+    fn: async () => {
+      PageState._reset()
+      WebControl._reset()
+      await fn(new Hono().route("/session", SessionRoutes()), "s1")
+    },
+  })
+}
+const post = (app: Hono, path: string, body: unknown) =>
+  app.request(`/session/s1/web/${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+
+const clickables = [
+  { id: "e1", tag: "button", role: "", label: "Delete User", href: "" }, // destructive → confirm
+  { id: "e2", tag: "a", role: "", label: "Home", href: "/home" }, // nav → allow
+  { id: "e3", tag: "button", role: "", label: "Log out", href: "" }, // logout → deny
+]
+
+describe("POST /web/observe → GET /web/page-state", () => {
+  test("stores + annotates; page-state returns policies", async () => {
+    await withApp(async (app) => {
+      const res = await post(app, "observe", { url: "https://h/u", clickables })
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.kinds.destructive).toBe(1)
+      expect(body.kinds.logout).toBe(1)
+
+      const st = await (await app.request(`/session/s1/web/page-state?url=${encodeURIComponent("https://h/u")}`)).json()
+      const pol = Object.fromEntries(st.clickables.map((c: { id: string; policy: string }) => [c.id, c.policy]))
+      expect(pol).toEqual({ e1: "confirm", e2: "allow", e3: "deny" })
+    })
+  })
+  test("view filters clickables to a kind", async () => {
+    await withApp(async (app) => {
+      await post(app, "observe", { url: "https://h/u", clickables })
+      const st = await (await app.request(`/session/s1/web/page-state?url=${encodeURIComponent("https://h/u")}&view=nav`)).json()
+      expect(st.clickables.map((c: { id: string }) => c.id)).toEqual(["e2"])
+    })
+  })
+  test("re-observing the identical page is idempotent; a changed observation still updates (#18 dedup)", async () => {
+    await withApp(async (app) => {
+      const first = await (await post(app, "observe", { url: "https://h/u", clickables })).json()
+      expect(first.kinds.destructive).toBe(1)
+      // Same signature → server skips the work and answers 200 with empty kinds (a no-op re-observe).
+      const again = await post(app, "observe", { url: "https://h/u", clickables })
+      expect(again.status).toBe(200)
+      expect(await again.json()).toEqual({ ok: true, kinds: {} })
+      // The page-state still holds the first (identical) observation — the skip didn't drop it.
+      const stAgain = await (await app.request(`/session/s1/web/page-state?url=${encodeURIComponent("https://h/u")}`)).json()
+      expect(stAgain.clickables.map((c: { id: string }) => c.id)).toEqual(["e1", "e2", "e3"])
+      // A changed clickable set is a new signature → processed, page-state reflects it.
+      await post(app, "observe", { url: "https://h/u", clickables: [{ id: "e9", tag: "a", role: "", label: "Settings", href: "/settings" }] })
+      const st = await (await app.request(`/session/s1/web/page-state?url=${encodeURIComponent("https://h/u")}`)).json()
+      expect(st.clickables.map((c: { id: string }) => c.id)).toEqual(["e9"])
+    })
+  })
+  test("page-state for an unknown url → 404", async () => {
+    await withApp(async (app) => {
+      const res = await app.request("/session/s1/web/page-state?url=https://h/nope")
+      expect(res.status).toBe(404)
+    })
+  })
+
+  test("tech signals are fingerprinted on observe and surfaced in page-state (P2)", async () => {
+    await withApp(async (app) => {
+      await post(app, "observe", { url: "https://h/spa", clickables, tech: { globals: ["React"], scripts: ["/_next/x.js"] } })
+      const st = await (await app.request(`/session/s1/web/page-state?url=${encodeURIComponent("https://h/spa")}`)).json()
+      expect(st.tech.client).toContain("React")
+      expect(st.tech.metaFramework).toBe("Next.js")
+      expect(st.tech.rendering).toBe("spa")
+    })
+  })
+})
+
+describe("POST /web/action — guard enforcement", () => {
+  test("logout element is denied (403)", async () => {
+    await withApp(async (app) => {
+      await post(app, "observe", { url: "https://h/u", clickables })
+      const res = await post(app, "action", { op: "click", url: "https://h/u", element_id: "e3" })
+      expect(res.status).toBe(403)
+      expect((await res.json()).policy).toBe("deny")
+    })
+  })
+  test("destructive element needs confirmation (409)", async () => {
+    await withApp(async (app) => {
+      await post(app, "observe", { url: "https://h/u", clickables })
+      const res = await post(app, "action", { op: "click", url: "https://h/u", element_id: "e1" })
+      expect(res.status).toBe(409)
+      expect((await res.json()).policy).toBe("confirm")
+    })
+  })
+  test("allowed element with no extension connected → 503 (no-extension)", async () => {
+    await withApp(async (app) => {
+      await post(app, "observe", { url: "https://h/u", clickables })
+      const res = await post(app, "action", { op: "click", url: "https://h/u", element_id: "e2" })
+      expect(res.status).toBe(503)
+    })
+  })
+  test("navigate with no url → 400", async () => {
+    await withApp(async (app) => {
+      const res = await post(app, "action", { op: "navigate" })
+      expect(res.status).toBe(400)
+    })
+  })
+  test("click on unknown element → 404", async () => {
+    await withApp(async (app) => {
+      await post(app, "observe", { url: "https://h/u", clickables })
+      const res = await post(app, "action", { op: "click", url: "https://h/u", element_id: "nope" })
+      expect(res.status).toBe(404)
+    })
+  })
+})

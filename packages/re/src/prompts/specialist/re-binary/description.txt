@@ -1,0 +1,1 @@
+Native binary analyst — ELF/PE/Mach-O disassembly, symbol analysis, vulnerability patterns

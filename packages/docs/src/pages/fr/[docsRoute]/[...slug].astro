@@ -1,0 +1,106 @@
+---
+import { getCollection, render } from "astro:content";
+
+import CustomH1 from "@/docs/components/markdown-overrides/CustomH1.astro";
+import CustomH1Copy from "@/docs/components/markdown-overrides/CustomH1Copy.astro";
+import CustomH2 from "@/docs/components/markdown-overrides/CustomH2.astro";
+import CustomH2Copy from "@/docs/components/markdown-overrides/CustomH2Copy.astro";
+import CustomH3 from "@/docs/components/markdown-overrides/CustomH3.astro";
+import CustomH3Copy from "@/docs/components/markdown-overrides/CustomH3Copy.astro";
+import CustomH4 from "@/docs/components/markdown-overrides/CustomH4.astro";
+import CustomH4Copy from "@/docs/components/markdown-overrides/CustomH4Copy.astro";
+import CustomH5 from "@/docs/components/markdown-overrides/CustomH5.astro";
+import CustomH5Copy from "@/docs/components/markdown-overrides/CustomH5Copy.astro";
+import CustomH6 from "@/docs/components/markdown-overrides/CustomH6.astro";
+import CustomH6Copy from "@/docs/components/markdown-overrides/CustomH6Copy.astro";
+import ExternalLink from "@/docs/components/markdown-overrides/ExternalLink.astro";
+import { defaultLocale, siteSettings } from "@/docs/config/siteSettings.json";
+import { docsRoute } from "@/docs/js/docsUtils";
+import { filterCollectionByLanguage } from "@/docs/js/localeUtils";
+import { getLocalizedRoute, getTranslatedData } from "@/docs/js/translationUtils";
+import DocsLayout from "@/docs/layouts/DocsLayout.astro";
+
+export async function getStaticPaths() {
+  const docs = await getCollection("docs", ({ data }) => {
+    // filter out draft pages
+    return data.draft !== true;
+  });
+
+  // get rid of pages from other languages and remove locale from slug
+  const filteredDocs = filterCollectionByLanguage(docs, "fr");
+
+  const sidebarData = getTranslatedData("sidebarNavData", "fr");
+  const documentationTabs = sidebarData.tabs;
+
+  // replace any starting or ending slashes, then remove anything before the first slash remaining if necessary
+  const localizedDocsRoute = getLocalizedRoute("fr", docsRoute)
+    .replace(/^\/|\/$/g, "")
+    .replace(/^[^/]+\//, "");
+
+  // Create paths for each docs section
+  const paths: any[] = [];
+
+  // If documentation tabs are defined, use them to generate paths for each section
+  if (documentationTabs && documentationTabs.length > 0) {
+    for (const section of documentationTabs) {
+      // Filter docs by section
+      const sectionDocs = filteredDocs.filter((doc) => doc.data.section === section.id);
+
+      // Generate paths for this section
+      const sectionPaths = sectionDocs.map((doc) => {
+        return {
+          params: { docsRoute: localizedDocsRoute, slug: doc.id as string },
+          props: { doc, sectionId: section.id },
+        };
+      });
+
+      paths.push(...sectionPaths);
+    }
+  } else {
+    // Fallback to original behavior if no tabs are configured
+    const defaultPaths = filteredDocs.map((doc) => {
+      return {
+        params: { docsRoute: localizedDocsRoute, slug: doc.id as string },
+        props: { doc, sectionId: "main" },
+      };
+    });
+
+    paths.push(...defaultPaths);
+  }
+
+  return paths;
+}
+
+const { doc, sectionId = "main" } = Astro.props;
+const { Content, headings } = await render(doc);
+---
+
+<DocsLayout doc={doc} headings={headings} sectionId={sectionId}>
+  {
+    siteSettings.copyLinkButtons === false ? (
+      <Content
+        components={{
+          a: ExternalLink,
+          h1: CustomH1,
+          h2: CustomH2,
+          h3: CustomH3,
+          h4: CustomH4,
+          h5: CustomH5,
+          h6: CustomH6,
+        }}
+      />
+    ) : (
+      <Content
+        components={{
+          a: ExternalLink,
+          h1: CustomH1Copy,
+          h2: CustomH2Copy,
+          h3: CustomH3Copy,
+          h4: CustomH4Copy,
+          h5: CustomH5Copy,
+          h6: CustomH6Copy,
+        }}
+      />
+    )
+  }
+</DocsLayout>

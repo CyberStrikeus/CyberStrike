@@ -13,3 +13,7 @@ dummy-api/
 
 # Runtime feedback output from another tool — not part of the package
 FEEDBACK/
+
+# HackBrowser 2.0 — never commit real captured traffic (contains target URLs, tokens)
+*.har
+capture-dumps/

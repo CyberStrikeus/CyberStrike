@@ -1,0 +1,288 @@
+---
+/**
+ * * This is both the mobile and desktop nav
+ */
+import { getCollection } from "astro:content";
+import { Icon } from "astro-icon/components";
+
+import { siteSettings } from "@/docs/config/siteSettings.json";
+import {
+  docsRoute,
+  getOrderedSectionIds,
+  getSectionTitle,
+  getTabById,
+  getTabSections,
+} from "@/docs/js/docsUtils";
+import { filterCollectionByLanguage } from "@/docs/js/localeUtils";
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedRoute, getTranslatedData } from "@/docs/js/translationUtils";
+
+import SidebarLink from "./SidebarLink.astro";
+
+interface Props {
+  sectionId?: string;
+}
+
+const { sectionId = "main" } = Astro.props;
+const currLocale = getLocaleFromUrl(Astro.url);
+const sidebarData = getTranslatedData("sidebarNavData", currLocale);
+
+// Get localized documentation tabs based on current locale
+const sidebarTabs = sidebarData.tabs;
+// Get the current tab configuration
+const currentTab = getTabById(sectionId, currLocale);
+// Get sections for the current tab
+const currentTabSections = currentTab?.sections || [];
+
+// Get all non-draft docs
+const allDocs = await getCollection("docs", ({ data }) => {
+  return data.draft !== true;
+});
+
+// Map to store the first page URL for each section
+const firstPagesMap = new Map();
+
+// get rid of pages from other languages and remove locale from slug
+const filteredDocs = filterCollectionByLanguage(allDocs, currLocale);
+
+// Filter docs by their section property if documentation tabs are configured
+const sectionFilteredDocs = filteredDocs.filter((doc) => doc.data.section === sectionId);
+
+// Find the first page for each tab based on its ordered sections
+if (sidebarTabs) {
+  // For each tab (documentation section)
+  for (const tab of sidebarTabs) {
+    // Get all docs for this tab section
+    const tabDocs = filteredDocs.filter((doc) => doc.data.section === tab.id);
+
+    // Get the sections for this tab in their configured order
+    const tabSections = getTabSections(tab.id, currLocale);
+
+    // If we have configured sections and docs
+    if (tabSections && tabSections.length > 0 && tabDocs.length > 0) {
+      let firstPageFound = false;
+
+      // For each section in the config order
+      for (const section of tabSections) {
+        // Find docs in this section (top-level directory) and index file
+        const sectionDocs = tabDocs.filter((doc) => doc.id.startsWith(section.id + "/"));
+
+        // Find index files in this section (doc.id == section.id, like 'getting-started/index')
+        const indexDoc = tabDocs.find(
+          (doc) => doc.id === section.id || doc.id === `${section.id}/index`,
+        );
+
+        // If we have an index doc, use that as the first page
+        if (indexDoc) {
+          const firstPageUrl = `/${docsRoute}/${indexDoc.id}`;
+          firstPagesMap.set(tab.id, firstPageUrl);
+          firstPageFound = true;
+          break; // Exit loop once we've found the first page
+        }
+        // If we have other docs in this section
+        else if (sectionDocs.length > 0) {
+          // Sort the docs within this section
+          const sortedSectionDocs = [...sectionDocs].sort((a, b) => {
+            // If both have order, sort by order
+            if (a.data.sidebar?.order !== undefined && b.data.sidebar?.order !== undefined) {
+              return a.data.sidebar.order - b.data.sidebar.order;
+            }
+
+            // If only one has order, it comes first
+            if (a.data.sidebar?.order !== undefined) return -1;
+            if (b.data.sidebar?.order !== undefined) return 1;
+
+            // If neither has order, sort by title
+            return a.data.title.localeCompare(b.data.title);
+          });
+
+          // Use the first doc from the first section that has docs
+          const firstPageUrl = `/${docsRoute}/${sortedSectionDocs[0].id}`;
+          firstPagesMap.set(tab.id, firstPageUrl);
+          firstPageFound = true;
+          break; // Exit loop once we've found the first page
+        }
+      }
+
+      // If no docs found in any section, fall back to generic approach
+      if (!firstPageFound) {
+        // Sort all tab docs as a fallback
+        const sortedDocs = [...tabDocs].sort((a, b) => {
+          // If both have order, sort by order
+          if (a.data.sidebar?.order !== undefined && b.data.sidebar?.order !== undefined) {
+            return a.data.sidebar.order - b.data.sidebar.order;
+          }
+
+          // If only one has order, it comes first
+          if (a.data.sidebar?.order !== undefined) return -1;
+          if (b.data.sidebar?.order !== undefined) return 1;
+
+          // If neither has order, sort by title
+          return a.data.title.localeCompare(b.data.title);
+        });
+
+        if (sortedDocs.length > 0) {
+          const firstPageUrl = `/${docsRoute}/${sortedDocs[0].id}`;
+          firstPagesMap.set(tab.id, firstPageUrl);
+        } else {
+          // Fallback to section base route if no docs
+          firstPagesMap.set(tab.id, `/${docsRoute}`);
+        }
+      }
+    } else if (tabDocs.length > 0) {
+      // No sections configured but we have docs
+      // Use standard sorting logic as fallback
+      const sortedDocs = [...tabDocs].sort((a, b) => {
+        // If both have order, sort by order
+        if (a.data.sidebar?.order !== undefined && b.data.sidebar?.order !== undefined) {
+          return a.data.sidebar.order - b.data.sidebar.order;
+        }
+
+        // If only one has order, it comes first
+        if (a.data.sidebar?.order !== undefined) return -1;
+        if (b.data.sidebar?.order !== undefined) return 1;
+
+        // If neither has order, sort by title
+        return a.data.title.localeCompare(b.data.title);
+      });
+
+      const firstPageUrl = `/${docsRoute}/${sortedDocs[0].id}`;
+      firstPagesMap.set(tab.id, firstPageUrl);
+    } else {
+      // No docs and no sections or empty sections
+      firstPagesMap.set(tab.id, `/${docsRoute}`);
+    }
+  }
+}
+
+// Group docs by their top-level directory
+const docsBySection = sectionFilteredDocs.reduce(
+  (acc, doc) => {
+    // Get the top-level directory from the doc.id
+    const [section] = doc.id.split("/");
+    if (!acc[section]) {
+      acc[section] = [];
+    }
+
+    acc[section].push({
+      text: doc.data.sidebar?.label ? doc.data.sidebar.label : doc.data.title,
+      link: `/${docsRoute}/${doc.id}`,
+      order: doc.data.sidebar?.order,
+      badge: doc.data.sidebar?.badge,
+    });
+    return acc;
+  },
+  {} as Record<
+    string,
+    Array<{
+      text: string;
+      link: string;
+      order?: number;
+      label?: string;
+      badge?: { text: string; variant: "tip" | "caution" | "danger" | "info" };
+    }>
+  >,
+);
+
+// Get ordered section IDs from the current tab sections and create a Map for faster lookups
+const orderedSectionIds = currentTabSections.map((section) => section.id);
+const sectionIndexMap = new Map(orderedSectionIds.map((id, index) => [id, index]));
+
+// Sort sections according to the config order
+const sections = Object.keys(docsBySection).sort((a, b) => {
+  const aIndex = sectionIndexMap.get(a) ?? -1;
+  const bIndex = sectionIndexMap.get(b) ?? -1;
+
+  // If neither section is in the config, sort by translated titles
+  if (aIndex === -1 && bIndex === -1) {
+    return getSectionTitle(a, sectionId, currLocale).localeCompare(
+      getSectionTitle(b, sectionId, currLocale),
+      currLocale,
+    );
+  }
+
+  // Prioritize configured sections over unconfigured ones
+  return aIndex === -1 ? 1 : bIndex === -1 ? -1 : aIndex - bIndex;
+});
+
+// Sort docs within each section
+for (const section of sections) {
+  docsBySection[section].sort((a, b) => {
+    // If both items have an order, sort by order
+    if (a.order !== undefined && b.order !== undefined) {
+      return a.order - b.order;
+    }
+
+    // If only one has an order, it should come first
+    if (a.order !== undefined) return -1;
+    if (b.order !== undefined) return 1;
+
+    // If neither has an order, sort alphabetically
+    return a.text.localeCompare(b.text, currLocale, {
+      sensitivity: "base",
+      numeric: true,
+    });
+  });
+}
+---
+
+<nav class="space-y-8">
+  <slot name="before-links" />
+
+  {/* Documentation Tabs Selector */}
+  {
+    sidebarTabs && sidebarTabs.length > 1 && (
+      <div class="mb-6">
+        <nav aria-label="Documentation Sections" class="bg-muted/30 mr-4 rounded-md border p-2">
+          <ul class="space-y-1">
+            {sidebarTabs.map((section) => {
+              // Get the current URL path and determine if this section is active
+              const isActive = section.id === sectionId;
+
+              return (
+                <li>
+                  <a
+                    href={getLocalizedRoute(currLocale, firstPagesMap.get(section.id))}
+                    class:list={[
+                      "flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ]}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    {section.icon && (
+                      <Icon name={section.icon} class="size-4 shrink-0" aria-hidden="true" />
+                    )}
+                    <span class="flex-1">{section.title}</span>
+                    {section.description && <span class="sr-only">: {section.description}</span>}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+      </div>
+    )
+  }
+
+  {/* Section Content */}
+  <div id={`${sectionId}-content`} role="tabpanel">
+    {
+      sections.map((section) => (
+        <div class="mb-8">
+          <h2 class="mb-2 text-lg font-semibold md:text-base">
+            {getSectionTitle(section, sectionId, currLocale)}
+          </h2>
+          <ul class="space-y-2">
+            {docsBySection[section].map((doc) => (
+              <SidebarLink link={doc.link} text={doc.text} badge={doc.badge} />
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </div>
+
+  <slot name="after-links" />
+</nav>

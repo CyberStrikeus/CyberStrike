@@ -1,0 +1,14 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+type Props = HTMLAttributes<"div">;
+
+const dialogHeader = tv({ base: "flex flex-col space-y-2 text-center sm:text-left" });
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<div class={dialogHeader({ class: className })} {...rest}>
+  <slot />
+</div>

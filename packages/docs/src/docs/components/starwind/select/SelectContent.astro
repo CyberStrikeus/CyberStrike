@@ -1,0 +1,82 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+type Props = HTMLAttributes<"div"> & {
+  /**
+   * Side of the tooltip
+   * @default bottom
+   */
+  side?: "top" | "bottom";
+  /**
+   * Alignment of the dropdown
+   * @default start
+   */
+  align?: "start" | "center" | "end";
+  /**
+   * Offset distance in pixels
+   * @default 4
+   */
+  sideOffset?: number;
+  /**
+   * Open and close animation duration in milliseconds
+   * @default 150
+   */
+  animationDuration?: number;
+};
+
+const selectContent = tv({
+  base: [
+    "starwind-select-content",
+    "bg-popover text-popover-foreground absolute z-50 min-w-[8rem] rounded-md border shadow-md",
+    "data-[state=open]:animate-in fade-in zoom-in-95 overflow-hidden will-change-transform",
+    "data-[state=closed]:animate-out data-[state=closed]:fill-mode-forwards fade-out zoom-out-95",
+  ],
+  variants: {
+    side: {
+      bottom: "slide-in-from-top-2 slide-out-to-top-2 top-full",
+      top: "slide-in-from-bottom-2 slide-out-to-bottom-2 bottom-full",
+    },
+    align: {
+      start: "slide-in-from-left-1 slide-out-to-left-1 left-0",
+      center: "left-1/2 -translate-x-1/2",
+      end: "slide-in-from-right-1 slide-out-to-right-1 right-0",
+    },
+  },
+  defaultVariants: { side: "bottom", align: "start" },
+});
+
+const selectContentInner = tv({
+  base: "max-h-96 w-full min-w-(--select-trigger-width) overflow-y-auto p-1",
+});
+
+const {
+  class: className,
+  side = "bottom",
+  align = "start",
+  sideOffset = 4,
+  animationDuration = 150,
+  ...rest
+} = Astro.props;
+---
+
+<div
+  class={selectContent({ side, align, class: className })}
+  role="listbox"
+  data-side={side}
+  data-align={align}
+  data-state="closed"
+  tabindex="-1"
+  style={{
+    // hide the content initially. Script will remove this
+    display: "none",
+    animationDuration: `${animationDuration}ms`,
+    marginTop: side === "bottom" ? `${sideOffset}px` : undefined,
+    marginBottom: side === "top" ? `${sideOffset}px` : undefined,
+  }}
+  {...rest}
+>
+  <div class={selectContentInner()}>
+    <slot />
+  </div>
+</div>

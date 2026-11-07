@@ -13,8 +13,8 @@ import { PermissionNext } from "@/permission/next"
 import { Request } from "../session/request"
 import { CoverageNote } from "../session/coverage-note"
 import { WebCredential } from "../session/web/web-credential"
-import { Observation } from "../session/observation"
-import { renderAccessContextLines, resolveVisitedBy } from "../server/routes/session"
+import { WebInspect } from "../session/web/web-inspect"
+import { renderAccessContextLines } from "../server/routes/session"
 import { Truncate } from "./truncation"
 import { dispatchScopeViolation, dispatchOffLaneMessage } from "./vuln-scope"
 
@@ -28,6 +28,59 @@ import { dispatchScopeViolation, dispatchOffLaneMessage } from "./vuln-scope"
 // web_get_request_detail for the rare response that still exceeds this.
 const MAX_PREPEND_BYTES = 48 * 1024
 
+// Cap how many object-value ids we inline — the analytics/IDOR extractor can gather dozens; the
+// specialist needs the shape and a representative set, not an unbounded dump into every prompt.
+const MAX_OBJECT_VALUES = 20
+
+// Render the endpoint's accumulated retest-queue flags as a "Discovered Context" block: WHAT was
+// found plus WHAT the specialist should DO with it. Empty (no lines) when the endpoint has no
+// flags — so a plain request with nothing discovered adds nothing to the brief.
+function renderDiscoveredContextLines(sessionID: string, keyHash: string | undefined): string[] {
+  if (!keyHash) return []
+  const flags = WebInspect.getFlags(sessionID, keyHash)
+  if (!flags) return []
+  const creds = flags.credential ?? []
+  const roles = flags.role ?? []
+  const objects = flags.object_value ?? []
+  const signals = flags.signal ?? []
+  if (creds.length === 0 && roles.length === 0 && objects.length === 0 && signals.length === 0) return []
+
+  const lines = [
+    "",
+    "## Discovered Context (why this endpoint is queued — test with this)",
+    "Found on this endpoint since it was first captured. Each item below implies a concrete test — do it:",
+  ]
+  if (creds.length) {
+    lines.push(
+      `- Credentials available to replay as: ${creds.join(", ")}`,
+      "  → Replay this exact request under EACH credential (http_replay compare mode). The same object/data returned under a DIFFERENT identity = broken object-level access control (IDOR). Also try it with no credential (unauthenticated).",
+    )
+  }
+  if (roles.length) {
+    lines.push(
+      `- Roles seen holding access: ${roles.join(", ")}`,
+      "  → If a lower-privilege role can reach a higher-privilege action/function here, that is BFLA / privilege escalation.",
+    )
+  }
+  if (objects.length) {
+    const shown = objects.slice(0, MAX_OBJECT_VALUES)
+    const more = objects.length - shown.length
+    lines.push(
+      `- Object identifiers observed (IDOR fuel): ${shown.join(", ")}${more > 0 ? ` … (+${more} more)` : ""}`,
+      "  → Substitute these ids into this endpoint's id/path/param slots under one credential. A value you should NOT own that still resolves = IDOR.",
+    )
+  }
+  if (signals.length) {
+    // Flag values encode "signalType:ownerClass"; show the human half.
+    const named = signals.map((s) => (s.includes(":") ? `${s.split(":")[0]} (${s.split(":")[1]})` : s))
+    lines.push(
+      `- Weaknesses already auto-detected here: ${named.join(", ")}`,
+      "  → These were flagged by the signal fabric. Confirm and exploit them — don't spend effort re-discovering them.",
+    )
+  }
+  return lines
+}
+
 const parameters = z.object({
   description: z.string().describe("A short (3-5 words) description of the task"),
   prompt: z.string().describe("The task for the agent to perform"),
@@ -39,7 +92,15 @@ const parameters = z.object({
     )
     .optional(),
   command: z.string().describe("The command that triggered this task").optional(),
-  request_id: z.string().describe("Request ID to use as current request context (parent session).").optional(),
+  request_id: z
+    .string()
+    .describe(
+      "Request ID of the endpoint this task is about. ALWAYS pass it when the task concerns a specific " +
+        "captured request — it resolves which endpoint's request/credential/discovered-context is prepended " +
+        "to the subagent. Omitting it attaches nothing (or, if the target is ambiguous, could attach the wrong " +
+        "endpoint). Copy it from the web_get_session_context item you are dispatching for.",
+    )
+    .optional(),
   request_context: z.string().describe("Optional text to prepend before the task (e.g. extra context).").optional(),
 })
 
@@ -68,7 +129,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       if (!ctx.extra?.bypassAgentCheck) {
         // Dispatch lane guard (Phase 4): the orchestrator must route each test to
         // the specialist whose lane owns it. Bounce a confidently mis-routed
-        // proxy-tester dispatch (e.g. a rate-limiting task sent to business-logic)
+        // wstg-tester dispatch (e.g. a rate-limiting task sent to business-logic)
         // with a re-dispatch hint instead of spawning a wasted subagent. Domain
         // logic lives in vuln-scope; here we only enforce. Only autonomous dispatch
         // is constrained — explicit user @-invocation is bypassAgentCheck and skips.
@@ -141,7 +202,7 @@ export const TaskTool = Tool.define("task", async (ctx) => {
 
       // Inherit the caller's INTENDED model — its user-message model, NOT the
       // assistant message's model. The assistant model reflects the model actually
-      // run, which for a useSmallModel caller (orchestrator/analyzer) is already
+      // run, which for a useSmallModel caller (orchestrator) is already
       // downgraded; inheriting it would force every dispatched tester onto the
       // small tier too. The user message keeps the original tier. The subagent's
       // own useSmallModel downgrade (if any) is applied at run time in the
@@ -167,10 +228,18 @@ export const TaskTool = Tool.define("task", async (ctx) => {
       let prompt = params.prompt
       if (agent.prependRequestContext) {
         const requests = Request.get(ctx.sessionID)
-        const current =
-          (params.request_id ? requests.find((r) => r.id === params.request_id) : null) ??
-          requests.find((r) => r.status === "processing") ??
-          requests.sort((a, b) => b.time.updated - a.time.updated)[0]
+        // Resolve the endpoint this task is about — CONFIDENTLY, or not at all. A blind fallback to
+        // "any processing request" attached the WRONG endpoint's request/credential/flags whenever
+        // several requests were in flight (routine now that the inspection dispatcher fans out in parallel).
+        //   1. request_id passed        → use exactly that (the orchestrator is told to always pass it).
+        //   2. no id, EXACTLY ONE proc. → unambiguous, use it.
+        //   3. otherwise                → attach NO request block; tell the subagent to find its own target.
+        const processing = requests.filter((r) => r.status === "processing")
+        const current = params.request_id
+          ? requests.find((r) => r.id === params.request_id)
+          : processing.length === 1
+            ? processing[0]
+            : undefined
         const lines: string[] = []
         if (params.request_context?.trim()) lines.push(params.request_context.trim())
         if (current) {
@@ -220,19 +289,22 @@ export const TaskTool = Tool.define("task", async (ctx) => {
             lines.push("UNAUTHENTICATED (no credential associated with this request)")
           }
 
-          // Access Context — derive visited_by from observed values so Firefox
-          // traffic gains the legitimacy signal and hackbrowser gains full multi-cred set.
-          const visitedBy = resolveVisitedBy({
-            sessionID: Session.root(ctx.sessionID),
-            keyHash: current.key_hash,
-            captureVisitedBy: current.page_visited_by,
-          })
+          // Discovered Context — the retest-queue flags accumulated on THIS endpoint (key_hash).
+          // This is what makes the endpoint worth (re)testing: new identities/roles/object-ids/
+          // signals found since it was first seen. The specialist would otherwise have to cross-
+          // reference the session-wide queue itself, so inline it AND say what each flag means to
+          // do — a bare value list is useless if the agent doesn't know the action it implies.
+          lines.push(...renderDiscoveredContextLines(ctx.sessionID, current.key_hash))
+
+          // Access Context — present only when source is hackbrowser with
+          // UI crawling enrichment. Firefox extension data has all these
+          // fields null, so renderAccessContextLines returns [].
           lines.push(
             ...renderAccessContextLines({
               triggerElement: current.trigger_element,
               elementRoles: current.element_roles,
               pageUrl: current.page_url,
-              pageVisitedBy: visitedBy,
+              pageVisitedBy: current.page_visited_by,
               uiContext: current.ui_context,
             }),
           )
@@ -267,6 +339,24 @@ export const TaskTool = Tool.define("task", async (ctx) => {
               "```",
             )
           }
+        } else if (params.request_id) {
+          // An id was passed but nothing matches it — do NOT attach an arbitrary request (that is
+          // the wrong-endpoint bug). Say so, so the subagent locates the target itself.
+          lines.push(
+            "## Current request",
+            `⚠️ request_id "${params.request_id}" was passed but no captured request matches it, so no ` +
+              "request / credential / discovered-context could be attached. Call web_get_session_context and " +
+              "web_get_request_detail to locate the endpoint you were asked to test before concluding anything.",
+          )
+        } else {
+          // No id and the target is ambiguous (zero or several requests in flight) — attaching one
+          // would be a guess. Attach none and point the subagent at the tools to resolve it.
+          lines.push(
+            "## Current request",
+            "⚠️ No request_id was provided and the target endpoint is ambiguous, so no request context is " +
+              "attached. Call web_get_session_context to find the exact request_id you must test, then " +
+              "web_get_request_detail for its full request/response.",
+          )
         }
         if (lines.length > 0) prompt = lines.join("\n") + "\n\n" + prompt
       }

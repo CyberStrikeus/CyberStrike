@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CTF Reverse Engineering: DownUnderCTF Flag Checker — REA</title>
+    <meta
+      name="description"
+      content="Use REA to solve DownUnderCTF's masked squares flag checker. Find the checking functions, extract the masks and compare a recovered flag with the original program."
+    />
+    <!-- website:sharing:start -->
+    <!-- prettier-ignore -->
+    <link rel="canonical" href="https://rea.tools/showcase/ctf/" />
+    <!-- website:languages:start -->
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="en" href="https://rea.tools/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="zh-CN" href="https://rea.tools/zh-CN/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="zh-TW" href="https://rea.tools/zh-TW/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ja" href="https://rea.tools/ja/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ko" href="https://rea.tools/ko/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="tr" href="https://rea.tools/tr/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ru" href="https://rea.tools/ru/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="vi" href="https://rea.tools/vi/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="th" href="https://rea.tools/th/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="de" href="https://rea.tools/de/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="es" href="https://rea.tools/es/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="fr" href="https://rea.tools/fr/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="uk" href="https://rea.tools/uk/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="pl" href="https://rea.tools/pl/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="pt-BR" href="https://rea.tools/pt-BR/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ar" href="https://rea.tools/ar/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="fa" href="https://rea.tools/fa/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="id" href="https://rea.tools/id/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="it" href="https://rea.tools/it/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="el" href="https://rea.tools/el/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ml" href="https://rea.tools/ml/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ur-Latn" href="https://rea.tools/ur-Latn/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ro" href="https://rea.tools/ro/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="x-default" href="https://rea.tools/showcase/ctf/" />
+    <!-- website:languages:end -->
+    <!-- prettier-ignore -->
+    <meta property="og:type" content="website" />
+    <!-- prettier-ignore -->
+    <meta property="og:site_name" content="REA" />
+    <!-- prettier-ignore -->
+    <meta property="og:title" content="CTF Reverse Engineering: DownUnderCTF Flag Checker — REA" />
+    <!-- prettier-ignore -->
+    <meta property="og:description" content="Use REA to solve DownUnderCTF&#x27;s masked squares flag checker. Find the checking functions, extract the masks and compare a recovered flag with the original program." />
+    <!-- prettier-ignore -->
+    <meta property="og:url" content="https://rea.tools/showcase/ctf/" />
+    <!-- prettier-ignore -->
+    <meta property="og:image" content="https://rea.tools/assets/social-card.png" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:type" content="image/png" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:width" content="1200" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:height" content="630" />
+    <!-- prettier-ignore -->
+    <meta
+      property="og:image:alt"
+      content="REA: Find out how software works. Reverse engineering with your coding agent."
+    />
+    <!-- prettier-ignore -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- prettier-ignore -->
+    <meta name="twitter:title" content="CTF Reverse Engineering: DownUnderCTF Flag Checker — REA" />
+    <!-- prettier-ignore -->
+    <meta name="twitter:description" content="Use REA to solve DownUnderCTF&#x27;s masked squares flag checker. Find the checking functions, extract the masks and compare a recovered flag with the original program." />
+    <!-- prettier-ignore -->
+    <meta name="twitter:image" content="https://rea.tools/assets/social-card.png" />
+    <!-- prettier-ignore -->
+    <meta
+      name="twitter:image:alt"
+      content="REA: Find out how software works. Reverse engineering with your coding agent."
+    />
+    <!-- website:sharing:end -->
+    <!-- website:theme:start -->
+    <meta name="theme-color" content="#ffffff" />
+    <!-- Apply the saved theme before styles load, to avoid a flash on navigation. -->
+    <script src="../../assets/theme.js"></script>
+    <!-- website:theme:end -->
+    <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../assets/styles.css" />
+    <script src="../../assets/main.js" defer></script>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- website:header:start -->
+    <!-- prettier-ignore -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="../../" aria-label="REA home"
+          ><span class="brand-name">REA</span
+          ><span class="brand-caption" data-i18n-skip>Reverse Engineer Anything</span></a
+        >
+        <nav class="navigation" aria-label="Main navigation">
+          <a href="../../get-started/" class="nav-start">Get started</a>
+          <a href="../../showcase/" aria-current="page">Showcases</a>
+          <a href="../../blog/">Blog</a>
+          <a href="../../guides/">Guides</a>
+        </nav>
+        <div class="header-social">
+          <details class="language-picker" data-i18n-skip><summary><span aria-hidden="true">文 / A</span> <span>English</span></summary><nav aria-label="English"><a href="../../showcase/ctf/" lang="en" dir="ltr" data-language="en" aria-current="true">English</a><a href="../../zh-CN/showcase/ctf/" lang="zh-CN" dir="ltr" data-language="zh-CN">简体中文</a><a href="../../zh-TW/showcase/ctf/" lang="zh-TW" dir="ltr" data-language="zh-TW">繁體中文</a><a href="../../ja/showcase/ctf/" lang="ja" dir="ltr" data-language="ja">日本語</a><a href="../../ko/showcase/ctf/" lang="ko" dir="ltr" data-language="ko">한국어</a><a href="../../tr/showcase/ctf/" lang="tr" dir="ltr" data-language="tr">Türkçe</a><a href="../../ru/showcase/ctf/" lang="ru" dir="ltr" data-language="ru">Русский</a><a href="../../vi/showcase/ctf/" lang="vi" dir="ltr" data-language="vi">Tiếng Việt</a><a href="../../th/showcase/ctf/" lang="th" dir="ltr" data-language="th">ไทย</a><a href="../../de/showcase/ctf/" lang="de" dir="ltr" data-language="de">Deutsch</a><a href="../../es/showcase/ctf/" lang="es" dir="ltr" data-language="es">Español</a><a href="../../fr/showcase/ctf/" lang="fr" dir="ltr" data-language="fr">Français</a><a href="../../uk/showcase/ctf/" lang="uk" dir="ltr" data-language="uk">Українська</a><a href="../../pl/showcase/ctf/" lang="pl" dir="ltr" data-language="pl">Polski</a><a href="../../pt-BR/showcase/ctf/" lang="pt-BR" dir="ltr" data-language="pt-BR">Português (Brasil)</a><a href="../../ar/showcase/ctf/" lang="ar" dir="rtl" data-language="ar">العربية</a><a href="../../fa/showcase/ctf/" lang="fa" dir="rtl" data-language="fa">فارسی</a><a href="../../id/showcase/ctf/" lang="id" dir="ltr" data-language="id">Bahasa Indonesia</a><a href="../../it/showcase/ctf/" lang="it" dir="ltr" data-language="it">Italiano</a><a href="../../el/showcase/ctf/" lang="el" dir="ltr" data-language="el">Ελληνικά</a><a href="../../ml/showcase/ctf/" lang="ml" dir="ltr" data-language="ml">മലയാളം</a><a href="../../ur-Latn/showcase/ctf/" lang="ur-Latn" dir="ltr" data-language="ur-Latn">Roman Urdu</a><a href="../../ro/showcase/ctf/" lang="ro" dir="ltr" data-language="ro">Română</a></nav></details>
+          <button class="theme-toggle" type="button" data-theme-toggle hidden>
+            <svg class="theme-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M20.9 13a9 9 0 0 1-9.9-9.9A9 9 0 1 0 20.9 13Z" />
+            </svg>
+            <svg class="theme-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+            </svg>
+          </button>
+          <a
+            class="nav-github"
+            href="https://github.com/morluto/rea"
+            aria-label="REA on GitHub"
+            title="REA on GitHub"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+              />
+            </svg>
+            <span class="nav-github-count" hidden aria-hidden="true"></span>
+          </a>
+          <a
+            class="nav-discord"
+            href="https://discord.gg/GkcryMnJDM"
+            aria-label="Join REA on Discord"
+            title="Join REA on Discord"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286ZM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189Zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"
+              />
+            </svg>
+          </a>
+          <a
+            class="nav-x"
+            href="https://x.com/reatools"
+            aria-label="Follow REA on X"
+            title="Follow REA on X"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"
+              />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </header>
+    <!-- website:header:end -->
+    <main id="main" class="container">
+      <div class="page-heading">
+        <p class="breadcrumb">
+          <a href="../../">Home</a> / <a href="../">Showcases</a> / CTF
+        </p>
+        <p class="eyebrow">Case study · DownUnderCTF 2023</p>
+        <h1>Find the flag in<br />a CTF binary.</h1>
+        <p class="lede">
+          Use REA to inspect a small flag checker, turn its rules into equations
+          and find an input that makes the original program print
+          <code>Correct!</code>.
+        </p>
+        <p class="page-meta">
+          masked squares flag checker · Easy · Linux x86-64
+        </p>
+        <a
+          class="text-link"
+          href="https://github.com/DownUnderCTF/Challenges_2023_Public/tree/b48f83db2984bc7fa2ec7879a32d7efb1be8d333/rev/masked-squares-flag-checker"
+          >View the original challenge</a
+        >
+      </div>
+
+      <figure class="workflow-figure case-figure">
+        <p class="figure-title">From a binary to a checked answer</p>
+        <ol class="flow-steps">
+          <li>
+            <span class="flow-label">01 · Find the check</span
+            ><strong class="flow-node">Strings → checking functions</strong
+            ><span class="flow-note"
+              >REA finds the prompt, its references and the code that accepts or
+              rejects an input.</span
+            >
+          </li>
+          <li>
+            <span class="flow-label">02 · Extract the rules</span
+            ><strong class="flow-node">36 characters · 26 sums</strong
+            ><span class="flow-note"
+              >REA returns the instructions and data behind each check. The
+              agent turns them into equations.</span
+            >
+          </li>
+          <li>
+            <span class="flow-label">03 · Solve and run</span
+            ><strong class="flow-node">Recovered flag → Correct!</strong
+            ><span class="flow-note"
+              >A Python script solves the equations. REA captures the original
+              program accepting the result.</span
+            >
+          </li>
+        </ol>
+        <figcaption>
+          The challenge is by joseph, published in DownUnderCTF's official
+          repository.
+        </figcaption>
+      </figure>
+
+      <div class="article-layout">
+        <nav class="contents" aria-label="On this page">
+          <p>In this case study</p>
+          <ul>
+            <li><a href="#find">Find the checking code</a></li>
+            <li><a href="#mask">Read one mask</a></li>
+            <li><a href="#code">Assembly to readable code</a></li>
+            <li><a href="#solve">Solve the equations</a></li>
+            <li><a href="#verify">Check the answer</a></li>
+            <li><a href="#try">Try it yourself</a></li>
+          </ul>
+        </nav>
+        <article class="article" aria-label="CTF flag-checker case study">
+          <section class="article-section" id="find">
+            <h2>Find the checking code</h2>
+            <p>
+              The handout is a 15 KB executable. It asks for a flag, then prints
+              <code>Correct!</code> or <code>Incorrect!</code>. Start with a
+              simple request to your agent.
+            </p>
+            <div class="agent-terminal">
+              <div class="terminal-header">
+                <span class="terminal-title"
+                  ><span class="terminal-dots" aria-hidden="true"
+                    ><i></i><i></i><i></i></span
+                  >Your coding agent</span
+                >
+                <button
+                  class="copy-button"
+                  type="button"
+                  data-copy="ctf-prompt"
+                  aria-label="Copy CTF example prompt"
+                >
+                  Copy
+                </button>
+              </div>
+              <p class="terminal-prompt">
+                <span class="prompt-symbol" aria-hidden="true">›</span
+                ><span id="ctf-prompt"
+                  >Use REA to analyze ms_flag_checker and find the flag. Explain
+                  how the checks work, then verify the answer with the original
+                  program.</span
+                ><span class="terminal-cursor" aria-hidden="true"></span>
+              </p>
+            </div>
+            <p class="caption">
+              An example prompt, with the downloaded challenge available locally
+              and a native analysis provider connected.
+            </p>
+            <ol class="rea-queries">
+              <li>
+                <h4>Follow the input prompt to its function</h4>
+                <div class="rea-query-pair">
+                  <div class="code-block">
+                    <div class="code-header"><span>Agent → REA</span></div>
+                    <pre><code>open_binary
+{"path": "ms_flag_checker"}
+
+search_strings
+{"pattern": "flag|correct|wrong|input",
+ "mode": "regex", "case_sensitive": false}
+
+xrefs
+{"address": "0x102004"}
+
+resolve_containing_procedure
+{"address": "0x10126d"}</code></pre>
+                  </div>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span>REA → agent · selected results</span>
+                    </div>
+                    <pre><code>0x102004  "What is the flag? "
+0x10201c  "Incorrect!"
+0x102027  "Correct!"
+
+Prompt referenced at: 0x10126d
+Containing function: 0x10124d</code></pre>
+                  </div>
+                </div>
+                <p>
+                  The reference gives the agent a place to investigate, even
+                  though the executable's original function names have been
+                  removed.
+                </p>
+              </li>
+              <li>
+                <h4>Read the checker and its two helpers</h4>
+                <div class="rea-query-pair">
+                  <div class="code-block">
+                    <div class="code-header"><span>Agent → REA</span></div>
+                    <pre><code>analyze_function
+{"procedure": "0x10124d"}
+
+analyze_function
+{"procedure": "0x101189"}
+
+analyze_function
+{"procedure": "0x101217"}</code></pre>
+                  </div>
+                  <div class="code-block">
+                    <div class="code-header">
+                      <span>REA → agent · selected instructions</span>
+                    </div>
+                    <pre><code>0x1012c1: CMP EDI, 0x24
+0x1012c6: LEA RBX, [0x1040e0]
+0x1012cd: LEA RBP, [0x104060]
+0x1012d4: LEA R13, [RBX + 0x270]
+0x1012e1: CALL 0x00101189
+0x1012ec: CALL 0x00101217
+0x1012f1: CMP dword ptr [RBP], EAX
+0x1012f4: JNZ 0x00101335
+0x1012f6: ADD RBX, 0x18</code></pre>
+                  </div>
+                </div>
+                <p>
+                  The first loop copies 36 character codes. The checking loop
+                  decodes a mask, sums the selected codes and compares the
+                  result with a stored number. Its <code>0x18</code>-byte steps
+                  across <code>0x270</code> bytes give 26 masks.
+                </p>
+              </li>
+            </ol>
+            <p class="caption">
+              These are selected results from a fresh REA analysis. The local
+              target path is shortened for display; addresses refer to REA's
+              imported image.
+            </p>
+          </section>
+
+          <section class="article-section" id="mask">
+            <h2>One check reveals one character</h2>
+            <p>
+              The checker arranges the input in a 6×6 grid. A mask chooses which
+              cells contribute to a sum. Its compact encoding uses negative
+              numbers to skip cells and positive numbers to select them.
+            </p>
+            <figure class="explanatory-figure ctf-mask-figure">
+              <div
+                class="figure-viewport"
+                tabindex="0"
+                role="region"
+                aria-label="CTF mask equation; scroll horizontally on smaller screens"
+              >
+                <img
+                  src="../../assets/figures/ctf-mask-equation.svg"
+                  width="760"
+                  height="475"
+                  alt="The seventh mask skips 21 cells, selects position 21, then skips 14. Only that cell contributes to the sum. Its required character code is 55, which means the character is 7."
+                  decoding="async"
+                />
+              </div>
+              <figcaption>
+                The seventh check selects just one position.
+                <a href="../../assets/figures/ctf-mask-equation.svg"
+                  >Open figure</a
+                >.
+              </figcaption>
+            </figure>
+            <h3 class="small-heading">
+              Read the mask and its target from the binary
+            </h3>
+            <div class="rea-query-pair">
+              <div class="code-block">
+                <div class="code-header">
+                  <span>Agent → REA · read_bytes</span>
+                </div>
+                <pre><code>{"address": "0x1040e0", "length": 624}
+{"address": "0x104060", "length": 144}</code></pre>
+              </div>
+              <div class="code-block">
+                <div class="code-header">
+                  <span>REA → agent · seventh entries</span>
+                </div>
+                <pre><code>Mask at 0x104170:
+eb 01 f2 00  →  -21, +1, -14, stop
+
+Target at 0x104078:
+37 00 00 00  →  55</code></pre>
+              </div>
+            </div>
+            <p>
+              The instruction <code>MOVSX</code> reads mask bytes as signed
+              values. This is why <code>eb</code> means −21. The target is a
+              little-endian integer. Together, these bytes tell the agent that
+              <code>code[21] = 55</code>, so that character is <code>7</code>.
+            </p>
+          </section>
+
+          <section class="article-section" id="code">
+            <h2>From instructions to a readable check</h2>
+            <p>
+              Select a step to connect the summing helper and its caller to the
+              same rule in C.
+            </p>
+            <div class="step-comparison" data-step-comparison>
+              <div
+                class="step-selector"
+                role="group"
+                aria-label="Follow the CTF check"
+              >
+                <button
+                  type="button"
+                  data-select-step="1"
+                  aria-pressed="true"
+                  aria-controls="ctf-assembly ctf-check ctf-step-detail"
+                >
+                  <span>01</span> Start
+                </button>
+                <button
+                  type="button"
+                  data-select-step="2"
+                  aria-pressed="false"
+                  aria-controls="ctf-assembly ctf-check ctf-step-detail"
+                >
+                  <span>02</span> Select
+                </button>
+                <button
+                  type="button"
+                  data-select-step="3"
+                  aria-pressed="false"
+                  aria-controls="ctf-assembly ctf-check ctf-step-detail"
+                >
+                  <span>03</span> Add
+                </button>
+                <button
+                  type="button"
+                  data-select-step="4"
+                  aria-pressed="false"
+                  aria-controls="ctf-assembly ctf-check ctf-step-detail"
+                >
+                  <span>04</span> Advance
+                </button>
+                <button
+                  type="button"
+                  data-select-step="5"
+                  aria-pressed="false"
+                  aria-controls="ctf-assembly ctf-check ctf-step-detail"
+                >
+                  <span>05</span> Compare
+                </button>
+              </div>
+              <div class="code-comparison">
+                <div class="code-block">
+                  <div class="code-header">
+                    <span>REA · selected original instructions</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="ctf-assembly"
+                      aria-label="Copy CTF assembly"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="ctf-assembly"><span class="code-step is-active" data-step="1">0x10121c: MOV ECX, 0x0</span>
+
+<span class="code-step" data-step="2">0x10122c: CMP dword ptr [RSI + RAX*0x1], 0x0
+0x101230: JZ 0x00101223</span>
+
+<span class="code-step" data-step="3">0x101232: ADD ECX, dword ptr [RDI + RAX*0x1]</span>
+
+<span class="code-step" data-step="4">0x101223: ADD RAX, 0x4</span>
+
+<span class="code-step" data-step="5">0x1012f1: CMP dword ptr [RBP], EAX
+0x1012f4: JNZ 0x00101335</span></code></pre>
+                </div>
+                <div class="code-block">
+                  <div class="code-header">
+                    <span>Readable C · one-check summary</span
+                    ><button
+                      class="copy-button"
+                      type="button"
+                      data-copy="ctf-check"
+                      aria-label="Copy readable CTF check"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                  <pre><code id="ctf-check">int check_one_mask(const int codes[36],
+                   const int mask[36],
+                   int target) {
+<span class="code-step is-active" data-step="1">    int total = 0;</span>
+<span class="code-step" data-step="4">    for (int i = 0; i &lt; 36; ++i) {</span>
+<span class="code-step" data-step="2">        if (mask[i]) {</span>
+<span class="code-step" data-step="3">            total += codes[i];</span>
+        }
+    }
+<span class="code-step" data-step="5">    return total == target;</span>
+}</code></pre>
+                </div>
+              </div>
+              <div
+                class="step-detail"
+                id="ctf-step-detail"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                <p data-step-note="1">
+                  <strong>01 · Start at zero.</strong> <code>ECX</code> holds
+                  the running sum.
+                </p>
+                <p data-step-note="2" hidden>
+                  <strong>02 · Check the mask cell.</strong> A zero value skips
+                  the character; a nonzero value includes it.
+                </p>
+                <p data-step-note="3" hidden>
+                  <strong>03 · Add a character code.</strong> The input's
+                  integer at the same offset is added to the sum.
+                </p>
+                <p data-step-note="4" hidden>
+                  <strong>04 · Move to the next cell.</strong> The original loop
+                  advances four bytes per integer and visits six rows of six
+                  cells.
+                </p>
+                <p data-step-note="5" hidden>
+                  <strong>05 · Compare with the stored target.</strong> The
+                  caller receives the sum in <code>EAX</code>. A mismatch jumps
+                  to <code>Incorrect!</code>.
+                </p>
+              </div>
+            </div>
+            <p class="caption">
+              The instructions come from the summing helper and its caller. The
+              C is an explanatory summary with descriptive names and a flattened
+              36-cell loop.
+            </p>
+          </section>
+
+          <section class="article-section" id="solve">
+            <h2>Solve the 26 equations</h2>
+            <p>
+              Most masks select several cells. For example, the first check adds
+              16 character codes and requires a total of 1441. The overlapping
+              selections give equations that a small Python script can solve
+              together.
+            </p>
+            <div class="code-block">
+              <div class="code-header">
+                <span>Python · solver excerpt</span
+                ><button
+                  class="copy-button"
+                  type="button"
+                  data-copy="ctf-solver-excerpt"
+                  aria-label="Copy CTF solver excerpt"
+                >
+                  Copy
+                </button>
+              </div>
+              <pre><code id="ctf-solver-excerpt">from z3 import Int, Or, Solver, Sum, sat
+
+codes = [Int(f"code_{i}") for i in range(36)]
+solver = Solver()
+alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_{}"
+for code in codes:
+    solver.add(Or(*[code == ord(c) for c in alphabet]))
+for code, char in zip(codes, "DUCTF{"):
+    solver.add(code == ord(char))
+solver.add(codes[-1] == ord("}"))
+
+for selected, target in checks:
+    solver.add(Sum([codes[i] for i in selected]) == target)
+
+assert solver.check() == sat
+model = solver.model()
+print("".join(chr(model.eval(code).as_long()) for code in codes))</code></pre>
+            </div>
+            <p class="caption">
+              Z3 is a solver that finds values satisfying these equations. This
+              excerpt uses the extracted checks and assumes a
+              <code>DUCTF{…}</code> flag with letters, digits, underscores and
+              braces. The complete download includes all 26 masks and targets.
+            </p>
+            <a class="text-link" href="solve.py" download="solve.py"
+              >Download the complete solver</a
+            >
+          </section>
+
+          <section class="article-section" id="verify">
+            <h2>Check the answer with the original program</h2>
+            <p>
+              REA's process capture records the original executable accepting
+              the solved flag. Changing one selected character from
+              <code>z</code> to <code>y</code> makes the first sum 1440 instead
+              of 1441, and the program rejects it.
+            </p>
+            <div class="evidence-table-wrap">
+              <table class="evidence-table">
+                <thead>
+                  <tr>
+                    <th>Input</th>
+                    <th>Observed output</th>
+                    <th>Exit code</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Solver's flag</td>
+                    <td><code>Correct!</code></td>
+                    <td>0</td>
+                  </tr>
+                  <tr>
+                    <td>One character changed</td>
+                    <td><code>Incorrect!</code></td>
+                    <td>255</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <details class="evidence-details">
+              <summary>Show the recovered flag and captured output</summary>
+              <div class="code-block">
+                <div class="code-header">
+                  <span>REA · original program output</span
+                  ><button
+                    class="copy-button"
+                    type="button"
+                    data-copy="ctf-flag"
+                    aria-label="Copy recovered flag"
+                  >
+                    Copy flag
+                  </button>
+                </div>
+                <pre><code>What is the flag? <span id="ctf-flag">DUCTF{ezzzpzzz_07bcda7bfe81faf43caa}</span>
+Correct!</code></pre>
+              </div>
+              <p>
+                The recovered value also matches the flag in the organizers'
+                published challenge metadata, checked after solving the binary.
+              </p>
+            </details>
+            <details class="evidence-details">
+              <summary>Source, target identity and analysis details</summary>
+              <p>
+                Fresh analysis and two process captures on 8 October 2026, using
+                REA 4.1.0 with Ghidra 12.1.4 on Linux x64. The binary is a
+                stripped x86-64 ELF, 15,248 bytes.
+              </p>
+              <div class="code-block">
+                <div class="code-header">
+                  <span>Original executable · SHA-256</span>
+                </div>
+                <pre><code>dcd3bec4f608e11f3a12ce461100aaf5f621851ee63a1f870d7c90d4e3dd51ae</code></pre>
+              </div>
+              <p>
+                The string references, functions and constants were inspected
+                before reading the organizers' source or solution. The Python
+                solver and the diagram were built from those REA results.
+              </p>
+              <p>
+                <a
+                  href="https://github.com/DownUnderCTF/Challenges_2023_Public/blob/b48f83db2984bc7fa2ec7879a32d7efb1be8d333/rev/masked-squares-flag-checker/src/ms_flag_checker.c"
+                  >Compare with the organizers' source</a
+                >
+                ·
+                <a
+                  href="https://github.com/DownUnderCTF/Challenges_2023_Public/blob/b48f83db2984bc7fa2ec7879a32d7efb1be8d333/rev/masked-squares-flag-checker/ctfcli.yaml"
+                  >Challenge metadata and flag</a
+                >
+                ·
+                <a
+                  href="https://github.com/morluto/rea/blob/main/website/evidence/ctf-masked-squares.md"
+                  >REA evidence notes</a
+                >
+              </p>
+            </details>
+          </section>
+
+          <section class="article-section" id="try">
+            <h2>Try it yourself</h2>
+            <p>
+              Download the original challenge and the solver into one folder.
+              Use the prompt above to investigate with your agent, or run the
+              included script.
+            </p>
+            <div class="actions">
+              <a
+                class="button"
+                href="https://raw.githubusercontent.com/DownUnderCTF/Challenges_2023_Public/b48f83db2984bc7fa2ec7879a32d7efb1be8d333/rev/masked-squares-flag-checker/publish/ms_flag_checker"
+                >Download the original challenge</a
+              ><a class="text-link" href="solve.py" download="solve.py"
+                >Download solver</a
+              >
+            </div>
+            <div class="code-block">
+              <div class="code-header">
+                <span>Terminal · solve and run</span
+                ><button
+                  class="copy-button"
+                  type="button"
+                  data-copy="ctf-run"
+                  aria-label="Copy CTF solver commands"
+                >
+                  Copy
+                </button>
+              </div>
+              <pre><code id="ctf-run">python3 -m venv .venv
+.venv/bin/python -m pip install z3-solver
+.venv/bin/python solve.py
+
+chmod +x ms_flag_checker
+./ms_flag_checker</code></pre>
+            </div>
+            <p class="caption">
+              The script prints a candidate flag; paste it at the program's
+              prompt. Solving needs Python and <code>z3-solver</code>. Running
+              the original executable needs Linux x86-64.
+            </p>
+            <a class="text-link" href="../../get-started/"
+              >Set up REA with your coding agent</a
+            >
+          </section>
+        </article>
+      </div>
+    </main>
+    <!-- website:footer:start -->
+    <!-- prettier-ignore -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>REA · Reverse Engineer Anything</p>
+        <div class="footer-links">
+          <a href="../../faq/">FAQ</a
+          ><a href="../../contributors/">Contributors</a
+          ><a href="https://github.com/morluto/rea">Source</a
+          ><a href="https://github.com/morluto/rea/blob/main/LICENSE">MIT license</a
+          ><a href="https://discord.gg/GkcryMnJDM">Join the community</a
+          ><a href="https://x.com/reatools">Follow us on X</a>
+        </div>
+      </div>
+    </footer>
+    <p class="sr-only" id="copy-status" role="status" aria-live="polite"></p>
+    <a class="back-to-top" href="#top" aria-label="Back to top">
+      <span aria-hidden="true">↑</span> Top
+    </a>
+    <!-- website:footer:end -->
+  </body>
+</html>

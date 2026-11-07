@@ -1,0 +1,276 @@
+stages:
+  - version
+  - build
+  - release
+  - publish
+  - deploy
+
+variables:
+  BUN_VERSION: "1.3.9"
+  FF_USE_FASTZIP: "true"
+
+default:
+  cache:
+    key: bun-$CI_COMMIT_REF_SLUG
+    paths:
+      - node_modules/
+      - .turbo/
+    policy: pull-push
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - packages/docs/**/*
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+
+# ── Stage 0: deploy docs (on push, path-filtered) ───────────────────────────
+
+deploy-docs:
+  stage: deploy
+  image: alpine:3.21
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - packages/docs/**/*
+  script:
+    - apk add --no-cache curl
+    - |
+      if [ -z "$COOLIFY_WEBHOOK" ]; then
+        echo "COOLIFY_WEBHOOK not set, skipping"
+        exit 0
+      fi
+      curl -fsSL "$COOLIFY_WEBHOOK" || echo "Coolify webhook failed (non-fatal)"
+  needs: []
+
+# ── Stage 1: calculate version ────────────────────────────────────────────────
+# On tag push: extract version from the tag name (v2.0.0-canary.2 → 2.0.0-canary.2)
+# On manual/api: use VERSION/BUMP variables
+
+version:
+  stage: version
+  image: oven/bun:1.3.9-debian
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+  script:
+    - bun install --frozen-lockfile
+    - |
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        # Tag push — extract version directly from tag
+        TAG_VERSION="${CI_COMMIT_TAG#v}"
+        echo "CYBERSTRIKE_VERSION=${TAG_VERSION}" > version.env
+        # Derive channel from tag (v1.2.3-canary.1 → canary, v1.2.3-beta.1 → beta, v1.2.3 → latest)
+        case "$TAG_VERSION" in
+          *-canary.*) echo "CYBERSTRIKE_CHANNEL=canary" >> version.env ;;
+          *-beta.*)   echo "CYBERSTRIKE_CHANNEL=beta" >> version.env ;;
+          *)          echo "CYBERSTRIKE_CHANNEL=latest" >> version.env ;;
+        esac
+        cat version.env
+      else
+        export CYBERSTRIKE_BUMP="${BUMP:-canary}"
+        export CYBERSTRIKE_VERSION="${VERSION:-}"
+        bun run ./script/version-ci.ts
+      fi
+  artifacts:
+    reports:
+      dotenv: version.env
+
+# ── Stage 2: build web UI + CLI binaries (parallel) ──────────────────────────
+
+build-app:
+  stage: build
+  image: oven/bun:1.3.9-debian
+  needs: [version]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+  script:
+    - bun install --frozen-lockfile
+    - CYBERSTRIKE_VERSION=$CYBERSTRIKE_VERSION bun turbo build --filter=@cyberstrike-io/app
+  artifacts:
+    paths:
+      - packages/app/dist/
+    expire_in: 1 hour
+
+build-cli:
+  stage: build
+  image: oven/bun:1.3.9-debian
+  needs: [version]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+  script:
+    - bun install --frozen-lockfile
+    - |
+      OTUI_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@opentui/core'])")
+      PW_VER=$(bun -e "console.log(require('./packages/cyberstrike/package.json').dependencies['@parcel/watcher'])")
+      echo "opentui=$OTUI_VER parcel/watcher=$PW_VER"
+      bun install --os="*" --cpu="*" \
+        @opentui/core@$OTUI_VER \
+        @opentui/core-darwin-x64@$OTUI_VER \
+        @opentui/core-darwin-arm64@$OTUI_VER \
+        @opentui/core-linux-x64@$OTUI_VER \
+        @opentui/core-linux-arm64@$OTUI_VER \
+        @opentui/core-win32-x64@$OTUI_VER \
+        @opentui/core-win32-arm64@$OTUI_VER \
+        @parcel/watcher@$PW_VER
+    - echo "version=${CYBERSTRIKE_VERSION:-<unset>} channel=${CYBERSTRIKE_CHANNEL:-<unset>}"
+    - |
+      export CYBERSTRIKE_RELEASE=""
+      export CYBERSTRIKE_BUMP="${BUMP:-canary}"
+      bun run ./packages/cyberstrike/script/build.ts --skip-install
+  artifacts:
+    paths:
+      - packages/cyberstrike/dist/
+    expire_in: 1 hour
+
+# ── Stage 3: package archives, upload to registry, create GitLab Release ─────
+
+release:
+  stage: release
+  image: alpine:3.21
+  needs: [version, build-cli, build-app]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+  script:
+    - apk add --no-cache zip tar curl jq
+    - mkdir -p archives
+    - |
+      ROOT=$(pwd)
+      for dir in packages/cyberstrike/dist/cyberstrike-*/; do
+        name=$(basename "$dir")
+        # Pack extension, web UI and skills INTO bin/ so the flat archive has
+        # everything beside the binary — defaultExtensionPath() checks there first.
+        if [ -d "$dir/extension" ]; then
+          cp -r "$dir/extension" "$dir/bin/extension"
+        fi
+        if [ -d packages/app/dist ]; then
+          cp -r packages/app/dist "$dir/bin/web"
+        fi
+        if [ -d .cyberstrike/skill ]; then
+          cp -r .cyberstrike/skill "$dir/bin/skill"
+        fi
+        if echo "$name" | grep -q "linux"; then
+          tar -czf "$ROOT/archives/${name}.tar.gz" -C "$dir/bin" .
+        else
+          ( cd "$dir/bin" && zip -r "$ROOT/archives/${name}.zip" . )
+        fi
+      done
+    - ls -lh archives/
+    - |
+      REGISTRY="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/cyberstrike/${CYBERSTRIKE_VERSION}"
+      LINKS=""
+      for file in archives/*; do
+        fname=$(basename "$file")
+        echo "Uploading $fname..."
+        curl --fail --retry 5 --retry-delay 5 --retry-all-errors \
+          --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+          --upload-file "$file" \
+          "${REGISTRY}/${fname}"
+        url="${REGISTRY}/${fname}"
+        LINKS="${LINKS}{\"name\":\"${fname}\",\"url\":\"${url}\",\"link_type\":\"package\"},"
+      done
+      LINKS="[${LINKS%,}]"
+      echo "$LINKS" > links.json
+    - |
+      TAG="v${CYBERSTRIKE_VERSION}"
+      LINKS=$(cat links.json)
+      BODY=$(cat <<EOFBODY
+      ## CyberStrike v${CYBERSTRIKE_VERSION}
+
+      ### Platforms
+
+      - **macOS**: darwin-arm64, darwin-x64, darwin-x64-baseline
+      - **Linux**: linux-arm64, linux-arm64-musl, linux-x64, linux-x64-baseline, linux-x64-musl, linux-x64-baseline-musl
+      - **Windows**: windows-x64, windows-x64-baseline
+
+      ### Install
+
+      Download the archive for your platform and extract:
+
+      macOS/Linux:
+      \`\`\`
+      tar xzf cyberstrike-linux-x64.tar.gz  # or unzip for .zip
+      chmod +x cyberstrike
+      ./cyberstrike
+      \`\`\`
+
+      Windows (PowerShell):
+      \`\`\`
+      Expand-Archive cyberstrike-windows-x64.zip
+      .\cyberstrike.exe
+      \`\`\`
+      EOFBODY
+      )
+      PAYLOAD=$(jq -n \
+        --arg tag "$TAG" \
+        --arg name "CyberStrike $TAG" \
+        --arg desc "$BODY" \
+        --arg ref "$CI_COMMIT_SHA" \
+        --argjson links "$LINKS" \
+        '{tag_name: $tag, name: $name, description: $desc, ref: $ref, assets: {links: $links}}')
+      curl --fail --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
+        --header "Content-Type: application/json" \
+        --data "$PAYLOAD" \
+        "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/releases"
+    - echo "Release v${CYBERSTRIKE_VERSION} created"
+
+# ── Stage 4: publish to GitLab npm registry ──────────────────────────────────
+
+publish-gitlab:
+  stage: publish
+  image: oven/bun:1.3.9-debian
+  needs: [version, build-cli, build-app]
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
+    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: $CI_PIPELINE_SOURCE == "api"
+    - if: $CI_PIPELINE_SOURCE == "trigger"
+  script:
+    - apt-get update -qq && apt-get install -y -qq jq npm > /dev/null
+    - bun install --frozen-lockfile
+    - |
+      NPM_REGISTRY="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/npm/"
+      echo "@cyberstrike-io:registry=${NPM_REGISTRY}" > ~/.npmrc
+      echo "//${CI_SERVER_HOST}/api/v4/projects/${CI_PROJECT_ID}/packages/npm/:_authToken=${CI_JOB_TOKEN}" >> ~/.npmrc
+    - |
+      export CYBERSTRIKE_VERSION
+      export CYBERSTRIKE_RELEASE=""
+      export CYBERSTRIKE_BUMP="${BUMP:-canary}"
+      export NPM_CONFIG_PROVENANCE=false
+      export CYBERSTRIKE_NPM_TAG="${CYBERSTRIKE_CHANNEL:-canary}"
+      bun run ./script/publish-ci.ts
+
+# ── Stage 5: publish to npmjs.org (manual, blocked until appeal resolved) ────
+
+publish-npmjs:
+  stage: publish
+  image: node:24-bookworm
+  needs: [version, build-cli, build-app]
+  rules:
+    - when: manual
+      allow_failure: true
+  script:
+    - corepack enable
+    - npm install -g bun@${BUN_VERSION}
+    - bun install --frozen-lockfile
+    - echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+    - |
+      export CYBERSTRIKE_VERSION
+      export CYBERSTRIKE_RELEASE=""
+      export CYBERSTRIKE_BUMP="${BUMP:-canary}"
+      export NPM_CONFIG_PROVENANCE=false
+      bun run ./script/publish-ci.ts

@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="263" viewBox="0 0 960 263" role="img" aria-labelledby="title desc">
+  <title id="title">REA showcases</title>
+  <desc id="desc">Three illustrations. A brick-breaker screen with a speaker on each side stands for the DX-Ball sound-pan showcase. A browser window joined by a wire to a clipboard stands for the Notion clipboard-bridge showcase. A ring of 24 dots with one orange dot around a dark centre stands for the TH04 bullet-ring showcase.</desc>
+  <rect width="960" height="263" fill="#11111b"/>
+  <rect x="43" y="16.5" width="262" height="235.5" fill="#181825"/>
+  <rect x="354" y="14.5" width="258" height="237.5" fill="#181825"/>
+  <rect x="664" y="16.5" width="260" height="235.5" fill="#181825"/>
+  <g id="dx-ball">
+    <rect x="108.5" y="54" width="140" height="160" fill="#000000" fill-opacity="0.45"/>
+    <rect x="106.85" y="52.1" width="136" height="157" fill="#181825" stroke="#cdd6f4" stroke-width="3.7"/>
+    <rect x="110.9" y="55.9" width="128.2" height="149.6" fill="none" stroke="#6c7086" stroke-width="2.2"/>
+    <rect x="112.6" y="58.5" width="28.4" height="14.3" fill="#000000" fill-opacity="0.45"/>
+    <rect x="145.6" y="58.5" width="28.4" height="14.3" fill="#000000" fill-opacity="0.45"/>
+    <rect x="178.6" y="58.5" width="28.4" height="14.3" fill="#000000" fill-opacity="0.45"/>
+    <rect x="211.6" y="58.5" width="28.4" height="14.3" fill="#000000" fill-opacity="0.45"/>
+    <rect x="112.6" y="77.39999999999999" width="28.4" height="14.3" fill="#000000" fill-opacity="0.45"/>
+    <rect x="145.6" y="77.39999999999999" width="28.4" height="14.3" fill="#000000" fill-opacity="0.45"/>
+    <rect x="178.6" y="77.39999999999999" width="28.4" height="14.3" fill="#000000" fill-opacity="0.45"/>
+    <rect x="211.6" y="77.39999999999999" width="28.4" height="14.3" fill="#000000" fill-opacity="0.45"/>
+    <rect x="111.8" y="57.900000000000006" width="26.2" height="11.9" fill="#45475a" stroke="#cdd6f4" stroke-width="2.4"/>
+    <rect x="144.79999999999998" y="57.900000000000006" width="26.2" height="11.9" fill="#45475a" stroke="#cdd6f4" stroke-width="2.4"/>
+    <rect x="177.79999999999998" y="57.900000000000006" width="26.2" height="11.9" fill="#45475a" stroke="#cdd6f4" stroke-width="2.4"/>
+    <rect x="210.79999999999998" y="57.900000000000006" width="26.2" height="11.9" fill="#45475a" stroke="#cdd6f4" stroke-width="2.4"/>
+    <rect x="111.8" y="75.0" width="26.2" height="11.9" fill="#45475a" stroke="#cdd6f4" stroke-width="2.4"/>
+    <rect x="144.79999999999998" y="75.0" width="26.2" height="11.9" fill="#45475a" stroke="#cdd6f4" stroke-width="2.4"/>
+    <rect x="177.79999999999998" y="75.0" width="26.2" height="11.9" fill="#45475a" stroke="#cdd6f4" stroke-width="2.4"/>
+    <rect x="210.79999999999998" y="75.0" width="26.2" height="11.9" fill="#45475a" stroke="#cdd6f4" stroke-width="2.4"/>
+    <ellipse cx="173.4" cy="157.2" rx="8.4" ry="8.2" fill="#000000" fill-opacity="0.45"/>
+    <ellipse cx="171.9" cy="154.5" rx="7.3" ry="7.2" fill="#585b70" stroke="#cdd6f4" stroke-width="2"/>
+    <rect x="165.5" y="149.5" width="3.2" height="2.6" fill="#a6adc8"/>
+    <rect x="145.5" y="195.2" width="57.6" height="12.4" fill="#585b70" stroke="#cdd6f4" stroke-width="2.2"/>
+    <rect x="144.5" y="204" width="59.3" height="6.5" fill="#cdd6f4"/>
+    <g transform="translate(0 0)">
+      <path d="M61.5 117.5H69.6L78 108.5V141.2L69.6 132.8H61.5Z" fill="#585b70" stroke="#cdd6f4" stroke-width="2.3" stroke-linejoin="miter"/>
+      <path d="M78.1 106V143" stroke="#cdd6f4" stroke-width="3.4" fill="none"/>
+      <g fill="none" stroke="#89b4fa" stroke-width="2.2" stroke-linecap="butt" stroke-dasharray="2.6 1.4">
+        <path d="M84.8 118.2Q87.6 125 84.8 131.8"/>
+        <path d="M90.2 112.4Q94.5 125 90.2 137.6"/>
+        <path d="M95.8 108.2Q101.5 125 95.8 141.8"/>
+      </g>
+    </g>
+    <g transform="translate(190 0)">
+      <path d="M61.5 117.5H69.6L78 108.5V141.2L69.6 132.8H61.5Z" fill="#585b70" stroke="#cdd6f4" stroke-width="2.3" stroke-linejoin="miter"/>
+      <path d="M78.1 106V143" stroke="#cdd6f4" stroke-width="3.4" fill="none"/>
+      <g fill="none" stroke="#89b4fa" stroke-width="2.2" stroke-linecap="butt" stroke-dasharray="2.6 1.4">
+        <path d="M84.8 118.2Q87.6 125 84.8 131.8"/>
+        <path d="M90.2 112.4Q94.5 125 90.2 137.6"/>
+        <path d="M95.8 108.2Q101.5 125 95.8 141.8"/>
+      </g>
+    </g>
+  </g>
+  <g id="clipboard-bridge">
+    <rect x="390.3" y="83.6" width="100.6" height="82.6" fill="#000000" fill-opacity="0.45"/>
+    <rect x="387.7" y="81.2" width="97.8" height="79.7" fill="#181825" stroke="#cdd6f4" stroke-width="2.9"/>
+    <rect x="389.2" y="82.7" width="94.9" height="13" fill="#45475a"/>
+    <path d="M387.7 97H485.5" stroke="#cdd6f4" stroke-width="3.1"/>
+    <rect x="394.7" y="86.6" width="4.6" height="5" fill="#fab387"/>
+    <rect x="402.7" y="86.6" width="4.6" height="5" fill="#f9e2af"/>
+    <rect x="410.8" y="86.6" width="4.6" height="5" fill="#a6adc8"/>
+    <rect x="398" y="107.4" width="10.6" height="9.4" fill="#7f849c"/>
+    <rect x="412.4" y="107.9" width="16.8" height="6" fill="#7f849c"/>
+    <rect x="434" y="107.9" width="42.4" height="6.2" fill="#7f849c"/>
+    <rect x="412.2" y="117.3" width="64" height="2.6" fill="#6c7086"/>
+    <rect x="412.2" y="124.9" width="55.3" height="3.6" fill="#6c7086"/>
+    <rect x="412.2" y="133.2" width="50.3" height="3.8" fill="#6c7086"/>
+    <rect x="412.2" y="142" width="13.2" height="3.4" fill="#6c7086"/>
+    <rect x="430" y="142" width="14.4" height="3.4" fill="#6c7086"/>
+    <rect x="449" y="142" width="27.6" height="3.2" fill="#313244"/>
+    <rect x="412.2" y="150" width="12.6" height="2.9" fill="#6c7086"/>
+    <path d="M455.2 162V187H476M497 187H508.2V163.2H523" fill="none" stroke="#89b4fa" stroke-width="3" stroke-linejoin="miter"/>
+    <rect x="477.5" y="178.3" width="23" height="21" fill="#000000" fill-opacity="0.45"/>
+    <path d="M484.7 173.2V177" stroke="#cdd6f4" stroke-width="2.2"/>
+    <rect x="476.4" y="177.5" width="20.2" height="18.1" fill="#585b70" stroke="#cdd6f4" stroke-width="2.2"/>
+    <rect x="481.4" y="178.6" width="4.6" height="16" fill="#313244"/>
+    <rect x="477.2" y="191" width="4.6" height="4.4" fill="#f9e2af"/>
+    <rect x="481.6" y="183.8" width="3.4" height="3" fill="#fab387"/>
+    <rect x="525.4" y="114.6" width="60.6" height="75" fill="#000000" fill-opacity="0.45"/>
+    <rect x="524.7" y="112.5" width="56.4" height="69.4" fill="#45475a" stroke="#cdd6f4" stroke-width="3"/>
+    <rect x="531.6" y="118.6" width="42.3" height="53.4" fill="#1e1e2e"/>
+    <rect x="531.6" y="172" width="42.3" height="8.4" fill="#45475a"/>
+    <path d="M531.6 175.8H575" stroke="#cdd6f4" stroke-width="1.8" stroke-opacity="0.8"/>
+    <path d="M547.4 103.3H556.6V106.2H559.6V109.2H564.9V120.3H540.1V109.2H545V106.2H547.4Z" fill="#585b70" stroke="#cdd6f4" stroke-width="2" stroke-linejoin="miter"/>
+    <rect x="549.4" y="108.4" width="2.8" height="1.9" fill="#181825"/>
+    <rect x="536.6" y="131.8" width="32.3" height="3.4" fill="#7f849c"/>
+    <rect x="536.6" y="138.8" width="32.3" height="3.4" fill="#7f849c"/>
+    <rect x="536.6" y="145.8" width="32.3" height="3.4" fill="#7f849c"/>
+    <rect x="536.6" y="152.8" width="26.8" height="3.4" fill="#7f849c"/>
+    <rect x="536.6" y="159.8" width="14.6" height="3.4" fill="#7f849c"/>
+  </g>
+  <g id="bullet-ring">
+    <circle cx="783" cy="74.5" r="3.8" fill="#89b4fa"/>
+    <circle cx="798" cy="72" r="3.8" fill="#89b4fa"/>
+    <circle cx="812.5" cy="74.5" r="3.8" fill="#89b4fa"/>
+    <circle cx="769.5" cy="81" r="3.8" fill="#89b4fa"/>
+    <circle cx="826.5" cy="81" r="3.8" fill="#89b4fa"/>
+    <circle cx="756.5" cy="90" r="3.8" fill="#89b4fa"/>
+    <circle cx="839" cy="90" r="3.8" fill="#89b4fa"/>
+    <circle cx="746.5" cy="103" r="3.8" fill="#89b4fa"/>
+    <circle cx="849" cy="103" r="3.8" fill="#89b4fa"/>
+    <circle cx="740.5" cy="117" r="3.8" fill="#89b4fa"/>
+    <circle cx="854.5" cy="117" r="3.8" fill="#89b4fa"/>
+    <circle cx="738" cy="134" r="3.8" fill="#89b4fa"/>
+    <circle cx="856.5" cy="133.5" r="3.8" fill="#89b4fa"/>
+    <circle cx="741" cy="149" r="3.8" fill="#89b4fa"/>
+    <circle cx="854" cy="149" r="3.8" fill="#89b4fa"/>
+    <circle cx="747.5" cy="163" r="3.8" fill="#89b4fa"/>
+    <circle cx="848" cy="163" r="3.8" fill="#89b4fa"/>
+    <circle cx="757.5" cy="175" r="3.8" fill="#89b4fa"/>
+    <circle cx="770" cy="184" r="3.8" fill="#89b4fa"/>
+    <circle cx="826.5" cy="184" r="3.8" fill="#89b4fa"/>
+    <circle cx="838.5" cy="175" r="3.8" fill="#89b4fa"/>
+    <circle cx="784" cy="191" r="3.8" fill="#89b4fa"/>
+    <circle cx="798" cy="192.5" r="3.8" fill="#89b4fa"/>
+    <circle cx="812" cy="190.5" r="3.8" fill="#89b4fa"/>
+    <circle cx="833.5" cy="109" r="4.1" fill="#fab387"/>
+    <circle cx="797.4" cy="133" r="10.9" fill="#cdd6f4"/>
+  </g>
+</svg>

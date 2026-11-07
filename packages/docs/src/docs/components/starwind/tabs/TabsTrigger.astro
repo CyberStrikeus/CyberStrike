@@ -1,0 +1,31 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+interface Props extends Omit<HTMLAttributes<"button">, "type" | "id" | "role"> {
+  value: string;
+}
+
+const tabsTrigger = tv({
+  base: [
+    "starwind-transition-colors inline-flex grow items-center justify-center rounded-sm px-3 py-1.5 font-medium whitespace-nowrap",
+    "data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm",
+    "focus-visible:outline-outline focus-visible:outline-2 focus-visible:outline-offset-2",
+    "disabled:pointer-events-none disabled:opacity-50",
+  ],
+});
+
+const { value, class: className, ...rest } = Astro.props;
+---
+
+<button
+  class={tabsTrigger({ class: className })}
+  data-tabs-trigger
+  data-value={value}
+  data-state="inactive"
+  role="tab"
+  aria-selected="false"
+  {...rest}
+>
+  <slot />
+</button>

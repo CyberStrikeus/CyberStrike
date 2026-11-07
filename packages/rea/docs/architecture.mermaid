@@ -1,0 +1,214 @@
+graph TD
+    %% Selected layer owners and dependency/wiring paths, not a directory or import inventory.
+    %% Current deep-provider candidates are wired in src/composition/binary.ts.
+    subgraph "Entry Points"
+        CLI["src/cli.ts + src/cli/<br/>One-shot CLI adapter<br/>setup, diagnostics, analysis, decompilation"]
+        MAIN["src/main.ts + src/main/<br/>MCP server adapter: stdio default, streamable HTTP opt-in<br/>config, session, process lifetime"]
+        DISPATCH["scripts/rea.mjs<br/>Executable dispatcher<br/>routes mcp / mcp --http / one-shot"]
+    end
+
+    subgraph "Production Composition"
+        COMPOSITION["src/composition/<br/>fresh typed provider and session factories<br/>one-shot binding and independent optional loading<br/>static WASM/EVM descriptors: named contracts, factories, retryable lifetimes"]
+    end
+
+    subgraph "Adapters"
+        SERVER["src/server/<br/>MCP request translation<br/>createServer, tool registration, toolResult<br/>http/: streamable HTTP listener and node:http bridge"]
+        HOPPER_BRIDGE["bridge/hopper_bridge.py<br/>Runs inside Hopper<br/>adapts operations to Hopper Python API"]
+        GHIDRA_BRIDGE["bridge/ghidra/ReaGhidraBridge.java<br/>Packaged HeadlessScript<br/>inventory, decompiler, references, CFG"]
+        INSTALL["src/cli/ + src/application/Setup*<br/>Host installation adapters<br/>macOS: verified vendor DMG to ~/Applications<br/>Linux: verified vendor package + apt/dnf/pacman"]
+    end
+
+    subgraph "Application Layer"
+        APP["src/application/<br/>Shared CLI/MCP workflows<br/>enhanced analysis and investigations"]
+        SESSION["SessionProviderRouter + BinarySession<br/>one immutable deep binding per target<br/>disjoint auxiliary routing"]
+        REGISTRY["AnalysisProviderRegistry<br/>sorted deep candidates<br/>deterministic selection, no fallback<br/>ProviderInspectionScope: prerequisite observation lifetime"]
+        RECORDS["src/application/investigation/<br/>composed InvestigationRecords + narrow ports<br/>EvidenceLedger and Unknown ownership"]
+        SNAPSHOT["BinarySessionRecords + AnalysisSnapshotCache<br/>binary target/profile snapshots and session file ownership<br/>record coordination and post-commit notifications"]
+        JS_RECON["src/application/javascript/ + src/artifacts/javascript/<br/>JavaScript artifact reconstruction<br/>directory/ASAR reads<br/>AST-only bundle projection"]
+    end
+
+    subgraph "Provider Layers (selected adapters)"
+        PROVIDER_OWNERS["src/providers/<br/>shared deferred client owners<br/>exact cleanup retry and attributed failures"]
+        PWNTOOLS["src/native/pwntools/ + src/native/pwndbg/<br/>BYO offline ELF/core adapters<br/>owned snapshots/Python and optional core-only GDB<br/>unchanged upstream parsers, ABI structures and mapping API"]
+        WASM["src/wasm/<br/>caller-supplied WABT; immutable artifact inspection<br/>owned process supervision and retryable workspace cleanup"]
+        APKSIG["src/apkSignature/<br/>in-process APK Signing Block + v1 reader<br/>bounded single read, no device or execution"]
+        EVM["src/evm/<br/>unchanged EVMole/WASM in bounded owned worker<br/>explicit carrier parsing and inferred interface adapter"]
+        HOPPER["src/hopper/<br/>Hopper launch & Unix-socket protocol<br/>BridgeLauncher, HopperClient, protocol"]
+        GHIDRA["src/ghidra/<br/>Ghidra discovery, profile & function analysis<br/>snapshot, Unix/Windows transport, bounded lifecycle"]
+        IDA["src/ida/<br/>Upstream MCP contract adaptation<br/>live GUI binding or owned headless database"]
+        KUNA["src/kuna/<br/>BYO Kuna deep analysis candidate<br/>discovery reads metadata; version probe on target open"]
+        IDA_MCP["External ida-pro-mcp<br/>GUI proxy or database supervisor<br/>upstream installation and engine lifecycle"]
+
+        KUNA["src/kuna/<br/>BYO Kuna decompiler, a deep analysis candidate<br/>discovery reads metadata only; version probe when a target opens"]
+        AUX["src/artifacts/ + src/native/<br/>artifact inventory, bounded directory triage and extraction<br/>format readers and native capabilities"]
+
+
+        BROWSER["src/browser/<br/>CDP / Playwright capture<br/>captured scripts and native module resolution<br/>execution/: coverage, listener and source attribution"]
+        JS_CODEC["src/javascript/sourceMaps/<br/>pinned upstream map codec<br/>owned heap-limited Node process, complete point evidence"]
+        INSPECTOR["src/inspector/<br/>passive V8 Inspector discovery and capture<br/>script and target locations"]
+        DOTNET["src/dotnet/<br/>Managed static metadata provider<br/>PE/CLI metadata inventory, members, IL"]
+        OBJDUMP["src/objdump/<br/>GNU objdump command profile"]
+        RIZIN["src/rizin/<br/>Static command profile and persistent debugger sessions"]
+        GDB["src/gdb/<br/>Persistent GDB/MI sessions<br/>owned process lifecycle and target state"]
+
+        FIRMWARE["src/firmware/<br/>Binwalk / Unblob adapters<br/>owned processes, report normalization, private extraction"]
+        ANDROID["src/android/<br/>Static APK adapter<br/>owned SDK stdio, pinned headless JADX, normalization"]
+        REFERENCE["src/reference/<br/>Filesystem reference-source reader<br/>bounded traversal, validation, errors"]
+
+        ANDROID_TOOLS["src/adb/ + src/apktool/ + src/jeb/<br/>BYO device, resource-decoding and JEB adapters<br/>owned adb and Apktool processes; JEB engine client over MCP"]
+        CAPTURE_TOOLS["src/captures/ + src/pcap/ + src/signals/ + src/sqlite/<br/>BYO tshark, pcap, sigrok and SQLite child inspection<br/>selected captures, recordings and databases; owned processes"]
+        NATIVE_READERS["src/go/ + src/rust/ + src/il2cpp/ + src/flutter/ + src/gpu/<br/>Bundled in-process binary metadata readers<br/>Go build info, Rust dependencies, IL2CPP, Dart build ID, GPU code objects<br/>src/compression/: shared codec-result helper for rust and gpu"]
+        FORMAT_READERS["src/model/ + src/python/ + src/erlang/ + src/electron/<br/>Bundled in-process format readers<br/>GGUF and safetensors headers, Python .pyc, Erlang BEAM, Electron fuses"]
+        RUNTIME["src/frida/ + src/cutter/<br/>Frida instrumentation sessions and live Cutter bridge client"]
+    end
+
+    subgraph "Provider Process Foundation"
+        PROCESS["src/process/<br/>owned process groups, private roots<br/>deadlines, bounded file reads and diagnostics, cleanup"]
+        WINDOWS["src/windows/<br/>Windows host boundary adapters<br/>package loader, opaque handles, owned jobs and private runtimes"]
+        WINDOWS_NATIVE["native/windows/src/<br/>Node-API implementation<br/>NTFS admission, protected DACLs and atomic Job Object assignment"]
+        FILESYSTEM["src/filesystem/<br/>owned file and directory handles<br/>stable reads, staged output, caller paths"]
+    end
+
+    subgraph "Contracts Layer"
+        CONTRACTS["src/contracts/<br/>Caller-visible schemas for analysis, reverse engineering, managed, browser, Electron, application, and session tools"]
+        ERRORS["src/contracts/errorSchemas.ts<br/>Shared analysis error schemas<br/>CLI diagnostics, generated error catalog"]
+    end
+
+    subgraph "Domain Layer"
+        DOMAIN["src/domain/<br/>Pure side-effect-free modules<br/>format declarations, provider selection, Evidence, comparisons, application graphs"]
+    end
+
+    subgraph "Configuration"
+        CONFIG["src/config/<br/>Zod-validated env parsing<br/>provider settings and origins"]
+    end
+
+    subgraph "Tests"
+        TESTS["tests/<br/>Vitest suite<br/>fixtures/ holds fake launcher, bridge, and CDP seams"]
+    end
+
+    subgraph "Development Evaluation"
+        EVALUATION["tests/evaluation/model-evals/<br/>Agent release evaluation<br/>session transcript scoring"]
+    end
+
+    DISPATCH --> CLI
+    DISPATCH --> MAIN
+    MAIN --> CONFIG
+    MAIN --> SERVER
+    MAIN --> APP
+    CLI --> APP
+    MAIN --> COMPOSITION
+    CLI --> COMPOSITION
+    SERVER --> COMPOSITION
+    COMPOSITION --> SESSION
+    APP --> FIRMWARE
+    FIRMWARE --> PROCESS
+    FIRMWARE --> CONTRACTS
+    APP --> ANDROID
+    ANDROID --> PROCESS
+    ANDROID --> CONTRACTS
+    ANDROID --> DOMAIN
+    CLI --> ERRORS
+    APP --> SESSION
+    SESSION --> REGISTRY
+    SESSION --> SNAPSHOT
+    SNAPSHOT --> RECORDS
+    APP -->|record callbacks| RECORDS
+    SERVER -->|narrow record ports| RECORDS
+    RECORDS --> DOMAIN
+    COMPOSITION --> WASM
+    COMPOSITION --> APKSIG
+    APKSIG --> DOMAIN
+    WASM --> PROCESS
+    WASM --> DOMAIN
+    COMPOSITION --> PWNTOOLS
+    PWNTOOLS --> PROCESS
+    PWNTOOLS --> DOMAIN
+    COMPOSITION --> HOPPER
+    COMPOSITION --> GHIDRA
+    COMPOSITION --> IDA
+    COMPOSITION --> KUNA
+    COMPOSITION --> AUX
+    IDA --> IDA_MCP
+    IDA --> CONTRACTS
+    IDA --> DOMAIN
+    SESSION --> AUX
+    APP --> JS_RECON
+    APP --> INSTALL
+    SERVER --> CONTRACTS
+    SERVER --> APP
+    APP --> BROWSER
+    APP -->|source-map codec port| JS_CODEC
+    JS_CODEC --> PROCESS
+    JS_CODEC --> DOMAIN
+    APP -->|runtime observation port| INSPECTOR
+    INSPECTOR -->|shared CDP and file-location helpers| BROWSER
+    INSPECTOR --> DOMAIN
+    APP --> DOTNET
+    DOTNET --> DOMAIN
+    COMPOSITION --> OBJDUMP
+    OBJDUMP --> DOMAIN
+    COMPOSITION --> RIZIN
+    RIZIN --> DOMAIN
+    CLI --> GDB
+    SERVER --> GDB
+    GDB --> PROCESS
+    GDB --> DOMAIN
+    HOPPER --> HOPPER_BRIDGE
+    GHIDRA --> GHIDRA_BRIDGE
+    HOPPER --> PROCESS
+    GHIDRA --> PROCESS
+    KUNA --> PROCESS
+    GHIDRA --> PROVIDER_OWNERS
+    APP --> PROVIDER_OWNERS
+    PROVIDER_OWNERS --> PROCESS
+    PROVIDER_OWNERS --> AUX
+    PROVIDER_OWNERS --> DOMAIN
+    GHIDRA --> WINDOWS
+    PROCESS --> WINDOWS
+    WINDOWS --> WINDOWS_NATIVE
+    APP --> PROCESS
+    APP --> DOMAIN
+    JS_RECON --> AUX
+    JS_RECON --> DOMAIN
+    APP --> REFERENCE
+    REFERENCE --> DOMAIN
+    CONTRACTS --> DOMAIN
+    HOPPER --> DOMAIN
+    GHIDRA --> DOMAIN
+    KUNA --> DOMAIN
+    AUX --> DOMAIN
+    BROWSER --> DOMAIN
+    PROCESS --> DOMAIN
+    TESTS -.-> MAIN
+    TESTS -.-> HOPPER
+    TESTS -.-> GHIDRA
+    TESTS -.-> IDA
+    TESTS -.-> PROCESS
+    TESTS -.-> BROWSER
+    TESTS -.-> EVALUATION
+    TESTS -.-> ERRORS
+
+    COMPOSITION --> EVM
+    APP -->|EVM interface port| EVM
+    EVM --> PROCESS
+    EVM --> DOMAIN
+    COMPOSITION --> KUNA
+    KUNA --> PROCESS
+    KUNA --> FILESYSTEM
+    KUNA --> DOMAIN
+    COMPOSITION --> ANDROID_TOOLS
+    ANDROID_TOOLS --> PROCESS
+    ANDROID_TOOLS --> DOMAIN
+    COMPOSITION --> CAPTURE_TOOLS
+    CAPTURE_TOOLS --> PROCESS
+    CAPTURE_TOOLS --> DOMAIN
+    COMPOSITION --> NATIVE_READERS
+    NATIVE_READERS --> DOMAIN
+    COMPOSITION --> FORMAT_READERS
+    FORMAT_READERS --> DOMAIN
+    SERVER --> RUNTIME
+    CLI --> RUNTIME
+    RUNTIME --> DOMAIN
+    PROCESS --> FILESYSTEM
+    AUX --> FILESYSTEM
+    APP --> FILESYSTEM

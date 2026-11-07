@@ -9,10 +9,10 @@ export {
   RequestTable,
   WebCredentialTable,
   WebRoleTable,
+  WebJsTable,
   WebObjectTable,
   WebObjectValueTable,
   WebFunctionTable,
-  WebRetestQueueTable,
   EndpointTemplateTable,
 } from "../session/session.sql"
 export { SessionShareTable } from "../share/share.sql"
@@ -25,3 +25,9 @@ export {
   AgentPerformanceTable,
   ValidationViolationTable,
 } from "../methodology/methodology.sql"
+export {
+  CloudAssetTable,
+  CloudEdgeTable,
+  CloudExposureTable,
+} from "../cloud/inventory.sql"
+export { InspectionQueueTable } from "../inspection/schema"

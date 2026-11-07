@@ -1,0 +1,55 @@
+---
+title: Escalation Hunter
+description: 発見を連鎖させ脆弱性の影響を拡大する横断的相関分析エージェント
+sidebar:
+  order: 7
+  label: Escalation Hunter
+---
+
+`escalation-hunter` は、WSTGスペシャリストがテストを完了した後に実行される横断的アナリストエージェントです。セッション全体のすべての発見を調査し、連鎖する脆弱性の特定、影響の拡大、個々のスペシャリストでは見逃される新しい攻撃パスの構築を行います。
+
+## 概要
+
+| プロパティ | 値 |
+|----------|-------|
+| **エージェントID** | `escalation-hunter` |
+| **ロール** | `analyst` |
+| **ドメイン** | `@cyberstrike-io/web` |
+| **実行タイミング** | WSTGスペシャリストのテスト完了後 |
+
+## 機能
+
+個々のWSTGスペシャリストはエンドポイントを個別にテストします — それぞれが自分のカテゴリに集中します。`escalation-hunter` はすべてのレーンを横断して以下を発見します：
+
+- **連鎖する脆弱性** — 低深刻度のIDORとセッション固定を組み合わせてアカウント乗っ取りを達成
+- **影響の拡大** — 別の発見と組み合わせることで、中深刻度の発見が重大になる
+- **新しい攻撃パス** — 順番にリプレイすることで、より高い影響を生むリクエストのシーケンス
+- **クロスロール権限昇格** — 異なるスペシャリストの発見を組み合わせることで破られる権限境界
+
+## 動作の仕組み
+
+1. セッション内のすべての発見を読み取り（全WSTGスペシャリストにまたがる）
+2. 蓄積されたVortexデータ（トラフィックパターン、ルールマッチ、オブジェクト、関数）を読み取り
+3. 発見間の相関機会を特定
+4. 提案された攻撃チェーンを構築し、**リプレイ**して検証
+5. 検証されたエスカレーションを複合エビデンス付きの新しい発見として報告
+
+`escalation-hunter` はスペシャリストの報告を鵜呑みにしません — 実際のHTTPシーケンスをリプレイして提案されたチェーンを検証します。
+
+## 例
+
+```
+Specialist A: IDOR in GET /api/users/{id} (medium)
+Specialist B: Missing rate limit on /api/auth/reset (low)
+Specialist C: Email parameter in reset response body (info)
+
+Escalation Hunter:
+  Chain: enumerate user IDs via IDOR → trigger password reset for each →
+         extract reset tokens from response → account takeover
+  Verified: replayed 3-step chain → confirmed ATO
+  Escalated: Critical (was medium + low + info individually)
+```
+
+<Aside variant="info">
+  escalation-hunterは自動的にディスパッチされます — 直接呼び出すことはありません。WSTGパイプライン完了後の最終分析パスとして実行されます。
+</Aside>

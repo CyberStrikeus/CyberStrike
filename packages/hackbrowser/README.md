@@ -99,7 +99,7 @@ Each ingested request includes a `ui_context` field:
 }
 ```
 
-CyberStrike's proxy-analyzer and mass-assignment agents will use this to identify:
+CyberStrike's Vortex ingest pipeline and mass-assignment agents will use this to identify:
 
 - `email` is readonly in UI but sent in request → test if it can be changed
 - `role` is a hidden field → test mass assignment

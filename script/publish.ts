@@ -56,12 +56,24 @@ await Bun.file(extensionToml).write(toml)
 await $`bun install`
 await import(`../packages/sdk/js/script/build.ts`)
 
-if (Script.release) {
+// Stable only: commit the version bump, tag, push, and publish the draft release. Preview
+// (canary/beta) releases are already created live on HEAD by version.ts and filled by
+// build.ts, so they skip the git version-bump dance entirely (no per-canary release commits).
+if (Script.release && !Script.preview) {
   await $`git commit -am "release: v${Script.version}"`.nothrow()
   await $`git tag v${Script.version}`.nothrow()
   await $`git fetch origin`
-  await $`git cherry-pick HEAD..origin/dev`.nothrow()
-  await $`git push origin HEAD --tags --no-verify --force-with-lease`
+  // Only sync the release branch when it is a few commits ahead. A large HEAD..origin/main range
+  // would replay hundreds/thousands of commits with fresh timestamps and push them in one burst,
+  // which trips the platform's automated abuse/rate-limit filters (see CyberStrike-Enterprise#111).
+  const rev = await $`git rev-list --count HEAD..origin/main`.nothrow()
+  const ahead = rev.exitCode === 0 ? Number(rev.stdout.toString().trim()) || 0 : 0
+  if (ahead > 0 && ahead <= 25) await $`git cherry-pick HEAD..origin/main`.nothrow()
+  else if (ahead > 25) console.warn(`skipping cherry-pick: origin/main is ${ahead} commits ahead — sync manually to avoid a mass-commit push`)
+  // Push HEAD and ONLY the new tag — never --tags (the repo carries 900+ inherited tags; pushing
+  // them all at once is a classic abuse-filter trigger).
+  await $`git push origin HEAD --no-verify --force-with-lease`
+  await $`git push origin refs/tags/v${Script.version} --no-verify`
   await new Promise((resolve) => setTimeout(resolve, 5_000))
   await $`gh release edit v${Script.version} --draft=false`
 }

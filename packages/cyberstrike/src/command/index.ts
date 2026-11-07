@@ -122,9 +122,9 @@ export namespace Command {
       }
     }
 
-    // Add skills as invokable commands
+    // Add skills that opt in to the slash menu (frontmatter: slash: true)
     for (const skill of await Skill.all()) {
-      // Skip if a command with this name already exists
+      if (!skill.slash) continue
       if (result[skill.name]) continue
       result[skill.name] = {
         name: skill.name,

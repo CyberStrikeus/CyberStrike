@@ -1,4 +1,4 @@
-import type { Event, CyberstrikeClient } from "@cyberstrike-io/sdk/v2/client"
+import type { Event, CyberStrikeClient } from "@cyberstrike-io/sdk/v2/client"
 import { createSimpleContext } from "@cyberstrike-io/ui/context"
 import { createGlobalEmitter } from "@solid-primitives/event-bus"
 import type { GlobalEmitter } from "@solid-primitives/event-bus"
@@ -11,9 +11,9 @@ export type CreateClientOpts = Omit<Parameters<typeof createSdkForServer>[0], "s
 
 export type GlobalSDKValue = {
   url: string
-  client: CyberstrikeClient
+  client: CyberStrikeClient
   event: GlobalEmitter<{ [key: string]: Event }>
-  createClient: (opts: CreateClientOpts) => CyberstrikeClient
+  createClient: (opts: CreateClientOpts) => CyberStrikeClient
   // Authed raw fetch against the server (for endpoints not on the typed client yet).
   fetch: (path: string, init?: RequestInit) => Promise<Response>
 }
@@ -272,7 +272,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
             for await (const event of events.stream) {
               const directory = event.directory ?? "global"
               const payload = event.payload
-              enqueue(directory, payload)
+              enqueue(directory, payload as Event)
 
               if (Date.now() - yielded < STREAM_YIELD_MS) continue
               yielded = Date.now()
@@ -310,7 +310,7 @@ export const { use: useGlobalSDK, provider: GlobalSDKProvider } = createSimpleCo
       url: currentServer.http.url,
       client: sdk,
       event: emitter,
-      createClient(opts: CreateClientOpts): CyberstrikeClient {
+      createClient(opts: CreateClientOpts): CyberStrikeClient {
         const s = server.current
         if (!s) throw new Error("Server not available")
         return createSdkForServer({

@@ -1,0 +1,16 @@
+---
+title: MCP server architecture
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 44
+    nodeSpacing: 28
+    padding: 12
+---
+flowchart LR
+    C["Cyberstrike<br/>MCP client"]:::cs -->|"stdio · StreamableHTTP / SSE"| T["Transport"]:::srv
+    T --> H["Request handlers<br/>tools/list · tools/call · resources"]:::srv
+    H --> F["Tool functions<br/>your code"]:::srv
+
+    classDef cs fill:#0b1220,stroke:#00d4ff,stroke-width:2px,color:#00d4ff;
+    classDef srv fill:#0b1220,stroke:#00ff88,color:#00ff88;

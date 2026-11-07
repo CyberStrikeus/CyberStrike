@@ -1,0 +1,286 @@
+[
+  {
+    "_source": {
+      "layers": {
+        "frame": {
+          "frame.encap_type": "1",
+          "frame.time": "Jan  1, 1970 08:00:01.000000000 HKT",
+          "frame.time_utc": "Jan  1, 1970 00:00:01.000000000 UTC",
+          "frame.time_epoch": "1.000000000",
+          "frame.offset_shift": "0.000000000",
+          "frame.time_delta": "0.000000000",
+          "frame.time_delta_displayed": "0.000000000",
+          "frame.time_relative": "0.000000000",
+          "frame.number": "1",
+          "frame.len": "85",
+          "frame.cap_len": "85",
+          "frame.marked": "0",
+          "frame.ignored": "0",
+          "frame.protocols": "eth:ethertype:ip:udp:dns"
+        },
+        "dns_raw": [
+          "0001818000010001000000000161076578616d706c650000010001c00c000100010000003c0004c0000209",
+          42,
+          43,
+          0,
+          1
+        ],
+        "dns": {
+          "dns.id_raw": ["0001", 42, 2, 0, 5],
+          "dns.id": "0x0001",
+          "dns.flags_raw": ["8180", 44, 2, 0, 5],
+          "dns.flags": "0x8180",
+          "dns.flags_tree": {
+            "dns.flags.response_raw": ["1", 44, 2, 32768, 2],
+            "dns.flags.response": "1",
+            "dns.flags.opcode_raw": ["0", 44, 2, 30720, 5],
+            "dns.flags.opcode": "0",
+            "dns.flags.authoritative_raw": ["0", 44, 2, 1024, 2],
+            "dns.flags.authoritative": "0",
+            "dns.flags.truncated_raw": ["0", 44, 2, 512, 2],
+            "dns.flags.truncated": "0",
+            "dns.flags.recdesired_raw": ["1", 44, 2, 256, 2],
+            "dns.flags.recdesired": "1",
+            "dns.flags.recavail_raw": ["1", 44, 2, 128, 2],
+            "dns.flags.recavail": "1",
+            "dns.flags.z_raw": ["0", 44, 2, 64, 2],
+            "dns.flags.z": "0",
+            "dns.flags.authenticated_raw": ["0", 44, 2, 32, 2],
+            "dns.flags.authenticated": "0",
+            "dns.flags.checkdisable_raw": ["0", 44, 2, 16, 2],
+            "dns.flags.checkdisable": "0",
+            "dns.flags.rcode_raw": ["0", 44, 2, 15, 5],
+            "dns.flags.rcode": "0"
+          },
+          "dns.count.queries_raw": ["0001", 46, 2, 0, 5],
+          "dns.count.queries": "1",
+          "dns.count.answers_raw": ["0001", 48, 2, 0, 5],
+          "dns.count.answers": "1",
+          "dns.count.auth_rr_raw": ["0000", 50, 2, 0, 5],
+          "dns.count.auth_rr": "0",
+          "dns.count.add_rr_raw": ["0000", 52, 2, 0, 5],
+          "dns.count.add_rr": "0",
+          "Queries": {
+            "a.example: type A, class IN": {
+              "dns.qry.name_raw": ["0161076578616d706c6500", 54, 11, 0, 26],
+              "dns.qry.name": "a.example",
+              "dns.qry.name.len_raw": ["0161076578616d706c6500", 54, 11, 0, 5],
+              "dns.qry.name.len": "9",
+              "dns.count.labels_raw": ["0161076578616d706c6500", 54, 11, 0, 5],
+              "dns.count.labels": "2",
+              "dns.qry.type_raw": ["0001", 65, 2, 0, 5],
+              "dns.qry.type": "1",
+              "dns.qry.class_raw": ["0001", 67, 2, 0, 5],
+              "dns.qry.class": "0x0001"
+            }
+          },
+          "Answers": {
+            "a.example: type A, class IN, addr 192.0.2.9": {
+              "dns.resp.name_raw": ["c00c", 69, 2, 0, 26],
+              "dns.resp.name": "a.example",
+              "dns.resp.type_raw": ["0001", 71, 2, 0, 5],
+              "dns.resp.type": "1",
+              "dns.resp.class_raw": ["0001", 73, 2, 0, 5],
+              "dns.resp.class": "0x0001",
+              "dns.resp.ttl_raw": ["0000003c", 75, 4, 0, 7],
+              "dns.resp.ttl": "60",
+              "dns.resp.len_raw": ["0004", 79, 2, 0, 5],
+              "dns.resp.len": "4",
+              "dns.a_raw": ["c0000209", 81, 4, 0, 32],
+              "dns.a": "192.0.2.9"
+            }
+          },
+          "dns.unsolicited": "1"
+        }
+      }
+    }
+  },
+  {
+    "_source": {
+      "layers": {
+        "frame": {
+          "frame.encap_type": "1",
+          "frame.time": "Jan  1, 1970 08:00:02.000000000 HKT",
+          "frame.time_utc": "Jan  1, 1970 00:00:02.000000000 UTC",
+          "frame.time_epoch": "2.000000000",
+          "frame.offset_shift": "0.000000000",
+          "frame.time_delta": "1.000000000",
+          "frame.time_delta_displayed": "1.000000000",
+          "frame.time_relative": "1.000000000",
+          "frame.number": "2",
+          "frame.len": "85",
+          "frame.cap_len": "85",
+          "frame.marked": "0",
+          "frame.ignored": "0",
+          "frame.protocols": "eth:ethertype:ip:udp:mdns"
+        },
+        "mdns_raw": [
+          "0002818000010001000000000161076578616d706c650000010001c00c000180010000003c0004c0000209",
+          42,
+          43,
+          0,
+          1
+        ],
+        "mdns": {
+          "dns.id_raw": ["0002", 42, 2, 0, 5],
+          "dns.id": "0x0002",
+          "dns.flags_raw": ["8180", 44, 2, 0, 5],
+          "dns.flags": "0x8180",
+          "dns.flags_tree": {
+            "dns.flags.response_raw": ["1", 44, 2, 32768, 2],
+            "dns.flags.response": "1",
+            "dns.flags.opcode_raw": ["0", 44, 2, 30720, 5],
+            "dns.flags.opcode": "0",
+            "dns.flags.authoritative_raw": ["0", 44, 2, 1024, 2],
+            "dns.flags.authoritative": "0",
+            "dns.flags.truncated_raw": ["0", 44, 2, 512, 2],
+            "dns.flags.truncated": "0",
+            "dns.flags.recdesired_raw": ["1", 44, 2, 256, 2],
+            "dns.flags.recdesired": "1",
+            "dns.flags.recavail_raw": ["1", 44, 2, 128, 2],
+            "dns.flags.recavail": "1",
+            "dns.flags.z_raw": ["0", 44, 2, 64, 2],
+            "dns.flags.z": "0",
+            "dns.flags.authenticated_raw": ["0", 44, 2, 32, 2],
+            "dns.flags.authenticated": "0",
+            "dns.flags.checkdisable_raw": ["0", 44, 2, 16, 2],
+            "dns.flags.checkdisable": "0",
+            "dns.flags.rcode_raw": ["0", 44, 2, 15, 5],
+            "dns.flags.rcode": "0"
+          },
+          "dns.count.queries_raw": ["0001", 46, 2, 0, 5],
+          "dns.count.queries": "1",
+          "dns.count.answers_raw": ["0001", 48, 2, 0, 5],
+          "dns.count.answers": "1",
+          "dns.count.auth_rr_raw": ["0000", 50, 2, 0, 5],
+          "dns.count.auth_rr": "0",
+          "dns.count.add_rr_raw": ["0000", 52, 2, 0, 5],
+          "dns.count.add_rr": "0",
+          "Queries": {
+            "a.example: type A, class IN, \"QM\" question": {
+              "dns.qry.name_raw": ["0161076578616d706c6500", 54, 11, 0, 26],
+              "dns.qry.name": "a.example",
+              "dns.qry.name.len_raw": ["0161076578616d706c6500", 54, 11, 0, 5],
+              "dns.qry.name.len": "9",
+              "dns.count.labels_raw": ["0161076578616d706c6500", 54, 11, 0, 5],
+              "dns.count.labels": "2",
+              "dns.qry.type_raw": ["0001", 65, 2, 0, 5],
+              "dns.qry.type": "1",
+              "dns.qry.class_raw": ["1", 67, 2, 32767, 5],
+              "dns.qry.class": "0x0001",
+              "dns.qry.qu_raw": ["0", 67, 2, 32768, 2],
+              "dns.qry.qu": "0"
+            }
+          },
+          "Answers": {
+            "a.example: type A, class IN, cache flush, addr 192.0.2.9": {
+              "dns.resp.name_raw": ["c00c", 69, 2, 0, 26],
+              "dns.resp.name": "a.example",
+              "dns.resp.type_raw": ["0001", 71, 2, 0, 5],
+              "dns.resp.type": "1",
+              "dns.resp.class_raw": ["1", 73, 2, 32767, 5],
+              "dns.resp.class": "0x0001",
+              "dns.resp.cache_flush_raw": ["1", 73, 2, 32768, 2],
+              "dns.resp.cache_flush": "1",
+              "dns.resp.ttl_raw": ["0000003c", 75, 4, 0, 7],
+              "dns.resp.ttl": "60",
+              "dns.resp.len_raw": ["0004", 79, 2, 0, 5],
+              "dns.resp.len": "4",
+              "dns.a_raw": ["c0000209", 81, 4, 0, 32],
+              "dns.a": "192.0.2.9"
+            }
+          },
+          "dns.unsolicited": "1"
+        }
+      }
+    }
+  },
+  {
+    "_source": {
+      "layers": {
+        "frame": {
+          "frame.encap_type": "1",
+          "frame.time": "Jan  1, 1970 08:00:03.000000000 HKT",
+          "frame.time_utc": "Jan  1, 1970 00:00:03.000000000 UTC",
+          "frame.time_epoch": "3.000000000",
+          "frame.offset_shift": "0.000000000",
+          "frame.time_delta": "1.000000000",
+          "frame.time_delta_displayed": "1.000000000",
+          "frame.time_relative": "2.000000000",
+          "frame.number": "3",
+          "frame.len": "85",
+          "frame.cap_len": "85",
+          "frame.marked": "0",
+          "frame.ignored": "0",
+          "frame.protocols": "eth:ethertype:ip:udp:llmnr"
+        },
+        "llmnr_raw": [
+          "0003818000010001000000000161076578616d706c650000010001c00c000100010000003c0004c0000209",
+          42,
+          43,
+          0,
+          1
+        ],
+        "llmnr": {
+          "dns.id_raw": ["0003", 42, 2, 0, 5],
+          "dns.id": "0x0003",
+          "dns.flags_raw": ["8180", 44, 2, 0, 5],
+          "dns.flags": "0x8180",
+          "dns.flags_tree": {
+            "dns.flags.response_raw": ["1", 44, 2, 32768, 2],
+            "dns.flags.response": "1",
+            "dns.flags.opcode_raw": ["0", 44, 2, 30720, 5],
+            "dns.flags.opcode": "0",
+            "dns.flags.conflict_raw": ["0", 44, 2, 1024, 2],
+            "dns.flags.conflict": "0",
+            "dns.flags.truncated_raw": ["0", 44, 2, 512, 2],
+            "dns.flags.truncated": "0",
+            "dns.flags.tentative_raw": ["1", 44, 2, 256, 2],
+            "dns.flags.tentative": "1",
+            "dns.flags.rcode_raw": ["0", 44, 2, 15, 5],
+            "dns.flags.rcode": "0"
+          },
+          "dns.count.queries_raw": ["0001", 46, 2, 0, 5],
+          "dns.count.queries": "1",
+          "dns.count.answers_raw": ["0001", 48, 2, 0, 5],
+          "dns.count.answers": "1",
+          "dns.count.auth_rr_raw": ["0000", 50, 2, 0, 5],
+          "dns.count.auth_rr": "0",
+          "dns.count.add_rr_raw": ["0000", 52, 2, 0, 5],
+          "dns.count.add_rr": "0",
+          "Queries": {
+            "a.example: type A, class IN": {
+              "dns.qry.name_raw": ["0161076578616d706c6500", 54, 11, 0, 26],
+              "dns.qry.name": "a.example",
+              "dns.qry.name.len_raw": ["0161076578616d706c6500", 54, 11, 0, 5],
+              "dns.qry.name.len": "9",
+              "dns.count.labels_raw": ["0161076578616d706c6500", 54, 11, 0, 5],
+              "dns.count.labels": "2",
+              "dns.qry.type_raw": ["0001", 65, 2, 0, 5],
+              "dns.qry.type": "1",
+              "dns.qry.class_raw": ["0001", 67, 2, 0, 5],
+              "dns.qry.class": "0x0001"
+            }
+          },
+          "Answers": {
+            "a.example: type A, class IN, addr 192.0.2.9": {
+              "dns.resp.name_raw": ["c00c", 69, 2, 0, 26],
+              "dns.resp.name": "a.example",
+              "dns.resp.type_raw": ["0001", 71, 2, 0, 5],
+              "dns.resp.type": "1",
+              "dns.resp.class_raw": ["0001", 73, 2, 0, 5],
+              "dns.resp.class": "0x0001",
+              "dns.resp.ttl_raw": ["0000003c", 75, 4, 0, 7],
+              "dns.resp.ttl": "60",
+              "dns.resp.len_raw": ["0004", 79, 2, 0, 5],
+              "dns.resp.len": "4",
+              "dns.a_raw": ["c0000209", 81, 4, 0, 32],
+              "dns.a": "192.0.2.9"
+            }
+          },
+          "dns.unsolicited": "1"
+        }
+      }
+    }
+  }
+]

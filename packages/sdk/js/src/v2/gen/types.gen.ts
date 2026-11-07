@@ -446,7 +446,7 @@ export type StepFinishPart = {
   sessionID: string
   messageID: string
   type: "step-finish"
-  reason: string
+  reason?: string
   snapshot?: string
   cost: number
   tokens: {
@@ -720,7 +720,7 @@ export type Request = {
   site?: string
   canonical_path?: string
   template_id?: string
-  norm_source?: "tier1" | "tier2" | "tier3" | "failed"
+  norm_source?: "tier1" | "tier2" | "tier3" | "failed" | "js-mined"
   protocol?: string
   operation?: string
   op_key_hash?: string
@@ -753,6 +753,11 @@ export type WebCredential = {
   headers: {
     [key: string]: string
   }
+  authByHost?: {
+    [key: string]: {
+      [key: string]: string
+    }
+  }
   container_id?: string
   role_id?: string
   time: {
@@ -766,6 +771,96 @@ export type EventWebCredentialUpdated = {
   properties: {
     sessionID: string
     credentials: Array<WebCredential>
+  }
+}
+
+export type InspectionQueueItem = {
+  id: string
+  session_id: string
+  domain: string
+  target_key: string
+  target_label?: string
+  target_meta?: {
+    [key: string]: unknown
+  }
+  status: "pending" | "dispatched" | "examined"
+  priority: "high" | "medium" | "low"
+  evidence?: {
+    [key: string]: Array<string>
+  }
+  time: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventInspectionUpdated = {
+  type: "inspection.updated"
+  properties: {
+    sessionID: string
+    domain: string
+    queue: Array<InspectionQueueItem>
+  }
+}
+
+export type EventSessionPhase = {
+  type: "session.phase"
+  properties: {
+    sessionID: string
+    domain: string
+    phase: "idle" | "discovering" | "inspecting" | "draining" | "complete"
+    previous: "idle" | "discovering" | "inspecting" | "draining" | "complete"
+  }
+}
+
+export type Vulnerability = {
+  id?: string
+  ref?: string
+  severity: "critical" | "high" | "medium" | "low" | "info"
+  title: string
+  description: string
+  cwe_id?: string
+  file?: string
+  line_start?: number
+  line_end?: number
+  steps_to_reproduce?: string
+  business_impact?: string
+  recommendation?: string
+  poc?: string
+  endpoint?: string
+  attack_vector?: string
+  cvss?: string
+  references?: Array<string>
+  evidence_request_ids?: Array<string>
+  source_agent?: string
+  status?:
+    | "draft"
+    | "triaged"
+    | "pending_fix"
+    | "rejected"
+    | "duplicate"
+    | "fixed"
+    | "new"
+    | "approved"
+    | "open"
+    | "ignored"
+  candidate?: "critical" | "high" | "medium" | "low" | "info"
+  duplicate_of?: string
+  aggregate_key?: string
+  affected_endpoints?: Array<string>
+  escalation_examined?: boolean
+  message_id?: string
+  time?: {
+    created: number
+    updated: number
+  }
+}
+
+export type EventVulnerabilityUpdated = {
+  type: "vulnerability.updated"
+  properties: {
+    sessionID: string
+    vulnerabilities: Array<Vulnerability>
   }
 }
 
@@ -825,39 +920,6 @@ export type EventTodoUpdated = {
   properties: {
     sessionID: string
     todos: Array<Todo>
-  }
-}
-
-export type Vulnerability = {
-  id?: string
-  severity: "critical" | "high" | "medium" | "low" | "info"
-  title: string
-  description: string
-  cwe_id?: string
-  file?: string
-  line_start?: number
-  line_end?: number
-  steps_to_reproduce?: string
-  business_impact?: string
-  recommendation?: string
-  poc?: string
-  endpoint?: string
-  attack_vector?: string
-  status?: "new" | "approved" | "duplicate" | "open" | "fixed" | "ignored"
-  candidate?: "critical" | "high" | "medium" | "low" | "info"
-  duplicate_of?: string
-  message_id?: string
-  time?: {
-    created: number
-    updated: number
-  }
-}
-
-export type EventVulnerabilityUpdated = {
-  type: "vulnerability.updated"
-  properties: {
-    sessionID: string
-    vulnerabilities: Array<Vulnerability>
   }
 }
 
@@ -972,25 +1034,32 @@ export type EventWebRoleUpdated = {
   }
 }
 
-export type WebRetest = {
+export type WebJs = {
   id: string
   session_id: string
-  request_id: string
-  trigger_type: "new_role" | "new_object_value" | "new_credential"
-  trigger_source: string
-  status: "pending" | "processing" | "completed"
-  priority: "high" | "medium" | "low"
+  url: string
+  origin?: string
+  analyzed?: boolean
+  discovered_from?: string
   time: {
     created: number
     updated: number
   }
 }
 
-export type EventWebRetestUpdated = {
-  type: "web_retest.updated"
+export type EventWebJsUpdated = {
+  type: "web_js.updated"
   properties: {
     sessionID: string
-    queue: Array<WebRetest>
+    js: Array<WebJs>
+  }
+}
+
+export type EventIntelUpdated = {
+  type: "intel.updated"
+  properties: {
+    sessionID: string
+    entryCount: number
   }
 }
 
@@ -1063,11 +1132,27 @@ export type EventMcpBrowserOpenFailed = {
   }
 }
 
-export type EventIntelUpdated = {
-  type: "intel.updated"
+export type EventCloudAssetUpdated = {
+  type: "cloud_asset.updated"
   properties: {
     sessionID: string
-    entryCount: number
+    assetCount: number
+  }
+}
+
+export type EventCloudEdgeUpdated = {
+  type: "cloud_edge.updated"
+  properties: {
+    sessionID: string
+    edgeCount: number
+  }
+}
+
+export type EventCloudExposureUpdated = {
+  type: "cloud_exposure.updated"
+  properties: {
+    sessionID: string
+    exposureCount: number
   }
 }
 
@@ -1254,23 +1339,28 @@ export type Event =
   | EventFileWatcherUpdated
   | EventRequestUpdated
   | EventWebCredentialUpdated
+  | EventInspectionUpdated
+  | EventSessionPhase
+  | EventVulnerabilityUpdated
   | EventSessionQueueStatus
   | EventSessionHackbrowserStatus
   | EventTodoUpdated
-  | EventVulnerabilityUpdated
   | EventEndpointTemplateUpdated
   | EventWebFunctionUpdated
   | EventWebObjectUpdated
   | EventWebObjectValueUpdated
   | EventWebRoleUpdated
-  | EventWebRetestUpdated
+  | EventWebJsUpdated
+  | EventIntelUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
   | EventTuiSessionSelect
   | EventMcpToolsChanged
   | EventMcpBrowserOpenFailed
-  | EventIntelUpdated
+  | EventCloudAssetUpdated
+  | EventCloudEdgeUpdated
+  | EventCloudExposureUpdated
   | EventCommandExecuted
   | EventSessionCreated
   | EventSessionUpdated
@@ -1817,7 +1907,31 @@ export type AgentConfig = {
    */
   maxSteps?: number
   permission?: PermissionConfig
-  [key: string]: unknown
+  [key: string]:
+    | unknown
+    | string
+    | number
+    | {
+        [key: string]: boolean
+      }
+    | boolean
+    | "subagent"
+    | "primary"
+    | "all"
+    | {
+        [key: string]: unknown
+      }
+    | string
+    | "primary"
+    | "secondary"
+    | "accent"
+    | "success"
+    | "warning"
+    | "error"
+    | "info"
+    | number
+    | PermissionConfig
+    | undefined
 }
 
 export type ProviderConfig = {
@@ -1918,7 +2032,7 @@ export type ProviderConfig = {
            * Disable this variant for the model
            */
           disabled?: boolean
-          [key: string]: unknown
+          [key: string]: unknown | boolean | undefined
         }
       }
     }
@@ -1940,7 +2054,7 @@ export type ProviderConfig = {
      * Timeout in milliseconds for requests to this provider. Default is 300000 (5 minutes). Set to false to disable timeout.
      */
     timeout?: number | false
-    [key: string]: unknown
+    [key: string]: unknown | string | boolean | number | false | undefined
   }
 }
 
@@ -2440,6 +2554,26 @@ export type McpResource = {
   client: string
 }
 
+export type WebRetest = {
+  id: string
+  session_id: string
+  key_hash: string
+  status: "pending" | "dispatched" | "examined"
+  priority: "high" | "medium" | "low"
+  flags?: {
+    object_value?: Array<string>
+    role?: Array<string>
+    signal?: Array<string>
+    credential?: Array<string>
+  }
+  method?: string
+  endpoint?: string
+  time: {
+    created: number
+    updated: number
+  }
+}
+
 export type TextPartInput = {
   id?: string
   type: "text"
@@ -2631,6 +2765,7 @@ export type Agent = {
   }
   steps?: number
   prependRequestContext?: boolean
+  tier?: "free" | "pro" | "enterprise"
 }
 
 export type LspStatus = {
@@ -2760,6 +2895,25 @@ export type GlobalConfigUpdateResponses = {
 }
 
 export type GlobalConfigUpdateResponse = GlobalConfigUpdateResponses[keyof GlobalConfigUpdateResponses]
+
+export type GlobalLogData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/global/log"
+}
+
+export type GlobalLogResponses = {
+  /**
+   * Log file contents
+   */
+  200: {
+    path: string
+    lines: Array<string>
+  }
+}
+
+export type GlobalLogResponse = GlobalLogResponses[keyof GlobalLogResponses]
 
 export type GlobalDisposeData = {
   body?: never
@@ -3466,6 +3620,10 @@ export type SessionHackbrowserLaunchData = {
     exclude?: Array<string>
     steps?: number
     headless?: boolean
+    model?: {
+      providerID: string
+      modelID: string
+    }
   }
   path: {
     sessionID: string
@@ -3813,6 +3971,74 @@ export type SessionVulnerabilityResponses = {
 
 export type SessionVulnerabilityResponse = SessionVulnerabilityResponses[keyof SessionVulnerabilityResponses]
 
+export type SessionVulnerabilityPosterData = {
+  body?: never
+  path: {
+    sessionID: string
+    ref: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vulnerability/{ref}/poster"
+}
+
+export type SessionVulnerabilityPosterErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionVulnerabilityPosterError = SessionVulnerabilityPosterErrors[keyof SessionVulnerabilityPosterErrors]
+
+export type SessionVulnerabilityPosterResponses = {
+  /**
+   * PNG image
+   */
+  200: Blob | File
+}
+
+export type SessionVulnerabilityPosterResponse =
+  SessionVulnerabilityPosterResponses[keyof SessionVulnerabilityPosterResponses]
+
+export type SessionVulnerabilityPosterBundleData = {
+  body?: never
+  path: {
+    sessionID: string
+    ref: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vulnerability/{ref}/poster/bundle"
+}
+
+export type SessionVulnerabilityPosterBundleErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionVulnerabilityPosterBundleError =
+  SessionVulnerabilityPosterBundleErrors[keyof SessionVulnerabilityPosterBundleErrors]
+
+export type SessionVulnerabilityPosterBundleResponses = {
+  /**
+   * Poster bundle
+   */
+  200: {
+    png: string
+    tweet: string
+    markdown: string
+    slug: string
+  }
+}
+
+export type SessionVulnerabilityPosterBundleResponse =
+  SessionVulnerabilityPosterBundleResponses[keyof SessionVulnerabilityPosterBundleResponses]
+
 export type SessionRequestData = {
   body?: never
   path: {
@@ -3968,6 +4194,791 @@ export type SessionAddWebCredentialResponses = {
 }
 
 export type SessionAddWebCredentialResponse = SessionAddWebCredentialResponses[keyof SessionAddWebCredentialResponses]
+
+export type SessionAddWebObservationsData = {
+  body?: {
+    credential_id?: string
+    page_url: string
+    elements: Array<{
+      role: string
+      label: string
+    }>
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/observations"
+}
+
+export type SessionAddWebObservationsErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionAddWebObservationsError = SessionAddWebObservationsErrors[keyof SessionAddWebObservationsErrors]
+
+export type SessionAddWebObservationsResponses = {
+  /**
+   * Count of newly recorded observations
+   */
+  200: {
+    observed: number
+  }
+}
+
+export type SessionAddWebObservationsResponse =
+  SessionAddWebObservationsResponses[keyof SessionAddWebObservationsResponses]
+
+export type SessionSpawnWebProfileData = {
+  body?: {
+    /**
+     * Role/credential label; omitted = anonymous
+     */
+    role?: string
+    /**
+     * Declared role tier name (User/Admin/…); optional
+     */
+    roleName?: string
+    /**
+     * Declared role privilege level (ordering) for the tier
+     */
+    roleLevel?: number
+    /**
+     * URL to open the new profile at (usually the app origin)
+     */
+    url: string
+    headless?: boolean
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/spawn-profile"
+}
+
+export type SessionSpawnWebProfileErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionSpawnWebProfileError = SessionSpawnWebProfileErrors[keyof SessionSpawnWebProfileErrors]
+
+export type SessionSpawnWebProfileResponses = {
+  /**
+   * Profile spawned
+   */
+  200: {
+    profileDir: string
+    pid: number
+  }
+}
+
+export type SessionSpawnWebProfileResponse = SessionSpawnWebProfileResponses[keyof SessionSpawnWebProfileResponses]
+
+export type SessionSpawnedProfileCountData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/spawned-count"
+}
+
+export type SessionSpawnedProfileCountErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionSpawnedProfileCountError = SessionSpawnedProfileCountErrors[keyof SessionSpawnedProfileCountErrors]
+
+export type SessionSpawnedProfileCountResponses = {
+  /**
+   * Count
+   */
+  200: {
+    count: number
+  }
+}
+
+export type SessionSpawnedProfileCountResponse =
+  SessionSpawnedProfileCountResponses[keyof SessionSpawnedProfileCountResponses]
+
+export type SessionCloseWebProfilesData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/close-profiles"
+}
+
+export type SessionCloseWebProfilesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionCloseWebProfilesError = SessionCloseWebProfilesErrors[keyof SessionCloseWebProfilesErrors]
+
+export type SessionCloseWebProfilesResponses = {
+  /**
+   * Count closed
+   */
+  200: {
+    closed: number
+  }
+}
+
+export type SessionCloseWebProfilesResponse = SessionCloseWebProfilesResponses[keyof SessionCloseWebProfilesResponses]
+
+export type SessionEnqueueRolesData = {
+  body?: {
+    roles: Array<string>
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/role-queue"
+}
+
+export type SessionEnqueueRolesErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionEnqueueRolesError = SessionEnqueueRolesErrors[keyof SessionEnqueueRolesErrors]
+
+export type SessionEnqueueRolesResponses = {
+  /**
+   * Queue status
+   */
+  200: {
+    roles: Array<{
+      label: string
+      phase: "pending" | "spawning" | "awaiting" | "capturing"
+    }>
+    setup: {
+      label: string
+      phase: "pending" | "spawning" | "awaiting" | "capturing"
+    } | null
+  }
+}
+
+export type SessionEnqueueRolesResponse = SessionEnqueueRolesResponses[keyof SessionEnqueueRolesResponses]
+
+export type SessionQueueStatus2Data = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/queue-status"
+}
+
+export type SessionQueueStatus2Errors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionQueueStatus2Error = SessionQueueStatus2Errors[keyof SessionQueueStatus2Errors]
+
+export type SessionQueueStatus2Responses = {
+  /**
+   * Queue status
+   */
+  200: {
+    roles: Array<{
+      label: string
+      phase: "pending" | "spawning" | "awaiting" | "capturing"
+    }>
+    setup: {
+      label: string
+      phase: "pending" | "spawning" | "awaiting" | "capturing"
+    } | null
+  }
+}
+
+export type SessionQueueStatus2Response = SessionQueueStatus2Responses[keyof SessionQueueStatus2Responses]
+
+export type SessionCaptureStartedData = {
+  body?: {
+    role: string
+    url: string
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/capture-started"
+}
+
+export type SessionCaptureStartedErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionCaptureStartedError = SessionCaptureStartedErrors[keyof SessionCaptureStartedErrors]
+
+export type SessionCaptureStartedResponses = {
+  /**
+   * Next role spawned (or none)
+   */
+  200: {
+    next: string | null
+    spawned: boolean
+  }
+}
+
+export type SessionCaptureStartedResponse = SessionCaptureStartedResponses[keyof SessionCaptureStartedResponses]
+
+export type SessionWebObserveData = {
+  body?: {
+    url: string
+    title?: string
+    driver?: "ai" | "human"
+    credential_id?: string
+    clickables: Array<{
+      id: string
+      tag: string
+      role: string
+      label: string
+      href: string
+      why?: string
+      aria?: {
+        [key: string]: string
+      }
+      disabled?: boolean
+      in_viewport?: boolean
+      in_modal?: boolean
+      section?: string
+      testid?: string
+      shadow?: boolean
+      frame?: string
+    }>
+    forms?: Array<{
+      action: string
+      method: string
+      fields: Array<{
+        id?: string
+        name: string
+        type: string
+        required: boolean
+      }>
+      submit_id?: string
+      in_modal?: boolean
+    }>
+    links?: Array<string>
+    description?: string
+    location?: Array<string>
+    landmarks?: Array<{
+      role: string
+      label: string
+    }>
+    frames?: Array<{
+      src: string
+      same_origin: boolean
+      title: string
+    }>
+    canvas?: number
+    dynamic?: boolean
+    tech?: {
+      globals?: Array<string>
+      dom?: Array<string>
+      cookies?: Array<string>
+      meta?: string
+      scripts?: Array<string>
+      headers?: {
+        [key: string]: string
+      }
+    }
+    js_bundles?: Array<string>
+    runtime_libs?: Array<string>
+    resources?: Array<{
+      url: string
+      type: string
+      size: number
+    }>
+    modal_open?: boolean
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/observe"
+}
+
+export type SessionWebObserveErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebObserveError = SessionWebObserveErrors[keyof SessionWebObserveErrors]
+
+export type SessionWebObserveResponses = {
+  /**
+   * Kind counts
+   */
+  200: {
+    ok: boolean
+    kinds: {
+      [key: string]: number
+    }
+  }
+}
+
+export type SessionWebObserveResponse = SessionWebObserveResponses[keyof SessionWebObserveResponses]
+
+export type SessionWebPageStateData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    url?: string
+    view?: "destructive" | "logout" | "auth" | "mutating" | "query" | "nav" | "other"
+  }
+  url: "/session/{sessionID}/web/page-state"
+}
+
+export type SessionWebPageStateErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebPageStateError = SessionWebPageStateErrors[keyof SessionWebPageStateErrors]
+
+export type SessionWebPageStateResponses = {
+  /**
+   * Page state
+   */
+  200: unknown
+}
+
+export type SessionWebActionData = {
+  body?: {
+    op: "click" | "type" | "navigate"
+    url?: string
+    element_id?: string
+    text?: string
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/action"
+}
+
+export type SessionWebActionErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebActionError = SessionWebActionErrors[keyof SessionWebActionErrors]
+
+export type SessionWebActionResponses = {
+  /**
+   * Action ack
+   */
+  200: {
+    ok: boolean
+    policy?: string
+    error?: string
+  }
+}
+
+export type SessionWebActionResponse = SessionWebActionResponses[keyof SessionWebActionResponses]
+
+export type SessionWebControlData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/control"
+}
+
+export type SessionWebControlErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebControlError = SessionWebControlErrors[keyof SessionWebControlErrors]
+
+export type SessionWebGetDriverData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/driver"
+}
+
+export type SessionWebGetDriverErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebGetDriverError = SessionWebGetDriverErrors[keyof SessionWebGetDriverErrors]
+
+export type SessionWebGetDriverResponses = {
+  /**
+   * Current driver
+   */
+  200: {
+    driver: "ai" | "human" | null
+  }
+}
+
+export type SessionWebGetDriverResponse = SessionWebGetDriverResponses[keyof SessionWebGetDriverResponses]
+
+export type SessionWebSetDriverData = {
+  body?: {
+    driver: "ai" | "human"
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/driver"
+}
+
+export type SessionWebSetDriverErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebSetDriverError = SessionWebSetDriverErrors[keyof SessionWebSetDriverErrors]
+
+export type SessionWebSetDriverResponses = {
+  /**
+   * Current driver
+   */
+  200: {
+    ok: boolean
+    driver: "ai" | "human"
+    model?: string
+  }
+}
+
+export type SessionWebSetDriverResponse = SessionWebSetDriverResponses[keyof SessionWebSetDriverResponses]
+
+export type SessionWebStatsData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/stats"
+}
+
+export type SessionWebStatsErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebStatsError = SessionWebStatsErrors[keyof SessionWebStatsErrors]
+
+export type SessionWebStatsResponses = {
+  /**
+   * Capture counts
+   */
+  200: {
+    captures: number
+    endpoints: number
+    pages: number
+    vulns: number
+  }
+}
+
+export type SessionWebStatsResponse = SessionWebStatsResponses[keyof SessionWebStatsResponses]
+
+export type SessionWebJsData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/js"
+}
+
+export type SessionWebJsErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebJsError = SessionWebJsErrors[keyof SessionWebJsErrors]
+
+export type SessionWebJsResponses = {
+  /**
+   * JS files
+   */
+  200: Array<WebJs>
+}
+
+export type SessionWebJsResponse = SessionWebJsResponses[keyof SessionWebJsResponses]
+
+export type SessionWebSetHoldData = {
+  body?: {
+    held: boolean
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/hold"
+}
+
+export type SessionWebSetHoldErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebSetHoldError = SessionWebSetHoldErrors[keyof SessionWebSetHoldErrors]
+
+export type SessionWebSetHoldResponses = {
+  /**
+   * Hold state
+   */
+  200: {
+    ok: boolean
+    held: boolean
+  }
+}
+
+export type SessionWebSetHoldResponse = SessionWebSetHoldResponses[keyof SessionWebSetHoldResponses]
+
+export type SessionWebLogReadData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+    limit?: number
+  }
+  url: "/session/{sessionID}/web/log"
+}
+
+export type SessionWebLogReadErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebLogReadError = SessionWebLogReadErrors[keyof SessionWebLogReadErrors]
+
+export type SessionWebLogReadResponses = {
+  /**
+   * Events
+   */
+  200: unknown
+}
+
+export type SessionWebLogData = {
+  body?: {
+    source?: string
+    event: string
+    data?: unknown
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/web/log"
+}
+
+export type SessionWebLogErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionWebLogError = SessionWebLogErrors[keyof SessionWebLogErrors]
+
+export type SessionWebLogResponses = {
+  /**
+   * Recorded
+   */
+  200: {
+    ok: boolean
+  }
+}
+
+export type SessionWebLogResponse = SessionWebLogResponses[keyof SessionWebLogResponses]
 
 export type SessionDeleteWebCredentialData = {
   body?: never
@@ -4169,7 +5180,7 @@ export type SessionWebFunctionsResponses = {
 
 export type SessionWebFunctionsResponse = SessionWebFunctionsResponses[keyof SessionWebFunctionsResponses]
 
-export type SessionWebRetestQueueData = {
+export type SessionVortexReportData = {
   body?: never
   path: {
     sessionID: string
@@ -4177,10 +5188,139 @@ export type SessionWebRetestQueueData = {
   query?: {
     directory?: string
   }
-  url: "/session/{sessionID}/web/retest-queue"
+  url: "/session/{sessionID}/vortex"
 }
 
-export type SessionWebRetestQueueErrors = {
+export type SessionVortexReportResponses = {
+  /**
+   * Vortex report
+   */
+  200: unknown
+}
+
+export type SessionVortexProbeData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vortex/probe"
+}
+
+export type SessionVortexProbeResponses = {
+  /**
+   * Vortex active-probe result
+   */
+  200: unknown
+}
+
+export type SessionVortexCapturesData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vortex/captures"
+}
+
+export type SessionVortexCapturesResponses = {
+  /**
+   * Vortex-sourced captures
+   */
+  200: unknown
+}
+
+export type SessionVortexSignalsData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vortex/signals"
+}
+
+export type SessionVortexSignalsResponses = {
+  /**
+   * Vortex-sourced signals + routing status
+   */
+  200: unknown
+}
+
+export type SessionVortexSignalSummaryData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vortex/signals/summary"
+}
+
+export type SessionVortexSignalSummaryResponses = {
+  /**
+   * Signal triage summary counts
+   */
+  200: unknown
+}
+
+export type SessionVortexUpdateTriageData = {
+  body?: {
+    keys: Array<string>
+    triage: "new" | "reviewed" | "confirmed" | "dismissed" | "escalated"
+  }
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/vortex/signals/triage"
+}
+
+export type SessionVortexUpdateTriageResponses = {
+  /**
+   * Number of signals updated
+   */
+  200: unknown
+}
+
+export type SessionRouteSignalsData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/inspection/route-signals"
+}
+
+export type SessionRouteSignalsResponses = {
+  /**
+   * How many signals were flagged for a specialist
+   */
+  200: unknown
+}
+
+export type SessionInspectionQueueData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/inspection/queue"
+}
+
+export type SessionInspectionQueueErrors = {
   /**
    * Bad request
    */
@@ -4191,23 +5331,67 @@ export type SessionWebRetestQueueErrors = {
   404: NotFoundError
 }
 
-export type SessionWebRetestQueueError = SessionWebRetestQueueErrors[keyof SessionWebRetestQueueErrors]
+export type SessionInspectionQueueError = SessionInspectionQueueErrors[keyof SessionInspectionQueueErrors]
 
-export type SessionWebRetestQueueResponses = {
+export type SessionInspectionQueueResponses = {
   /**
-   * Retest queue
+   * Inspection queue
    */
   200: {
     pending: Array<WebRetest>
     counts: {
       pending: number
-      processing: number
-      completed: number
+      examined: number
     }
   }
 }
 
-export type SessionWebRetestQueueResponse = SessionWebRetestQueueResponses[keyof SessionWebRetestQueueResponses]
+export type SessionInspectionQueueResponse = SessionInspectionQueueResponses[keyof SessionInspectionQueueResponses]
+
+export type SessionInspectionLifecycleData = {
+  body?: never
+  path: {
+    sessionID: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/session/{sessionID}/inspection/lifecycle"
+}
+
+export type SessionInspectionLifecycleErrors = {
+  /**
+   * Bad request
+   */
+  400: BadRequestError
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type SessionInspectionLifecycleError = SessionInspectionLifecycleErrors[keyof SessionInspectionLifecycleErrors]
+
+export type SessionInspectionLifecycleResponses = {
+  /**
+   * Lifecycle snapshot
+   */
+  200: {
+    phase: "idle" | "discovering" | "inspecting" | "draining" | "complete"
+    sources: Array<{
+      name: string
+      active: boolean
+    }>
+    counts: {
+      pending: number
+      examined: number
+      total: number
+    }
+  }
+}
+
+export type SessionInspectionLifecycleResponse =
+  SessionInspectionLifecycleResponses[keyof SessionInspectionLifecycleResponses]
 
 export type SessionIngestData = {
   body?: {
@@ -5360,6 +6544,29 @@ export type ProviderListResponses = {
 }
 
 export type ProviderListResponse = ProviderListResponses[keyof ProviderListResponses]
+
+export type ProviderRecordModelData = {
+  body?: {
+    providerID: string
+    modelID: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/provider/model"
+}
+
+export type ProviderRecordModelResponses = {
+  /**
+   * Recorded
+   */
+  200: {
+    ok: boolean
+  }
+}
+
+export type ProviderRecordModelResponse = ProviderRecordModelResponses[keyof ProviderRecordModelResponses]
 
 export type ProviderAuthData = {
   body?: never
@@ -7025,6 +8232,7 @@ export type SkillGetResponses = {
     severity_boost?: {
       [key: string]: string
     }
+    slash?: boolean
   }
 }
 

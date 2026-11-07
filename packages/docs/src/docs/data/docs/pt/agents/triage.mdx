@@ -1,0 +1,59 @@
+---
+title: Agente Triage
+description: Verificacao independente e deduplicacao de rascunhos de descobertas de vulnerabilidades
+sidebar:
+  order: 6
+  label: Triage
+---
+
+O agente `triage` verifica independentemente rascunhos de descobertas de vulnerabilidades reproduzindo suas evidencias HTTP. Ele nunca confia na narrativa do agente que reportou — ele reproduz cada requisicao e verifica o corpo da resposta por conta propria.
+
+## Visao Geral
+
+| Propriedade | Valor |
+|-------------|-------|
+| **ID do Agente** | `triage` |
+| **Modo** | `subagent` |
+| **Acesso a Ferramentas** | Restrito (read, grep, http_replay, triage_vulnerability, web_get_session_context) |
+| **Design** | Conservador — deixa descobertas nao verificaveis como rascunho |
+
+## Protocolo de Verificacao
+
+Para cada rascunho de descoberta, o agente triage:
+
+1. Le a evidencia HTTP anexada (requisicao/resposta capturada)
+2. Usa `http_replay` para reproduzir a requisicao independentemente
+3. Examina a resposta da reproducao em busca de prova real
+4. Decide o destino da descoberta:
+
+| Veredito | Quando |
+|----------|--------|
+| **Triado** | A reproducao confirma a vulnerabilidade |
+| **Rejeitado** | A reproducao mostra falso positivo |
+| **Duplicado** | A descoberta duplica outra descoberta verificada |
+| **Rascunho** (inalterado) | Nao e possivel verificar — deixado para revisao humana |
+
+## O Que Conta como Prova
+
+O agente triage aplica padroes rigorosos de evidencia:
+
+- Um status `200` sozinho **nao** e prova — o corpo da resposta deve conter dados do alvo
+- `deleted:0`, arrays vazios, mensagens de sucesso genericas **nao** sao evidencia
+- Para descobertas cross-tenant/IDOR, a resposta deve conter dados do **outro** tenant
+- Para descobertas de autorizacao, reproducao no modo `compare` deve mostrar que o limite de privilegio foi ultrapassado
+
+## Exemplo
+
+```
+Draft: IDOR in GET /api/users/42 — claimed to return user data for another tenant
+
+Triage:
+1. Replay GET /api/users/42 with original auth → 200, body: {"id": 42, "name": "Other User"}
+2. Replay GET /api/users/42 with attacker auth → 200, body: {"id": 42, "name": "Other User"}
+3. Both return the same user data → CONFIRMED cross-tenant access
+4. → triage_vulnerability(id, status: "triaged")
+```
+
+<Aside variant="info">
+  O agente triage e despachado automaticamente apos subagentes de teste de vulnerabilidades reportarem descobertas. Ele executa como um portao final de qualidade antes das descobertas serem apresentadas.
+</Aside>

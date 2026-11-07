@@ -1,0 +1,190 @@
+---
+title: CLI
+description: Interface en ligne de commande pour les evaluations de securite non interactives
+sidebar:
+  order: 2
+  label: CLI
+---
+
+La CLI de CyberStrike lance par defaut le [TUI](/fr/docs/usage/tui) lorsqu'elle est executee sans arguments. Elle accepte egalement des commandes pour une utilisation non interactive et programmatique.
+
+```bash
+# Lancer le TUI interactif
+cyberstrike
+
+# Executer un prompt unique
+cyberstrike run "scan example.com for open ports"
+```
+
+{/* TODO: Video — CLI run command executing a security prompt and streaming output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-run-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Commande run non interactive avec sortie agent en streaming (~12s)</p>
+</div>
+
+## Commandes disponibles
+
+| Commande | Description |
+|----------|-------------|
+| `run` | Mode non interactif avec un prompt direct |
+| `serve` | Serveur HTTP headless pour acces API |
+| `web` | Serveur headless avec [interface web](/fr/docs/usage/web) |
+| `attach` | Connecter le TUI a un serveur en cours d'execution |
+| `auth` | Gerer les identifiants et la connexion aux fournisseurs |
+| `agent` | Gerer les agents de securite |
+| `mcp` | Gerer les serveurs MCP |
+| `models` | Lister les modeles disponibles des fournisseurs |
+| `session` | Gerer les sessions |
+| `stats` | Afficher les statistiques d'utilisation de tokens et de couts |
+| `export` | Exporter les donnees de session en JSON |
+| `import` | Importer depuis un fichier JSON ou une URL de partage |
+| `upgrade` | Mettre a jour vers la derniere version ou une version specifique |
+| `uninstall` | Supprimer CyberStrike et les fichiers associes |
+
+## Drapeaux globaux
+
+| Drapeau | Alias | Description |
+|---------|-------|-------------|
+| `--help` | `-h` | Afficher l'aide |
+| `--version` | `-v` | Afficher la version |
+| `--print-logs` | | Envoyer les logs vers stderr |
+| `--log-level` | | Definir le niveau : `DEBUG`, `INFO`, `WARN`, `ERROR` |
+
+## run
+
+Executer un prompt unique sans entrer en mode interactif.
+
+```bash
+cyberstrike run [message..] [options]
+```
+
+### Options
+
+| Option | Alias | Description |
+|--------|-------|-------------|
+| `--model <model>` | `-m` | Modele au format `fournisseur/modele` |
+| `--agent <name>` | | Agent de securite a utiliser |
+| `--continue` | `-c` | Continuer la derniere session |
+| `--session <id>` | `-s` | Reprendre une session specifique |
+| `--file <path>` | `-f` | Joindre un ou plusieurs fichiers au message |
+| `--format <type>` | | Format de sortie : `default` ou `json` |
+| `--share` | | Partager la session |
+| `--title <text>` | | Definir le titre de la session |
+| `--variant <type>` | | Variante du modele (`high`, `max`, `minimal`) |
+
+### Exemples
+
+```bash
+# Executer un scan de securite
+cyberstrike run "scan example.com for XSS vulnerabilities"
+
+# Joindre un fichier de configuration pour analyse
+cyberstrike run "analyze this config for misconfigurations" -f nginx.conf
+
+# Sortie en JSON pour integration dans un pipeline
+cyberstrike run "list all open ports" --format json
+
+# Continuer une session precedente
+cyberstrike run "now check for SQLi" --continue
+```
+
+{/* TODO: Screenshot — CLI JSON output format example */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: cli-json-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Sortie JSON structuree avec le drapeau --format json</p>
+</div>
+
+### Redirection d'entree
+
+Accepter l'entree depuis stdin pour l'integration avec d'autres outils :
+
+```bash
+echo "analyze this code for vulnerabilities" | cyberstrike run
+nmap -sV target.local | cyberstrike run "analyze these scan results"
+cat report.json | cyberstrike run "summarize findings"
+```
+
+## serve
+
+Demarrer un serveur API HTTP headless sans interface utilisateur. Utile pour les integrations, les pipelines CI/CD et l'acces distant.
+
+```bash
+cyberstrike serve [options]
+```
+
+| Option | Description |
+|--------|-------------|
+| `--port <number>` | Port du serveur (par defaut : aleatoire disponible) |
+| `--hostname <address>` | Adresse de liaison (par defaut : `127.0.0.1`) |
+
+<Aside variant="caution">
+  **Authentification :** Definissez `CYBERSTRIKE_SERVER_PASSWORD` lorsque vous exposez le serveur sur un reseau. Sans cela, le serveur n'est pas securise.
+</Aside>
+
+```bash
+# Demarrer le serveur API sur le port 4096
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve --port 4096
+```
+
+{/* TODO: Video — Starting serve and piping nmap output into cyberstrike run */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-pipe-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Redirection de la sortie nmap dans cyberstrike run pour analyse (~10s)</p>
+</div>
+
+## attach
+
+Connecter un TUI a un serveur CyberStrike deja en cours d'execution. Cela permet a plusieurs terminaux de partager les memes sessions.
+
+```bash
+cyberstrike attach <url>
+```
+
+```bash
+# Demarrer le serveur dans un terminal
+cyberstrike web --port 4096
+
+# Se connecter depuis un autre terminal
+cyberstrike attach http://localhost:4096
+```
+
+## upgrade
+
+Mettre a jour CyberStrike vers la derniere version ou une version specifique.
+
+```bash
+# Mettre a jour vers la derniere version stable
+cyberstrike upgrade
+
+# Mettre a jour vers une version specifique
+cyberstrike upgrade 1.1.6
+
+# Mettre a jour vers la derniere beta
+cyberstrike upgrade --method npm
+```
+
+Methodes supportees : `curl`, `npm`, `pnpm`, `bun`, `brew`, `choco`, `scoop`.
+
+## Variables d'environnement
+
+| Variable | Description |
+|----------|-------------|
+| `CYBERSTRIKE_PROVIDER` | Fournisseur d'IA par defaut |
+| `CYBERSTRIKE_MODEL` | Modele par defaut |
+| `CYBERSTRIKE_AGENT` | Agent de securite par defaut |
+| `CYBERSTRIKE_SERVER_PASSWORD` | Mot de passe d'authentification du serveur |
+| `CYBERSTRIKE_SERVER_USERNAME` | Nom d'utilisateur du serveur (par defaut : `cyberstrike`) |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | Desactiver les verifications automatiques de mises a jour |
+| `CYBERSTRIKE_TUI_CONFIG` | Chemin de configuration TUI personnalise |
+| `ANTHROPIC_API_KEY` | Cle API Anthropic |
+| `OPENAI_API_KEY` | Cle API OpenAI |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Cle API Google AI (Gemini) |
+| `OPENROUTER_API_KEY` | Cle API OpenRouter |
+
+## Codes de sortie
+
+| Code | Signification |
+|------|---------------|
+| `0` | Succes |
+| `1` | Erreur — arguments invalides/inconnus, ou erreur fatale |
+| `130` | Interrompu (Ctrl+C) |

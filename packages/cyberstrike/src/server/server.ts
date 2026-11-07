@@ -134,18 +134,23 @@ export namespace Server {
           // Manual Basic auth check — intentionally omit WWW-Authenticate header
           // so browsers don't show native auth dialog. The web UI uses its own form.
           const username = Flag.CYBERSTRIKE_SERVER_USERNAME ?? "cyberstrike"
-          const header = c.req.header("authorization")
-          if (header) {
-            const match = /^Basic\s+(.+)$/i.exec(header)
-            if (match) {
-              try {
-                const decoded = new TextDecoder().decode(Uint8Array.from(atob(match[1]), (c) => c.charCodeAt(0)))
-                const sep = decoded.indexOf(":")
-                if (sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password)
-                  return next()
-              } catch {}
+          const okBasic = (b64: string): boolean => {
+            try {
+              const decoded = new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)))
+              const sep = decoded.indexOf(":")
+              return sep !== -1 && decoded.slice(0, sep) === username && decoded.slice(sep + 1) === password
+            } catch {
+              return false
             }
           }
+          const header = c.req.header("authorization")
+          const match = header ? /^Basic\s+(.+)$/i.exec(header) : null
+          if (match && okBasic(match[1])) return next()
+          // A browser WebSocket upgrade can't set an Authorization header, so the co-driving
+          // control channel passes the same Basic token as a `_cs_auth` query param instead.
+          // (Over HTTPS it's encrypted in transit; note it may appear in server access logs.)
+          const q = c.req.query("_cs_auth")
+          if (q && okBasic(q)) return next()
           return c.json({ error: "Unauthorized" }, 401)
         })
         .use(async (c, next) => {
@@ -544,9 +549,13 @@ export namespace Server {
                 }),
               })
               const unsub = Bus.subscribeAll(async (event) => {
-                await stream.writeSSE({
-                  data: JSON.stringify(event),
-                })
+                try {
+                  await stream.writeSSE({
+                    data: JSON.stringify(event),
+                  })
+                } catch {
+                  return
+                }
                 if (event.type === Bus.InstanceDisposed.type) {
                   stream.close()
                 }
@@ -588,11 +597,14 @@ export namespace Server {
           // Resolve web UI dist directory (cached after first lookup)
           if (_webDistDir === undefined) {
             const candidates = [
-              // 1. ~/.cyberstrike/web/ (installed/production)
-              path.join(Global.Path.data, "web"),
-              // 2. Workspace-relative (dev: running from repo root)
+              // 0. Explicit path from the npm bin wrapper (main package's bundled web/), so
+              //    `cyberstrike web` works with no postinstall copy into the data dir (#114).
+              process.env.CYBERSTRIKE_WEB_DIR || "",
+              // 1. Workspace-relative (dev: running from repo root) — a freshly built dist must win
+              //    over the data-dir copy, or dev serves a stale ~/.local/share/cyberstrike/web and
+              //    no frontend change is ever visible in the web UI (#33).
               path.join(process.cwd(), "packages", "app", "dist"),
-              // 3. Relative to source (dev: import.meta.url)
+              // 2. Relative to source (dev: import.meta.url) — covers a non-repo-root cwd.
               (() => {
                 try {
                   return new URL("../../../app/dist", import.meta.url).pathname
@@ -600,6 +612,11 @@ export namespace Server {
                   return ""
                 }
               })(),
+              // 3. Beside the binary (compiled: flat archive ships web/ next to the exe).
+              path.join(path.dirname(process.execPath), "web"),
+              // 4. ~/.cyberstrike/web/ (installed/production) — the only candidate that exists once
+              //    packaged; the dev workspace paths above resolve to nothing there.
+              path.join(Global.Path.data, "web"),
             ]
             for (const dir of candidates) {
               if (!dir) continue
@@ -696,8 +713,23 @@ export namespace Server {
         return undefined
       }
     }
-    const server = tryServe(opts.port || 4096) ?? tryServe(0)
-    if (!server) throw new Error(`Failed to start server`)
+    const requested = opts.port || 4096
+    const bound = bindWithFallback(requested, tryServe)
+    if (!bound.server) throw new Error(`Failed to start server`)
+    const server = bound.server
+
+    // #91: a silent fallback to a random port hid a stale `web` server holding :4096 — clients/crawlers
+    // kept hitting the OLD process. Make the conflict LOUD + actionable instead of silent.
+    if (bound.fellBack) {
+      log.warn(
+        `port ${requested} is already in use — started on ${server.port} instead. ` +
+          `Anything targeting :${requested} (the web UI, the hackbrowser crawl, remote clients) will talk to the OTHER process, NOT this one. ` +
+          `A previous CyberStrike instance is probably still running: find it with \`lsof -nP -iTCP:${requested} -sTCP:LISTEN\`, stop it (Ctrl-C in its terminal, or \`kill <pid>\`), then restart.`,
+      )
+      void probeOccupant(requested).then((alive) => {
+        if (alive) log.warn(`confirmed: something is already listening on :${requested} and responding — almost certainly a stale CyberStrike server.`)
+      })
+    }
 
     _url = server.url
 
@@ -720,5 +752,28 @@ export namespace Server {
     }
 
     return server
+  }
+
+  // #91: the pure bind-with-fallback decision (binder injected) — unit-testable without a live app.
+  // Tries the requested port; on failure falls back to an ephemeral port and flags that it did so.
+  export function bindWithFallback<T>(
+    requested: number,
+    bind: (port: number) => T | undefined,
+  ): { server: T | undefined; fellBack: boolean } {
+    const first = bind(requested)
+    if (first) return { server: first, fellBack: false }
+    const fallback = bind(0)
+    return { server: fallback, fellBack: !!fallback }
+  }
+
+  // Best-effort: is something already listening (and responding) on the requested port? Any HTTP
+  // response — even an error status — means a server holds it. Short timeout; never throws.
+  async function probeOccupant(port: number): Promise<boolean> {
+    try {
+      await fetch(`http://127.0.0.1:${port}/`, { signal: AbortSignal.timeout(500) })
+      return true
+    } catch {
+      return false
+    }
   }
 }

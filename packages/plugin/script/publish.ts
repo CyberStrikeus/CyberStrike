@@ -17,5 +17,7 @@ for (const [key, value] of Object.entries(pkg.exports)) {
   }
 }
 await Bun.write("package.json", JSON.stringify(pkg, null, 2))
-await $`bun pm pack && npm publish *.tgz --tag ${Script.channel} --access public`
+const access = process.env.CI_SERVER_HOST ? [] : ["--access", "public"]
+const tag = process.env.CYBERSTRIKE_NPM_TAG || Script.channel
+await $`bun pm pack && npm publish *.tgz --tag ${tag} ${access}`
 await Bun.write("package.json", JSON.stringify(original, null, 2))

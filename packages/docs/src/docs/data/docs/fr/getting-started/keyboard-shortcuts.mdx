@@ -1,0 +1,169 @@
+---
+title: Raccourcis clavier
+description: "Maitrisez Cyberstrike avec les raccourcis clavier bases sur la touche leader"
+sidebar:
+  order: 5
+  label: Raccourcis clavier
+---
+
+Le TUI de Cyberstrike est pilote par des raccourcis clavier bases sur une touche leader pour une navigation efficace. Cette page liste les raccourcis par defaut les plus courants. Pour la liste complete des actions et leur personnalisation, consultez [Raccourcis clavier](/docs/configuration/keybindings).
+
+## Touche leader
+
+La touche leader est `Ctrl+X` par defaut. De nombreux raccourcis sont `<leader>` suivi d'une autre touche.
+
+Pour changer la touche leader :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## Raccourcis de session
+
+| Raccourci | Action |
+|-----------|--------|
+| `<leader>n` | Nouvelle session |
+| `<leader>l` | Lister les sessions |
+| `<leader>c` | Compacter/resumer la session |
+| `<leader>g` | Chronologie de la session |
+| `<leader>x` | Exporter la session |
+| `Ctrl+R` | Renommer la session |
+| `Ctrl+D` | Supprimer la session |
+| `Escape` | Interrompre la session en cours |
+
+## Navigation
+
+| Raccourci | Action |
+|-----------|--------|
+| `PageUp` / `PageDown` | Defiler d'une page |
+| `Ctrl+Alt+U` | Defiler d'une demi-page vers le haut |
+| `Ctrl+Alt+D` | Defiler d'une demi-page vers le bas |
+| `Ctrl+G` / `Home` | Aller au premier message |
+| `Ctrl+Alt+G` / `End` | Aller au dernier message |
+| `<leader>y` | Copier le message |
+| `<leader>u` | Annuler le message (revenir) |
+| `<leader>r` | Retablir le message |
+
+## Saisie
+
+| Raccourci | Action |
+|-----------|--------|
+| `Enter` | Envoyer le message |
+| `Shift+Enter` | Nouvelle ligne |
+| `Ctrl+V` | Coller |
+| `Ctrl+C` | Effacer la saisie |
+| `Escape` | Interrompre la session en cours |
+
+## Modele et agent
+
+| Raccourci | Action |
+|-----------|--------|
+| `<leader>m` | Selection du modele |
+| `<leader>a` | Selection de l'agent |
+| `Tab` | Agent suivant |
+| `Shift+Tab` | Agent precedent |
+
+## Interface
+
+| Raccourci | Action |
+|-----------|--------|
+| `<leader>t` | Selection du theme |
+| `<leader>s` | Vue du statut |
+| `<leader>b` | Afficher/masquer la barre laterale |
+| `<leader>e` | Ouvrir dans un editeur externe |
+| `Ctrl+P` | Liste des commandes |
+
+## Dialogues
+
+Lorsqu'un dialogue est ouvert (selection de modele, liste de sessions, etc.), naviguez avec les touches flechees, appuyez sur `Enter` pour selectionner et `Escape` pour fermer. Quelques raccourcis specifiques aux dialogues :
+
+| Raccourci | Action |
+|-----------|--------|
+| `Ctrl+F` | Basculer le modele en favori (dans le dialogue de modele) |
+| `F2` / `Shift+F2` | Passer au modele recent suivant / precedent |
+
+## Invites de permission
+
+Lorsqu'un outil necessite une approbation, une invite en ligne apparait avec trois options -- **Autoriser une fois**, **Toujours autoriser** et **Refuser**. Utilisez les touches flechees et `Enter` pour choisir ; `Escape` refuse.
+
+## Personnaliser les raccourcis
+
+Remplacez les valeurs par defaut sous `keybinds` dans votre configuration. Seuls les noms d'actions valides sont acceptes (l'objet est valide strictement) :
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "status_view": "<leader>s",
+    "sidebar_toggle": "<leader>b",
+    "editor_open": "<leader>e",
+    "session_export": "<leader>x",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r"
+  }
+}
+```
+
+Consultez [Raccourcis clavier](/docs/configuration/keybindings) pour chaque action configurable et sa valeur par defaut.
+
+## Format des raccourcis
+
+- **Modificateurs** : `ctrl`, `alt`, `shift`, `super`
+- **Touches speciales** : `return`, `escape`, `tab`, `space`, `backspace`, `pageup`, `pagedown`, `home`, `end`
+- **Leader** : `<leader>` (remplace par la touche leader configuree)
+- **Alternatives** : `ctrl+c,ctrl+d` (la virgule separe les raccourcis alternatifs pour une meme action)
+- **Desactiver** : `none`
+
+### Exemples
+
+```
+ctrl+alt+u          # Ctrl + Alt + U
+alt+shift+f         # Alt + Shift + F
+<leader>n           # Touche leader puis N
+ctrl+c,ctrl+d       # l'un ou l'autre raccourci declenche l'action
+```
+
+## Carte de reference rapide
+
+```
+┌─────────────────────────────────────────┐
+│  Raccourcis clavier Cyberstrike         │
+├─────────────────────────────────────────┤
+│  Session                                │
+│    <leader>n   Nouvelle session         │
+│    <leader>l   Lister les sessions      │
+│    <leader>c   Compacter la session     │
+│    Ctrl+R      Renommer la session      │
+├─────────────────────────────────────────┤
+│  Navigation                             │
+│    Ctrl+Alt+U/D  Demi-page              │
+│    <leader>u     Annuler message        │
+│    <leader>r     Retablir message       │
+├─────────────────────────────────────────┤
+│  Modele/Agent                           │
+│    <leader>m   Modeles                  │
+│    <leader>a   Agents                   │
+│    Tab         Agent suivant            │
+├─────────────────────────────────────────┤
+│  Interface                              │
+│    <leader>s   Statut                   │
+│    <leader>t   Themes                   │
+│    <leader>b   Barre laterale           │
+│    Ctrl+P      Liste des commandes      │
+└─────────────────────────────────────────┘
+```
+
+## Documentation associee
+
+- [Raccourcis clavier](/docs/configuration/keybindings) - Liste complete des actions et personnalisation
+- [Premiers pas](/docs/getting-started) - Installation et premiers pas

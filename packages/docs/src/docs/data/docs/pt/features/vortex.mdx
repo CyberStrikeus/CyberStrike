@@ -1,0 +1,70 @@
+---
+title: Vortex
+description: Engine de trafego HTTP com regras baseadas em DSL, replay e correlacao de sinais
+sidebar:
+  order: 2
+  label: Vortex
+---
+
+O Vortex e o engine de trafego HTTP do Cyberstrike. Ele intercepta, armazena e analisa requisicoes HTTP que fluem pelo sistema — sejam capturadas pelo [HackBrowser](/docs/features/hackbrowser), pela [Extensao Chrome](/docs/tools/chrome-extension) ou injetadas via API.
+
+## O Que o Vortex Faz
+
+| Capacidade | Descricao |
+|------------|-----------|
+| **Captura de trafego** | Armazena cada par requisicao/resposta HTTP com headers e corpo completos |
+| **Engine DSL** | Filtre e consulte trafego com uma linguagem de expressao dedicada |
+| **Correspondencia de regras** | Aplique regras como dados (detect, canary, transform) contra trafego capturado |
+| **Replay** | Reenvie requisicoes capturadas com modificacoes para testes |
+| **Correlacao de sinais** | Referencia cruzada de descobertas entre requisicoes para detectar vulnerabilidades encadeadas |
+
+## Consultas DSL
+
+O Vortex inclui um engine de expressoes para filtrar trafego HTTP. Consulte por metodo, caminho, status, headers, conteudo do corpo e mais:
+
+```
+method == "POST" && path contains "/api/" && status >= 400
+```
+
+```
+header["content-type"] contains "json" && body contains "token"
+```
+
+A DSL suporta logica booleana, correspondencia de strings, comparacao numerica e acesso a campos aninhados.
+
+## Regras
+
+As regras do Vortex sao dados declarativos — nao codigo. Tres formatos de regras cobrem os padroes comuns:
+
+| Formato | Proposito | Exemplo |
+|---------|-----------|---------|
+| **Detect** | Sinalizar trafego correspondendo a um padrao | Dados sensiveis em corpos de resposta |
+| **Canary** | Injetar marcadores e observar sua reflexao | SSRF, redirecionamento aberto, injecao de header |
+| **Transform** | Modificar requisicoes antes do replay | Remover headers de autenticacao, trocar valores de parametros |
+
+Regras podem ser carregadas de pacotes integrados ou definidas por projeto.
+
+## Integracao com o HackBrowser
+
+Quando o HackBrowser captura trafego, o Vortex o processa automaticamente:
+
+1. Requisicao chega via `POST /session/ingest`
+2. O Vortex armazena a requisicao e aplica regras ativas
+3. Regras correspondidas geram sinais
+4. Sinais alimentam o pipeline de analise do proxy-agent
+
+## Uso
+
+O Vortex executa como parte do backend do Cyberstrike — nenhuma configuracao separada necessaria. O trafego flui por ele sempre que voce usa o HackBrowser, a Extensao Chrome ou o pipeline WSTG.
+
+Use `/web` na TUI para inspecionar dados acumulados do Vortex: requisicoes capturadas, regras correspondidas e sinais gerados. Comandos relacionados:
+
+| Comando | O que mostra |
+|---------|--------------|
+| `/web` | Endpoints capturados, perfis, credenciais |
+| `/vulnerabilities` | Descobertas de sinais do Vortex + testes WSTG |
+| `/methodology` | Cobertura e status da metodologia |
+
+<Aside variant="tip">
+  O Vortex esta incluido no nivel gratuito. A camada de analise de IA (raciocinio do proxy-agent, correlacao de sinais) e o que o torna poderoso — e isso executa no seu provedor de IA configurado.
+</Aside>

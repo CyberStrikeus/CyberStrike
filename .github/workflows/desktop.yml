@@ -1,0 +1,219 @@
+name: desktop
+run-name: "desktop ${{ inputs.channel }} ${{ inputs.platform }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Release channel"
+        required: true
+        type: choice
+        default: dev
+        options:
+          - dev
+          - beta
+          - prod
+      platform:
+        description: "Build only this platform (all = every platform)"
+        required: false
+        type: choice
+        default: all
+        options:
+          - all
+          - mac-arm64
+          - mac-x64
+          - windows-x64
+          - linux-x64
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
+    steps:
+      - id: set
+        run: |
+          ALL='[
+            {"runner":"macos-14","electron-args":"--mac --arm64","key":"mac-arm64"},
+            {"runner":"macos-13","electron-args":"--mac --x64","key":"mac-x64"},
+            {"runner":"windows-latest","electron-args":"--win --x64","key":"windows-x64"},
+            {"runner":"ubuntu-24.04","electron-args":"--linux --x64","key":"linux-x64"}
+          ]'
+          if [ "${{ inputs.platform }}" = "all" ]; then
+            MATRIX="$ALL"
+          else
+            MATRIX=$(echo "$ALL" | jq -c --arg key "${{ inputs.platform }}" '[.[] | select(.key == $key)]')
+          fi
+          echo "matrix={\"include\":$(echo "$MATRIX" | jq -c .)}" >> "$GITHUB_OUTPUT"
+
+  build-web:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+
+      - name: Build web UI
+        run: bun turbo build --filter=@cyberstrike-io/app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: packages/app/dist
+          retention-days: 1
+
+  build-desktop:
+    needs: [setup, build-web]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-bun
+
+      - name: Download web dist
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: packages/app/dist
+
+      - name: Install Linux build deps
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm
+
+      # Build CLI sidecar binary for THIS platform (--single = current OS/arch)
+      # --skip-install: setup-bun already installed platform-native deps; the script's
+      # default cross-platform install (--os="*" --cpu="*") is unnecessary for single-target.
+      - name: Build sidecar binary
+        run: bun run packages/cyberstrike/script/build.ts --single --skip-install
+
+      # Copy sidecar binary into desktop resources so electron-builder bundles it
+      - name: Stage sidecar binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          BIN=$(find packages/cyberstrike/dist -name "cyberstrike" -not -name "*.exe" -type f | head -1)
+          mkdir -p packages/desktop/resources/cyberstrike/bin
+          cp "$BIN" packages/desktop/resources/cyberstrike/bin/cyberstrike
+          chmod +x packages/desktop/resources/cyberstrike/bin/cyberstrike
+          echo "Staged: $BIN"
+
+      - name: Stage sidecar binary (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          BIN=$(find packages/cyberstrike/dist -name "cyberstrike.exe" -type f | head -1)
+          mkdir -p packages/desktop/resources/cyberstrike/bin
+          cp "$BIN" packages/desktop/resources/cyberstrike/bin/cyberstrike.exe
+          echo "Staged: $BIN"
+
+      - name: Stage hackbrowser extension
+        shell: bash
+        run: cp -r packages/hackbrowser/extension packages/desktop/resources/cyberstrike/extension
+
+      # Restore the Azure Trusted Signing dlib so signtool can sign the win artifacts (#103).
+      # Only when configured; script/sign-windows.ps1 skips gracefully otherwise.
+      - name: Restore Trusted Signing dlib (Windows)
+        if: runner.os == 'Windows' && vars.TRUSTED_SIGNING_ACCOUNT != ''
+        shell: pwsh
+        run: |
+          nuget install Microsoft.Trusted.Signing.Client -Version 1.0.86 `
+            -OutputDirectory "$env:RUNNER_TEMP\trusted-signing" -ExcludeVersion -NonInteractive
+
+      - name: Build electron-vite
+        run: bun run --cwd packages/desktop build
+        env:
+          CYBERSTRIKE_CHANNEL: ${{ inputs.channel }}
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Package with electron-builder
+        run: bunx electron-builder ${{ matrix.electron-args }} --config electron-builder.config.ts --publish never
+        working-directory: packages/desktop
+        env:
+          CYBERSTRIKE_CHANNEL: ${{ inputs.channel }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # macOS code signing + notarization (graceful skip when certs not configured)
+          CSC_LINK: ${{ secrets.MAC_CERT_P12 }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MAC_CERT_P12 != '' }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # macOS .pkg installer signing (Developer ID Installer cert) for MDM/Jamf (#103)
+          CSC_INSTALLER_LINK: ${{ secrets.MAC_INSTALLER_CERT_P12 }}
+          CSC_INSTALLER_KEY_PASSWORD: ${{ secrets.MAC_INSTALLER_CERT_PASSWORD }}
+          # Windows signing via Azure Trusted Signing — consumed by script/sign-windows.ps1 (#103).
+          # Graceful skip when unset (same as the macOS certs above).
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          TRUSTED_SIGNING_ENDPOINT: ${{ vars.TRUSTED_SIGNING_ENDPOINT }}
+          TRUSTED_SIGNING_ACCOUNT: ${{ vars.TRUSTED_SIGNING_ACCOUNT }}
+          TRUSTED_SIGNING_PROFILE: ${{ vars.TRUSTED_SIGNING_PROFILE }}
+          TRUSTED_SIGNING_DLIB_DIR: ${{ runner.temp }}\trusted-signing
+
+      - name: List outputs
+        shell: bash
+        run: ls -lh packages/desktop/dist/cyberstrike-desktop-* || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.key }}
+          path: |
+            packages/desktop/dist/cyberstrike-desktop-*.dmg
+            packages/desktop/dist/cyberstrike-desktop-*.pkg
+            packages/desktop/dist/cyberstrike-desktop-*.zip
+            packages/desktop/dist/cyberstrike-desktop-*.exe
+            packages/desktop/dist/cyberstrike-desktop-*.msi
+            packages/desktop/dist/cyberstrike-desktop-*.AppImage
+            packages/desktop/dist/cyberstrike-desktop-*.deb
+            packages/desktop/dist/cyberstrike-desktop-*.rpm
+          retention-days: 7
+
+  release:
+    needs: build-desktop
+    if: inputs.channel == 'beta' || inputs.channel == 'prod'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all desktop artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: List release assets
+        run: find release-assets -type f | sort
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(jq -r '.version' packages/desktop/package.json)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        run: |
+          TAG="desktop-v${{ steps.version.outputs.version }}"
+          TITLE="CyberStrike Desktop ${{ steps.version.outputs.version }}"
+          if [ "${{ inputs.channel }}" = "beta" ]; then
+            TAG="${TAG}-beta"
+            TITLE="${TITLE} (Beta)"
+            PRERELEASE="--prerelease"
+          else
+            PRERELEASE=""
+          fi
+          gh release create "$TAG" \
+            --title "$TITLE" \
+            --generate-notes \
+            $PRERELEASE \
+            release-assets/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

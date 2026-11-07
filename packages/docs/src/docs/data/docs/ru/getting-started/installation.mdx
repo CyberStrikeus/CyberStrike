@@ -1,0 +1,177 @@
+---
+title: Установка
+description: Установка Cyberstrike с помощью npm или curl
+sidebar:
+  order: 2
+  label: Установка
+---
+
+Cyberstrike можно установить через несколько менеджеров пакетов. Выберите метод, наиболее подходящий для вашей среды разработки.
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="TUI Cyberstrike после установки" className="w-full" />
+</div>
+
+## npm (Рекомендуется)
+
+Рекомендуемый метод установки для большинства пользователей.
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+Проверьте установку:
+
+```bash
+cyberstrike --version
+```
+
+## Bun <Badge text="Скоро" variant="caution" size="md" />
+
+Поддержка Bun пока недоступна.
+
+## Homebrew (macOS) <Badge text="Скоро" variant="caution" size="md" />
+
+Поддержка Homebrew пока недоступна.
+
+## curl (Linux/macOS)
+
+Прямая установка через shell-скрипт:
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+## iwr (Windows/Powershell)
+
+Выполните скрипт установки:
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+
+<Aside variant="caution">
+  Всегда проверяйте скрипты установки перед их выполнением. Исходный код скрипта доступен на [github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike).
+</Aside>
+
+## Docker
+
+<Aside variant="caution">
+  Образ Docker скоро будет доступен. Пока используйте npm или curl.
+</Aside>
+
+
+## Проверка установки
+
+После установки убедитесь, что Cyberstrike работает:
+
+```bash
+# Проверить версию
+cyberstrike --version
+
+# Список доступных команд
+cyberstrike --help
+```
+
+Вы должны увидеть баннер Cyberstrike и номер версии, а затем список доступных команд.
+
+## Обновление Cyberstrike
+
+Обновление до последней версии:
+
+```bash
+# npm
+npm update -g @cyberstrike-io/cyberstrike@latest
+
+# Самообновление (рекомендуется)
+cyberstrike upgrade
+```
+
+## Удаление
+
+Удаление Cyberstrike из системы:
+
+```bash
+# npm
+npm uninstall -g @cyberstrike-io/cyberstrike@latest
+```
+
+Конфигурация хранится в `~/.config/cyberstrike/` (учётные данные в `~/.local/share/cyberstrike/`) и может быть удалена вручную при необходимости.
+
+## Устранение неполадок
+
+### Команда не найдена
+
+Если `cyberstrike` не найден после установки:
+
+1. Проверьте, что PATH включает глобальный каталог bin npm
+2. Перезапустите терминал
+3. Выполните `npm bin -g` для поиска глобального пути bin
+
+### Ошибки прав доступа
+
+На Linux/macOS при возникновении ошибок прав доступа:
+
+```bash
+# Исправление прав npm
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Конфликты версий
+
+Если у вас несколько версий Node:
+
+```bash
+# Используйте nvm для управления версиями
+nvm use 20
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+### Корпоративные сети (SSL-инспекция / Zscaler)
+
+В корпоративной сети с SSL-инспекцией (Zscaler, Netskope и подобные) исходящий HTTPS перехватывается и переподписывается корневым сертификатом компании. Если Cyberstrike не доверяет этому сертификату, проверка TLS завершается ошибкой, и вы увидите сообщения вроде:
+
+```
+error: unable_to_get_issuer_cert_locally  downloading package manifest @cyberstrike-io/plugin
+hackbrowser:navigator  TypeError: unable to get local issuer certificate — planPage failed, retrying once
+```
+
+Сканер HackBrowser особенно подвержен этой проблеме: его вызовы планировщика завершаются ошибкой, поэтому сканирование обрабатывает лишь несколько страниц и останавливается рано.
+
+**Решение — добавьте доверие к корпоративному корневому CA через `NODE_EXTRA_CA_CERTS`.** Корпоративный корневой сертификат уже находится в хранилище доверия вашей ОС (поэтому ваш браузер работает), поэтому экспортируйте хранилище в PEM-пакет и укажите Cyberstrike на него. Это автоматически распространяется на рабочий процесс HackBrowser.
+
+**Windows (PowerShell)** — экспорт всех корневых CA компьютера (корпоративный включён, определять его не нужно):
+
+```powershell
+$out = "$env:USERPROFILE\corp-ca.pem"
+Get-ChildItem Cert:\LocalMachine\Root | ForEach-Object {
+  "-----BEGIN CERTIFICATE-----"
+  [Convert]::ToBase64String($_.RawData, 'InsertLineBreaks')
+  "-----END CERTIFICATE-----"
+} | Set-Content -Encoding ascii $out
+
+$env:NODE_EXTRA_CA_CERTS = $out       # текущая сессия
+setx NODE_EXTRA_CA_CERTS "$out"       # сохранить для новых сессий
+```
+
+**macOS**:
+
+```bash
+security find-certificate -a -p /Library/Keychains/System.keychain > ~/corp-ca.pem
+security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain >> ~/corp-ca.pem
+export NODE_EXTRA_CA_CERTS=~/corp-ca.pem
+```
+
+Затем запустите Cyberstrike в том же терминале. Ошибки `unable to get local issuer certificate` должны исчезнуть, а сканирование должно завершаться полностью.
+
+<Aside variant="tip">
+  Быстрая проверка: `Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Zscaler*" }` (Windows) подтвердит наличие корпоративного корневого сертификата в хранилище перед экспортом.
+</Aside>
+
+<Aside variant="caution">
+  В качестве крайней меры для тестирования `NODE_TLS_REJECT_UNAUTHORIZED=0` полностью отключает проверку сертификатов и также обходит ошибку — но это отключает валидацию TLS для всех соединений, поэтому **не** рекомендуется для регулярного использования. Предпочитайте `NODE_EXTRA_CA_CERTS`.
+</Aside>

@@ -1,0 +1,41 @@
+---
+import { Icon } from "astro-icon/components";
+
+type IconSize = "sm" | "md" | "lg";
+
+interface Props {
+  social: string;
+  link: string;
+  icon: string;
+  size?: IconSize;
+  disabled?: boolean;
+}
+
+const { social, link, icon, size = "md", disabled = false } = Astro.props;
+
+const sizeClasses: Record<IconSize, string> = {
+  sm: "h-5 w-5",
+  md: "h-6 w-6",
+  lg: "h-7 w-7",
+};
+---
+
+{disabled ? (
+  <span
+    class="docs-nav__link--sidebar opacity-30 cursor-not-allowed"
+    aria-label={`${social} (coming soon)`}
+    title="Coming soon"
+  >
+    <Icon name={icon} class={sizeClasses[size]} />
+  </span>
+) : (
+  <a
+    href={link}
+    target="_blank"
+    rel="noopener noreferrer"
+    class="docs-primary-focus docs-nav__link--sidebar"
+    aria-label={`Follow me on ${social}`}
+  >
+    <Icon name={icon} class={sizeClasses[size]} />
+  </a>
+)}

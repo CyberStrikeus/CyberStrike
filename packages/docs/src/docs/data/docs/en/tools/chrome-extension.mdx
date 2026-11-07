@@ -1,0 +1,199 @@
+---
+title: Chrome Extension
+description: Install the CyberStrike Chrome extension to capture traffic from your own browser
+sidebar:
+  order: 8
+  label: Chrome Extension
+---
+
+The CyberStrike Chrome extension captures HTTP traffic from your browser and forwards it to the CyberStrike API for automated security testing.
+
+## When to Use the Extension
+
+When you run `/hackbrowser`, CyberStrike launches a dedicated Chromium browser with the extension **already built in**. That automated browser handles crawling, traffic capture, and AI-driven navigation out of the box. You do not need to install anything separately for that workflow.
+
+The standalone Chrome extension is for a different use case: **using your own browser**. Install it when you want to capture traffic from your daily Chrome — the one with your bookmarks, saved passwords, existing extensions, and logged-in sessions. This is useful when:
+
+- The target application requires a specific browser configuration you already have
+- You need to test with your real authenticated sessions and cookies
+- You want to browse manually while CyberStrike analyzes every request in the background
+- The application uses SSO, MFA, or other auth flows that are easier in your own browser
+
+Both paths feed the same testing pipeline and can be mixed within a single session.
+
+## Installation
+
+The extension source code is included in the CyberStrike repository at `packages/hackbrowser/extension/`.
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/CyberStrikeus/CyberStrike.git
+```
+
+2. Open Chrome and navigate to `chrome://extensions`
+3. Enable **Developer mode** in the top-right corner
+4. Click **Load unpacked**
+5. Select the `packages/hackbrowser/extension/` directory inside the cloned repository
+
+The extension icon appears in the Chrome toolbar once loaded.
+
+<Aside variant="caution">
+  Start CyberStrike before opening the extension popup. The extension connects to the CyberStrike API on startup.
+</Aside>
+
+## Configuration
+
+Open the extension popup by clicking the toolbar icon.
+
+### Server URL
+
+The extension connects to CyberStrike at:
+
+```
+http://127.0.0.1:4096
+```
+
+Change this in the **Server URL** field if you are running CyberStrike on a different address or port. If you are using a Cloudflare tunnel for remote access, enter the tunnel URL here.
+
+### Scope
+
+Enter the target domain in the **Scope** field:
+
+```
+shop.example.com
+```
+
+Only requests whose hostname matches this scope are captured. Requests to other domains are ignored.
+
+Subdomain wildcards are supported:
+
+```
+*.example.com
+```
+
+### Session
+
+Select an existing session from the dropdown or create a new one. All captured requests and discovered context are stored within the active session.
+
+## Starting and Stopping Capture
+
+Click **Start** to begin intercepting traffic. The request counter increments as the extension captures matching requests.
+
+Click **Stop** to pause capture. The session remains active and CyberStrike continues processing any queued requests.
+
+## Credential Management
+
+Credentials represent authenticated user identities. The extension tracks authentication headers per Chrome profile and links each captured request to the appropriate credential.
+
+### Why Credentials Matter
+
+CyberStrike uses credentials to test cross-user vulnerabilities:
+
+- **IDOR** — can Credential A access resources owned by Credential B?
+- **Authorization bypass** — can a lower-privileged credential access endpoints that require higher privileges?
+- **Mass assignment** — can a regular user inject admin-only fields?
+
+The more credentials you register (admin, regular user, guest, etc.), the broader the cross-user testing coverage.
+
+### Chrome Profiles
+
+Chrome Profiles isolate browser sessions so you can be logged in as multiple users simultaneously. Each profile maintains its own cookies and local storage.
+
+**Setup:**
+
+1. Click your profile icon in the top-right corner of Chrome
+2. Click **Add** to create a new profile for each user role:
+   - `Admin`
+   - `Regular User`
+   - `Guest`
+3. Open the target application in each profile and log in with the corresponding account
+4. In the CyberStrike popup, add a credential for each profile (see below)
+
+### Adding a Credential
+
+In the popup:
+
+1. Click **Add Credential**
+2. Enter a descriptive label — for example `admin-user` or `regular-user`
+3. Select the Chrome profile linked to that account
+4. Click **Save**
+
+The credential is registered with the CyberStrike API. From this point, requests captured from that profile are automatically tagged with the credential ID.
+
+### Automatic Header Sync
+
+When the extension detects that an auth header has changed in a profile — for example after a token refresh — it automatically syncs the updated headers to the credential. You do not need to manually update credentials after token rotations.
+
+### Tracked Authentication Headers
+
+The extension monitors these headers for credential tracking:
+
+| Header | Description |
+|--------|-------------|
+| `Authorization` | Bearer tokens, Basic auth |
+| `Cookie` | Session cookies |
+| `X-Auth-Token` | Custom auth tokens |
+| `X-API-Key` | API keys |
+| `X-Access-Token` | OAuth access tokens |
+| `X-Session-Token` | Session tokens |
+| `X-CSRF-Token` | CSRF tokens |
+
+## Request Filtering
+
+The extension skips static assets automatically to reduce noise:
+
+| Category | Extensions |
+|----------|-----------|
+| Images | `.png` `.jpg` `.jpeg` `.gif` `.svg` `.ico` `.webp` |
+| Stylesheets & Scripts | `.css` `.js` `.mjs` |
+| Fonts | `.woff` `.woff2` `.ttf` `.eot` `.otf` |
+| Media | `.mp4` `.mp3` `.avi` `.mov` `.webm` |
+| Archives & Documents | `.pdf` `.zip` `.gz` `.br` |
+| Source Maps | `.map` |
+
+Only application-level requests (API calls, form submissions, page navigations) are forwarded.
+
+## What Gets Sent to the API
+
+For each captured request, the extension sends a payload to `POST /session/ingest`:
+
+```json
+{
+  "text": "POST /api/orders HTTP/1.1\r\nHost: shop.example.com\r\nAuthorization: Bearer eyJ...\r\nContent-Type: application/json\r\n\r\n{\"item_id\": 42, \"qty\": 1}",
+  "sessionID": "session-abc123",
+  "credential_id": "web_credential-xyz789",
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": "{\"order_id\": 573, \"total\": 29.99, \"status\": \"pending\"}"
+  }
+}
+```
+
+The `text` field contains the full raw HTTP request. Response body is capped at 500 KB by the extension; the API reduces it further to 100 KB before analysis.
+
+## Duplicate Detection
+
+CyberStrike deduplicates requests server-side. A request is skipped if it has the same HTTP method, normalized path, body structure, and query parameter keys as a previously processed request. This prevents redundant testing of identical endpoints.
+
+## Context Panel
+
+The popup displays context that CyberStrike has accumulated across all processed requests:
+
+| Panel | Content |
+|-------|---------|
+| **Credentials** | All registered credentials and their linked roles |
+| **Roles** | User roles discovered during analysis |
+| **Objects** | Data entities (User, Order, Product) and their fields |
+| **Functions** | Endpoint-function mappings with CRUD action types |
+
+This panel is read-only. CyberStrike populates it progressively as it processes more requests.
+
+For a richer view with navigation, use the `/web` command in the CyberStrike TUI.
+
+## Related Documentation
+
+- [HackBrowser](/docs/tools/hacker-browser) - Autonomous AI crawler — the automated alternative

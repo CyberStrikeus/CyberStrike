@@ -1,0 +1,150 @@
+import type { ResolvedRequest, InjPoint, SendBudget, RegisterCanary } from "../types"
+import { XSS_TAGS, XSS_WEAPONS, XSS_WEAPONS_BAREARG, XSS_WEAPONS_ENCODED, XSS_BREAKOUT } from "../payloads/xss"
+import { applyPayload } from "../mutate"
+import { send, nonce, type HttpSender } from "../send"
+import { looksBlocked, excerptOf, classifyXssContext, xssWeaponFires } from "../detect"
+import { sleep, checkBaseline, fireLoop, type BackoffState, recordBlock, recordSuccess } from "./base"
+import { buildXssPoc, cspNote, type XssPoc } from "../poc"
+
+export interface PointObservation {
+  point: string
+  marker_reflected: boolean
+  marker_html_encoded: boolean | null
+  reflection_snippet?: string
+  context?: string
+  surviving_tags: string[]
+  weaponized: string[]
+  breakout?: string
+  // A ready-to-use PoC built from the confirmed-firing payload (clickable URL / self-submitting HTML /
+  // curl, per injection location), plus a CSP caveat when the response may block it at runtime (#22).
+  poc?: XssPoc
+  poc_csp_note?: string
+  block_signal?: string
+  blocked: boolean
+  note?: string
+}
+
+export async function probeXssPoint(
+  sender: HttpSender,
+  r: ResolvedRequest,
+  point: InjPoint,
+  abort: AbortSignal,
+  delayMs: number,
+  budget: SendBudget,
+  register?: RegisterCanary,
+  backoff?: BackoffState,
+): Promise<PointObservation> {
+  const obs: PointObservation = {
+    point: `${point.location}:${point.name}`,
+    marker_reflected: false,
+    marker_html_encoded: null,
+    surviving_tags: [],
+    weaponized: [],
+    blocked: false,
+  }
+  const n = nonce()
+  register?.(n, "reflect")
+  const bl = await checkBaseline(sender, r, applyPayload(r, point, n), abort, budget)
+  if (!bl.ok) {
+    obs.note = bl.note
+    obs.blocked = bl.blocked
+    obs.block_signal = bl.block_signal
+    return obs
+  }
+  obs.marker_reflected = bl.res.text.includes(n)
+  if (!obs.marker_reflected) return obs
+  obs.reflection_snippet = excerptOf(bl.res.text, n)
+  obs.context = classifyXssContext(bl.res.text, n)
+  // Capture a CSP caveat once, off the baseline response — a reflected-un-encoded payload isn't
+  // guaranteed to execute if CSP blocks inline/handlers (#22 honesty note on the PoC).
+  const cspHeader = Object.entries(bl.res.headers).find(([k]) => k.toLowerCase() === "content-security-policy")?.[1]
+  obs.poc_csp_note = cspNote(cspHeader)
+
+  const tagPayloads = XSS_TAGS.map((tag) => ({ tag, tn: nonce() }))
+  for (const { tn } of tagPayloads) register?.(tn, "reflect")
+  obs.surviving_tags = await fireLoop({
+    sender, r, abort, delayMs, budget, tracker: obs, statusOnly: true, backoff,
+    payloads: tagPayloads,
+    apply: ({ tag, tn }) => applyPayload(r, point, `<${tag}/data-p=${tn}>`),
+    match: (res, { tag, tn }) => {
+      const rawTag = new RegExp(`<${tag}/data-p=${tn}`, "i").test(res.text)
+      const encoded = res.text.includes(`&lt;${tag}`) || res.text.includes(`&lt;${tag.toUpperCase()}`)
+      if (obs.marker_html_encoded === null) obs.marker_html_encoded = encoded && !rawTag
+      return rawTag ? tag : null
+    },
+  })
+
+  const mk = obs.context && XSS_BREAKOUT[obs.context]
+  if (mk && !abort.aborted && budget.sent < budget.max) {
+    const tn = nonce()
+    register?.(tn, "reflect")
+    const res = await send(sender, r, applyPayload(r, point, mk(tn)), abort, budget)
+    if (!("error" in res) && !looksBlocked(res.status) && new RegExp(`<svg\\b[^>]*${tn}`, "i").test(res.text))
+      obs.breakout = mk(tn)
+  }
+
+  const survived = obs.surviving_tags.length > 0
+  const ctx = obs.context ?? ""
+  const attrCtx = /attribute|javascript|rcdata/.test(ctx)
+  if (survived || attrCtx) {
+    const delay = backoff?.delay ?? delayMs
+    for (const make of XSS_WEAPONS) {
+      if (abort.aborted || budget.sent >= budget.max) break
+      const wn = nonce()
+      const { payload, sig } = make(wn)
+      if (!xssWeaponFires(payload, survived, ctx)) continue
+      register?.(wn, "reflect")
+      const res = await send(sender, r, applyPayload(r, point, payload), abort, budget)
+      if ("error" in res) continue
+      if (looksBlocked(res.status)) {
+        obs.blocked = true
+        if (backoff && recordBlock(backoff) === "skip-point") break
+        continue
+      }
+      if (backoff) recordSuccess(backoff)
+      if (sig.test(res.text)) {
+        obs.weaponized.push(payload.replace(wn, '"XSS"'))
+        obs.weaponized.push(payload.replace(wn, "'XSS'"))
+      }
+      await sleep(backoff?.delay ?? delay)
+    }
+    for (const make of XSS_WEAPONS_BAREARG) {
+      if (abort.aborted || budget.sent >= budget.max) break
+      const wn = nonce()
+      const { payload, sig } = make(wn)
+      if (!xssWeaponFires(payload, survived, ctx)) continue
+      register?.(wn, "reflect")
+      const res = await send(sender, r, applyPayload(r, point, payload), abort, budget)
+      if ("error" in res) continue
+      if (looksBlocked(res.status)) {
+        obs.blocked = true
+        if (backoff && recordBlock(backoff) === "skip-point") break
+        continue
+      }
+      if (backoff) recordSuccess(backoff)
+      if (sig.test(res.text)) obs.weaponized.push(payload.replace(wn, "XSS"))
+      await sleep(backoff?.delay ?? delay)
+    }
+    for (const w of XSS_WEAPONS_ENCODED) {
+      if (abort.aborted || budget.sent >= budget.max) break
+      const wn = nonce()
+      const { payload, sig } = w.probe(wn)
+      if (!xssWeaponFires(payload, survived, ctx)) continue
+      register?.(wn, "reflect")
+      const res = await send(sender, r, applyPayload(r, point, payload), abort, budget)
+      if ("error" in res) continue
+      if (looksBlocked(res.status)) {
+        obs.blocked = true
+        if (backoff && recordBlock(backoff) === "skip-point") break
+        continue
+      }
+      if (backoff) recordSuccess(backoff)
+      if (sig.test(res.text)) obs.weaponized.push(w.ready)
+      await sleep(backoff?.delay ?? delay)
+    }
+  }
+  // A confirmed-firing payload → build a hand-off-ready PoC (clickable URL / self-submit HTML / curl,
+  // per injection location). Only when a weapon actually reflected un-encoded, so the PoC is real.
+  if (obs.weaponized.length > 0) obs.poc = buildXssPoc(r, point, obs.weaponized[0]!)
+  return obs
+}

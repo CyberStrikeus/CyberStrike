@@ -1,0 +1,29 @@
+---
+interface Props {
+  text: string;
+  variant: "note" | "tip" | "caution" | "danger" | "info";
+  size?: "sm" | "md" | "lg";
+}
+
+const { text, variant = "note", size = "sm" } = Astro.props;
+---
+
+<span
+  class:list={[
+    "dark:text-foreground not-content inline-flex items-center rounded-full border font-medium",
+    {
+      "border-success/80 text-success-foreground bg-success/10": variant === "tip",
+      "border-warning dark:border-warning/80 text-foreground bg-warning/10": variant === "caution",
+      "border-error/80 text-foreground bg-error/10": variant === "danger",
+      "border-info/80 text-info-foreground bg-info/10": variant === "info",
+      "border-border text-foreground bg-muted": variant === "note",
+    },
+    {
+      "px-2 py-0.5 text-xs": size === "sm",
+      "px-3 py-0.5 text-sm": size === "md",
+      "px-4 py-1 text-base": size === "lg",
+    },
+  ]}
+>
+  {text}
+</span>

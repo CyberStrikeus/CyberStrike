@@ -1,0 +1,39 @@
+---
+interface Props {
+  testimonial: string;
+  name: string;
+  title: string;
+  avatar: string;
+}
+
+const { testimonial, name, title, avatar } = Astro.props;
+---
+
+<div class="group relative overflow-clip rounded-lg border">
+  {/* Glow effect */}
+  <div
+    class="pointer-events-none absolute inset-0 block opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+  >
+    <div
+      class="from-foreground/5 dark:from-primary/5 absolute inset-0 bg-gradient-to-br to-transparent"
+    >
+    </div>
+  </div>
+
+  {/* Card Content */}
+  <div class="relative flex h-full flex-col justify-between p-6 transition-colors">
+    {/* Quote */}
+    <p class="text-muted-foreground mb-6 text-sm md:text-base">{testimonial}</p>
+
+    {/* Author */}
+    <div class="flex items-center gap-4">
+      <div class="bg-muted aspect-square h-12 shrink-0 overflow-hidden rounded-full border">
+        <img src={avatar} alt={name} class="h-full w-full object-cover" width="48" height="48" loading="lazy" />
+      </div>
+      <div>
+        <div class="font-medium">{name}</div>
+        <div class="text-muted-foreground text-sm">{title}</div>
+      </div>
+    </div>
+  </div>
+</div>

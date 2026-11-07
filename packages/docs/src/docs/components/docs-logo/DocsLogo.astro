@@ -1,0 +1,21 @@
+---
+import { Image } from "astro:assets";
+
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedRoute } from "@/docs/js/translationUtils";
+import { getTranslatedData } from "@/docs/js/translationUtils";
+
+// import { docsSiteData } from "@/docs/config/siteData.config";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+const siteData = getTranslatedData("siteData", currLocale);
+---
+
+<a
+  class="docs-primary-focus text-foreground flex items-center gap-2 align-middle text-xl font-bold"
+  href={getLocalizedRoute(currLocale)}
+>
+  <img src="/logo-light.svg" alt="Cyberstrike logo" class="h-14 w-14 dark:hidden" />
+  <img src="/logo-dark.svg" alt="Cyberstrike logo" class="h-14 w-14 hidden dark:block" />
+  <div class="">{siteData.title}</div>
+</a>

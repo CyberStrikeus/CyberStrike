@@ -111,6 +111,7 @@ http_replay(request_id, mutations: [
 http_replay(request_id, mutations: [
   {op: "set-body", value: '{"ids": [123, 456, 789]}'}
 ])
+```
 
 ### Step 5: Analyze Results
 
@@ -131,6 +132,12 @@ http_replay(request_id, mutations: [
 **Edge Cases:**
 - Timing differences (404 for existing vs non-existing) — information disclosure only, not IDOR
 - Error messages leaking information — report as Information Disclosure (lower severity), not IDOR
+- **Server ignored the tampered id**: the response still returns YOUR OWN object (same
+  identifiers as baseline) even though you changed the id — the server scoped the query to
+  your session and ignored the input. Not a finding. Confirm the returned identifiers are
+  the VICTIM's, not yours, before reporting.
+- **Soft-200 error**: HTTP 200 whose body is an error/empty object, not the victim's
+  record — access control working, not IDOR.
 
 ## Testing Patterns
 
@@ -167,6 +174,26 @@ Test: Modify UUID segments
 {"order": {"id": 123, "user_id": 20}}
 {"order": {"id": 456, "user_id": 10}}
 ```
+
+**Pattern 5: Parameter pollution & location (identical id keys)**
+The ownership check and the data lookup may read a DIFFERENT copy of the same id.
+Send your own id (passes the check) plus the victim id (used by the lookup):
+```
+Duplicate:     id=<own>&id=<victim>   → {op: "add-query", name: "id", value: "<victim>"}
+Query vs body: same key in query AND body — put the victim value in each, in turn
+Path vs query: /orders/<own>?order_id=<victim>  (server may trust the query)
+Array/case:    id[]=<victim>, ID=<victim>  (framework folds differ)
+```
+If the victim's data comes back, the check and the lookup disagreed.
+
+**Pattern 6: Encoded / wrapped IDs**
+An opaque id is often just an encoded integer — decode, tamper, re-encode:
+```
+base64:  "MTIz" → 123 → try "MTI0" (124), and neighbors from session context
+hashids / short slugs: swap a peer's slug discovered under another credential
+composite: "u10-o123" → vary each segment independently
+```
+Don't skip an endpoint just because the id "looks random" — check if it decodes.
 
 ## Reporting IDOR Vulnerabilities
 

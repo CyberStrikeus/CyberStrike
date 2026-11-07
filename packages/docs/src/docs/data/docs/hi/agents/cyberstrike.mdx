@@ -1,0 +1,120 @@
+---
+title: Cyberstrike एजेंट
+description: पूर्ण उपकरण पहुंच के साथ AI-संचालित आक्रामक सुरक्षा परीक्षण के लिए डिफ़ॉल्ट प्राथमिक एजेंट
+sidebar:
+  order: 2
+  label: Cyberstrike
+---
+
+`cyberstrike` एजेंट डिफ़ॉल्ट प्राथमिक एजेंट है। यह पूर्ण उपकरण पहुंच के साथ AI-संचालित आक्रामक सुरक्षा परीक्षण प्रदान करता है और डोमेन-विशिष्ट कार्यों के लिए विशेषीकृत सबएजेंट्स को प्रतिनिधित्व कर सकता है।
+
+## अवलोकन
+
+जब आप एजेंट निर्दिष्ट किए बिना `cyberstrike` चलाते हैं, तो `cyberstrike` एजेंट स्वचालित रूप से शुरू होता है। यह एक सामान्य-उद्देश्य आक्रामक सुरक्षा एजेंट है जो कार्यों की एक विस्तृत श्रेणी को संभालने के लिए डिज़ाइन किया गया है — रिकॉनसेंस और कमजोरी मूल्यांकन से लेकर शोषण और रिपोर्टिंग तक।
+
+### एजेंट कॉन्फ़िगरेशन
+
+| गुण | मान |
+|----------|-------|
+| **Agent ID** | `cyberstrike` |
+| **मोड** | `primary` |
+| **उपकरण पहुंच** | पूर्ण (सभी उपकरण अनुमत) |
+| **प्रश्न पूछ सकता है** | हां |
+
+## एजेंट लॉन्च करें
+
+`cyberstrike` एजेंट डिफ़ॉल्ट है — यह लॉन्च करने पर स्वचालित रूप से शुरू होता है:
+
+```bash
+cyberstrike
+```
+
+TUI में `/agents` या `<leader>a` से कभी भी एजेंट बदलें।
+
+## क्षमताएं
+
+`cyberstrike` एजेंट के पास सभी उपलब्ध उपकरणों तक पहुंच है और यह किसी विशिष्ट सुरक्षा डोमेन तक सीमित नहीं है। यह कर सकता है:
+
+- वेब एप्लिकेशन सुरक्षा परीक्षण करना
+- क्लाउड इंफ्रास्ट्रक्चर ऑडिट करना
+- नेटवर्क पेनेट्रेशन टेस्टिंग निष्पादित करना
+- Nuclei, Nmap, और SQLMap जैसे उपकरणों के साथ स्वचालित स्कैन चलाना
+- वेब एप्लिकेशन ब्राउज़ करना और उनसे इंटरैक्ट करना
+- फ़ाइलें पढ़ना, लिखना और विश्लेषण करना
+- जब कार्य अस्पष्ट हो तो स्पष्टीकरण प्रश्न पूछना
+
+## विशेषीकृत एजेंट्स को प्रतिनिधित्व
+
+जब किसी कार्य में गहन डोमेन विशेषज्ञता की आवश्यकता होती है, तो `cyberstrike` एजेंट विशेषीकृत सबएजेंट्स को प्रतिनिधित्व करता है:
+
+| सबएजेंट | कब उपयोग किया जाता है |
+|----------|-----------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | OWASP WSTG वेब सुरक्षा पाइपलाइन — 13 विशेषज्ञ एजेंट भेजता है |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | क्रॉस-कटिंग सहसंबंध — निष्कर्षों की श्रृंखला, प्रभाव बढ़ाता है |
+| [`triage`](/docs/agents/triage) | ड्राफ्ट कमजोरी निष्कर्षों का स्वतंत्र सत्यापन |
+| [`general`](/docs/agents/general) | अनुसंधान, बहु-चरण समानांतर कार्य |
+| [`explore`](/docs/agents/explore) | रीड-ओनली कोडबेस और फ़ाइल सिस्टम खोज |
+
+प्रतिनिधित्व कार्य के आधार पर स्वचालित रूप से होता है। वेब सुरक्षा पाइपलाइन (WSTG एजेंट) तब ट्रिगर होती है जब [HackBrowser](/docs/features/hackbrowser) या [Chrome Extension](/docs/tools/chrome-extension) के माध्यम से HTTP ट्रैफिक कैप्चर किया जाता है।
+
+## अनुमति मॉडल
+
+`cyberstrike` एजेंट सबसे व्यापक अनुमति सेट का उपयोग करता है:
+
+- सभी उपकरण डिफ़ॉल्ट रूप से अनुमत हैं
+- स्पष्टीकरण प्रश्न पूछ सकता है (`question: allow`)
+- `.env` फ़ाइलों को पढ़ने से पहले पुष्टि आवश्यक है
+- प्रोजेक्ट के बाहर बाहरी निर्देशिका पहुंच के लिए पुष्टि आवश्यक है
+- `cyberstrike.json` में उपयोगकर्ता-कॉन्फ़िगर `deny` नियम हमेशा सम्मानित किए जाते हैं
+
+## उदाहरण सत्र
+
+```
+You: Test the web application at https://app.example.com for common vulnerabilities
+
+Agent: I'll start with reconnaissance and then launch HackBrowser to crawl the app.
+
+[Launching /hackbrowser against https://app.example.com...]
+[Crawling 23 pages, capturing HTTP traffic...]
+[Dispatching wstg-config-deploy for server misconfiguration checks...]
+[Dispatching wstg-input-validation for injection testing...]
+
+Found 3 medium-severity findings:
+- Missing Content-Security-Policy header
+- Server version disclosure in headers
+- X-Frame-Options not set
+
+[wstg-authentication testing login endpoint...]
+⚠ FINDING: JWT Algorithm Confusion
+Location: Authorization header
+Severity: Critical (CVSS 9.8)
+```
+
+## कॉन्फ़िगरेशन
+
+### डिफ़ॉल्ट एजेंट के रूप में सेट करें
+
+`cyberstrike` एजेंट डिफ़ॉल्ट है और किसी कॉन्फ़िगरेशन की आवश्यकता नहीं है। इसे स्पष्ट रूप से सेट करने के लिए:
+
+```json title="cyberstrike.json"
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### कस्टम निर्देश
+
+`instructions` फ़ाइलों (या ग्लॉब) की एक सूची है जिनकी सामग्री सिस्टम प्रॉम्प्ट में जोड़ी जाती है — अपना प्रोजेक्ट संदर्भ एक फ़ाइल में रखें और उसे संदर्भित करें:
+
+```json title="cyberstrike.json"
+{
+  "instructions": ["AGENTS.md", "docs/security-context.md"]
+}
+```
+
+## संबंधित दस्तावेज़
+
+- [WSTG Agent](/docs/agents/wstg-agent) — वेब सुरक्षा परीक्षण पाइपलाइन ऑर्केस्ट्रेटर
+- [Escalation Hunter](/docs/agents/escalation-hunter) — क्रॉस-कटिंग सहसंबंध एजेंट
+- [Triage Agent](/docs/agents/triage) — निष्कर्ष सत्यापन
+- [Custom Agents](/docs/agents/custom-agents) — अपने एजेंट बनाएं

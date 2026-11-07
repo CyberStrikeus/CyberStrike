@@ -1,0 +1,30 @@
+---
+title: 기능
+description: Cyberstrike 보안 평가를 구동하는 핵심 기능
+sidebar:
+  order: 1
+  label: 개요
+---
+
+Cyberstrike는 자동화된 침투 테스트를 위한 전용 기능을 탑재하고 있습니다. 각 기능은 AI 에이전트와 긴밀하게 통합되어 있으며, 에이전트가 대상과 대화 컨텍스트에 따라 언제, 어떻게 사용할지 결정합니다.
+
+## 핵심 기능
+
+| 기능 | 역할 |
+|------|------|
+| [Vortex](/docs/features/vortex) | HTTP 트래픽 엔진 — DSL로 요청을 가로채고, 재생하고, 규칙 매칭 |
+| [HackBrowser](/docs/features/hackbrowser) | UI 컨텍스트 캡처가 가능한 AI 기반 자율 웹 크롤러 |
+| [Bolt](/docs/features/bolt) | 컨테이너화된 보안 도구 서버 (nmap, nuclei, sqlmap 및 30개 이상) |
+| [MCP](/docs/features/mcp) | Model Context Protocol — 외부 도구 서버 연결 |
+
+## 함께 작동하는 방식
+
+일반적인 웹 애플리케이션 평가에서는 여러 기능을 함께 사용합니다:
+
+1. **HackBrowser**가 대상을 크롤링하며 UI 컨텍스트와 함께 HTTP 트래픽을 캡처합니다
+2. **Vortex**가 캡처된 트래픽을 처리합니다 — 규칙을 적용하고, 이상을 표시하고, 신호를 상관관계 분석합니다
+3. **proxy-agent**가 표시된 요청을 분석하고 취약점 테스터를 배치합니다
+4. **Bolt**는 에이전트가 필요할 때 강력한 도구(nuclei 템플릿, 퍼징, 서브도메인 열거)를 제공합니다
+5. **MCP** 서버가 커스텀 또는 서드파티 통합으로 도구 세트를 확장합니다
+
+각 기능은 독립적으로도 사용할 수 있습니다. HackBrowser는 Vortex 없이도 작동하고, Bolt는 HackBrowser 없이도 작동하며, MCP 서버는 다른 구성과 관계없이 작동합니다.

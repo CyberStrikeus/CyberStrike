@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" initialViewController="vc1" useAutolayout="YES">
+  <scenes>
+    <scene sceneID="scene1">
+      <objects>
+        <viewController id="vc1" customClass="BuildViewController" sceneMemberID="viewController">
+          <view key="view" id="view1">
+            <rect key="frame" x="0" y="0" width="390" height="844"/>
+            <subviews>
+              <button id="button1">
+                <rect key="frame" x="120" y="400" width="150" height="44"/>
+                <title key="title" string="Build"/>
+                <connections>
+                  <action selector="buildTapped:" target="vc1" id="action1"/>
+                </connections>
+              </button>
+            </subviews>
+          </view>
+          <connections>
+            <outlet property="buildButton" destination="button1" id="outlet1"/>
+          </connections>
+        </viewController>
+      </objects>
+    </scene>
+  </scenes>
+</document>

@@ -1,0 +1,1 @@
+Dynamic analyst — GDB/rizin debugging, Ghidra/IDA/Hopper/Cutter disassembly, runtime inspection

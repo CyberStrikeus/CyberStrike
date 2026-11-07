@@ -1,30 +1,66 @@
-import { createCyberstrikeClient } from "@cyberstrike-io/sdk/v2/client"
+import { createClient } from "@cyberstrike-io/sdk/v2/client"
+import { CyberStrike, type CyberStrikeClient } from "@cyberstrike-io/client/promise"
 import type { ServerConnection } from "@/context/server"
+import { decode64 } from "@/utils/base64"
 
-export function basicAuth(username: string, password: string): string {
-  const credentials = `${username}:${password}`
-  const bytes = new TextEncoder().encode(credentials)
-  let binary = ""
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return `Basic ${btoa(binary)}`
+export function authTokenFromCredentials(input: { username?: string; password: string }) {
+  return btoa(`${input.username ?? "cyberstrike"}:${input.password}`)
+}
+
+export function basicAuth(username: string, password: string) {
+  return `Basic ${authTokenFromCredentials({ username, password })}`
+}
+
+export function authFromToken(token: string | null) {
+  const decoded = decode64(token ?? undefined)
+  if (!decoded) return
+  const separator = decoded.indexOf(":")
+  if (separator === -1) return
+  return {
+    username: decoded.slice(0, separator) || "cyberstrike",
+    password: decoded.slice(separator + 1),
+  }
 }
 
 export function createSdkForServer({
   server,
   ...config
-}: Omit<NonNullable<Parameters<typeof createCyberstrikeClient>[0]>, "baseUrl"> & {
+}: Omit<NonNullable<Parameters<typeof createClient>[0]>, "baseUrl"> & {
   server: ServerConnection.HttpBase
 }) {
   const auth = (() => {
     if (!server.password) return
     return {
-      Authorization: basicAuth(server.username ?? "cyberstrike", server.password),
+      Authorization: `Basic ${authTokenFromCredentials({ username: server.username, password: server.password })}`,
     }
   })()
 
-  return createCyberstrikeClient({
+  return createClient({
     ...config,
-    headers: { ...config.headers, ...auth },
+    headers: {
+      ...(config.headers instanceof Headers ? Object.fromEntries(config.headers.entries()) : config.headers),
+      ...auth,
+    },
     baseUrl: server.url,
   })
 }
+
+export function createApiForServer(input: {
+  server: ServerConnection.HttpBase
+  fetch?: typeof globalThis.fetch
+}): CyberStrikeClient {
+  return CyberStrike.make({
+    baseUrl: input.server.url,
+    fetch: input.fetch,
+    headers: input.server.password
+      ? {
+          Authorization: `Basic ${authTokenFromCredentials({
+            username: input.server.username,
+            password: input.server.password,
+          })}`,
+        }
+      : undefined,
+  })
+}
+
+export type ServerApi = CyberStrikeClient

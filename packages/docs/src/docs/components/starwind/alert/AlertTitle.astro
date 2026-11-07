@@ -1,0 +1,16 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+const alertTitle = tv({
+  base: "mb-2 flex items-center gap-2 text-lg leading-none font-medium tracking-tight",
+});
+
+type Props = HTMLAttributes<"div">;
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<h5 class={alertTitle({ class: className })} {...rest}>
+  <slot />
+</h5>

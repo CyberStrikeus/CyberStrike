@@ -6,7 +6,7 @@ import { List } from "@cyberstrike-io/ui/list"
 import { Tag } from "@cyberstrike-io/ui/tag"
 import { ProviderIcon } from "@cyberstrike-io/ui/provider-icon"
 import { iconNames, type IconName } from "@cyberstrike-io/ui/icons/provider"
-import { DialogConnectProvider } from "./dialog-connect-provider"
+import { DialogConnectProvider, useProviderConnectController } from "./dialog-connect-provider"
 import { useLanguage } from "@/context/language"
 import { DialogCustomProvider } from "./dialog-custom-provider"
 
@@ -19,7 +19,7 @@ function icon(id: string): IconName {
 
 export const DialogSelectProvider: Component = () => {
   const dialog = useDialog()
-  const providers = useProviders()
+  const providers = useProviders(() => undefined)
   const language = useLanguage()
 
   const popularGroup = () => language.t("dialog.provider.group.popular")
@@ -40,7 +40,10 @@ export const DialogSelectProvider: Component = () => {
         key={(x) => x?.id}
         items={() => {
           language.locale()
-          return [{ id: CUSTOM_ID, name: customLabel() }, ...providers.all()]
+          return [
+            { id: CUSTOM_ID, name: customLabel() },
+            ...[...providers.all()].map(([, p]) => ({ id: p.id, name: p.name })),
+          ]
         }}
         filterKeys={["id", "name"]}
         groupBy={(x) => (popularProviders.includes(x.id) ? popularGroup() : otherGroup())}
@@ -60,10 +63,12 @@ export const DialogSelectProvider: Component = () => {
         onSelect={(x) => {
           if (!x) return
           if (x.id === CUSTOM_ID) {
-            dialog.show(() => <DialogCustomProvider back="providers" />)
+            dialog.show(() => <DialogCustomProvider onBack={() => dialog.show(() => <DialogSelectProvider />)} />)
             return
           }
-          dialog.show(() => <DialogConnectProvider provider={x.id} />)
+          const controller = useProviderConnectController()
+          controller.select(x.id)
+          void dialog.show(() => <DialogConnectProvider controller={controller} />)
         }}
       >
         {(i) => (

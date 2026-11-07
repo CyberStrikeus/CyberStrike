@@ -1,0 +1,215 @@
+---
+title: 키바인딩 구성
+description: Cyberstrike의 키보드 단축키 커스터마이즈
+sidebar:
+  order: 5
+  label: 키바인딩
+---
+
+워크플로에 맞게 키보드 단축키를 커스터마이즈하세요. 키바인딩은 설정 파일의 `keybinds` 객체 아래에 정의됩니다.
+
+{/* TODO: Screenshot - Keybindings configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: keybindings-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">키바인딩 구성 옵션</p>
+</div>
+
+## 구성 위치
+
+키바인딩은 전역 또는 프로젝트 설정 파일에서 구성합니다:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "session_new": "<leader>n"
+  }
+}
+```
+
+이 페이지에 나열된 키만 유효합니다 — `keybinds` 객체는 엄격하게 검증되므로 알 수 없는 키는 거부됩니다.
+
+## 리더 키
+
+리더 키는 많은 단축키의 접두사입니다 (기본값 `ctrl+x`):
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## 키 구문
+
+### 수정자
+
+| 수정자 | 구문 |
+|--------|------|
+| Control | `ctrl` |
+| Alt/Option | `alt` |
+| Shift | `shift` |
+| Super/Command | `super` |
+
+### 특수 키
+
+| 키 | 구문 |
+|----|------|
+| Enter | `return` |
+| Escape | `escape` |
+| Tab | `tab` |
+| Backspace | `backspace` |
+| Delete | `delete` |
+| 방향키 | `up` `down` `left` `right` |
+| Page Up / Down | `pageup` `pagedown` |
+| Home / End | `home` `end` |
+| 기능 키 | `f2`, `shift+f2` |
+
+### 조합, 대안 및 리더
+
+```
+ctrl+alt+d          # Ctrl + Alt + D
+<leader>n           # 리더 키 다음 N
+pageup,ctrl+alt+b   # 하나의 동작에 대한 두 가지 대안 바인딩 (쉼표 구분)
+```
+
+쉼표는 같은 동작에 대한 **대안** 바인딩을 구분합니다. 동작을 비활성화하려면 값을 `none`으로 설정합니다.
+
+## 사용 가능한 동작
+
+아래 모든 동작은 기본 바인딩을 표시합니다. `keybinds` 객체에서 원하는 부분만 재정의하세요.
+
+### 세션
+
+| 동작 | 기본값 | 설명 |
+|------|--------|------|
+| `session_new` | `<leader>n` | 새 세션 만들기 |
+| `session_list` | `<leader>l` | 모든 세션 나열 |
+| `session_compact` | `<leader>c` | 세션 압축 |
+| `session_timeline` | `<leader>g` | 세션 타임라인 표시 |
+| `session_rename` | `ctrl+r` | 세션 이름 변경 |
+| `session_delete` | `ctrl+d` | 세션 삭제 |
+| `session_export` | `<leader>x` | 세션을 편집기로 내보내기 |
+| `session_interrupt` | `escape` | 현재 세션 중단 |
+| `session_fork` | `none` | 메시지에서 세션 포크 |
+| `session_share` | `none` | 현재 세션 공유 |
+| `session_child_cycle` | `<leader>right` | 다음 하위 세션 |
+| `session_parent` | `<leader>up` | 상위 세션으로 이동 |
+
+### 메시지 및 탐색
+
+| 동작 | 기본값 | 설명 |
+|------|--------|------|
+| `messages_page_up` | `pageup,ctrl+alt+b` | 한 페이지 위로 스크롤 |
+| `messages_page_down` | `pagedown,ctrl+alt+f` | 한 페이지 아래로 스크롤 |
+| `messages_half_page_up` | `ctrl+alt+u` | 반 페이지 위로 스크롤 |
+| `messages_half_page_down` | `ctrl+alt+d` | 반 페이지 아래로 스크롤 |
+| `messages_first` | `ctrl+g,home` | 첫 번째 메시지로 이동 |
+| `messages_last` | `ctrl+alt+g,end` | 마지막 메시지로 이동 |
+| `messages_copy` | `<leader>y` | 메시지 복사 |
+| `messages_undo` | `<leader>u` | 메시지 실행 취소 |
+| `messages_redo` | `<leader>r` | 메시지 다시 실행 |
+| `messages_toggle_conceal` | `<leader>h` | 코드 블록 숨김 토글 |
+
+### 목록 및 대화상자
+
+| 동작 | 기본값 | 설명 |
+|------|--------|------|
+| `model_list` | `<leader>m` | 사용 가능한 모델 나열 |
+| `agent_list` | `<leader>a` | 에이전트 나열 |
+| `agent_cycle` | `tab` | 다음 에이전트 |
+| `agent_cycle_reverse` | `shift+tab` | 이전 에이전트 |
+| `theme_list` | `<leader>t` | 사용 가능한 테마 나열 |
+| `command_list` | `ctrl+p` | 사용 가능한 명령어 나열 |
+
+### 인터페이스
+
+| 동작 | 기본값 | 설명 |
+|------|--------|------|
+| `sidebar_toggle` | `<leader>b` | 사이드바 토글 |
+| `status_view` | `<leader>s` | 상태 보기 |
+| `editor_open` | `<leader>e` | 외부 편집기 열기 |
+| `tips_toggle` | `<leader>h` | 홈 화면 팁 토글 |
+
+### 애플리케이션 및 입력
+
+| 동작 | 기본값 | 설명 |
+|------|--------|------|
+| `app_exit` | `ctrl+c,ctrl+d,<leader>q` | 애플리케이션 종료 |
+| `terminal_suspend` | `ctrl+z` | 터미널 일시 중지 |
+| `input_submit` | `return` | 입력 전송 |
+| `input_newline` | `shift+return,ctrl+return,alt+return,ctrl+j` | 줄 바꿈 삽입 |
+| `input_clear` | `ctrl+c` | 입력 필드 지우기 |
+| `input_paste` | `ctrl+v` | 클립보드에서 붙여넣기 |
+
+<Aside variant="info">
+  입력 필드에는 커서 이동 및 편집 바인드(`input_move_*`, `input_word_*`, `input_delete_*` 등)의 대규모 세트가 있습니다. 동일한 `keybinds` 네이밍을 따르며 같은 방식으로 재정의할 수 있습니다.
+</Aside>
+
+## 전체 구성 예시
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "session_compact": "<leader>c",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r",
+    "session_export": "<leader>x",
+
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "command_list": "ctrl+p",
+
+    "sidebar_toggle": "<leader>b",
+    "status_view": "<leader>s",
+    "editor_open": "<leader>e",
+
+    "messages_half_page_up": "ctrl+alt+u",
+    "messages_half_page_down": "ctrl+alt+d",
+    "messages_undo": "<leader>u",
+
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+## 여러 바인딩
+
+쉼표로 하나의 동작에 여러 단축키를 할당합니다:
+
+```json
+{
+  "keybinds": {
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "model_list": "<leader>m,ctrl+shift+m"
+  }
+}
+```
+
+쉼표는 대안 바인딩을 구분합니다 — 코드 시퀀스가 아닙니다.
+
+## 키바인딩 초기화
+
+리셋 명령어는 없습니다. 기본값을 복원하려면 `keybinds` 객체에서 해당 키를 제거하세요 (또는 전체 객체를 삭제하여 모든 기본값을 복원).
+
+## 문제 해결
+
+1. 터미널 에뮬레이터와의 충돌을 확인하세요
+2. 설정이 유효한 JSON이고 키 이름이 이 페이지와 정확히 일치하는지 확인하세요 (알 수 없는 키는 검증에 실패)
+3. TUI에서 `command_list` (`ctrl+p`)로 등록된 명령어를 탐색하세요
+
+<Aside variant="tip">
+  Cyberstrike에서 `/help`를 사용하면 활성 키바인딩의 빠른 참조를 볼 수 있습니다.
+</Aside>
+
+## 관련 문서
+
+- [구성 레퍼런스](/docs/configuration) - 모든 구성 옵션
+- [키보드 단축키](/docs/getting-started/keyboard-shortcuts) - 단축키 레퍼런스
+- [전역 구성](/docs/configuration/global-config) - 구성 가이드

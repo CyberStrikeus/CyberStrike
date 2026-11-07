@@ -1,0 +1,93 @@
+---
+title: Security Agents
+description: Specialized AI agents for different security assessment scenarios
+sidebar:
+  order: 1
+  label: Overview
+---
+
+Cyberstrike includes specialized agents optimized for different security assessment scenarios. Each agent has domain-specific knowledge, methodologies, and tool configurations.
+
+<img src="/docs/images/gifs/g05-agent-switch.gif" alt="Switching the active agent from the picker with leader+a" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s09-agent-select.png" alt="Agent picker listing the cyberstrike primary agent and specialized subagents" className="rounded-lg shadow-lg my-6 w-full" />
+
+## Architecture
+
+Cyberstrike runs **one primary agent** — `cyberstrike` — which manages the session and automatically **delegates** to specialized subagents. Subagents are dispatched based on the task; they are not run directly.
+
+### Core Agents
+
+| Agent | Purpose | Mode |
+|-------|---------|------|
+| [`cyberstrike`](/docs/agents/cyberstrike) | Default offensive-security agent with full tool access; orchestrates everything | Primary |
+| [`general`](/docs/agents/general) | General-purpose research and parallel task execution | Subagent |
+| [`triage`](/docs/agents/triage) | Independent verification of draft vulnerability findings | Subagent |
+| [`explore`](/docs/agents/explore) | Fast read-only codebase and file system search | Subagent |
+
+### Web Security Agents (WSTG Pipeline)
+
+The web domain (`@cyberstrike-io/web`) provides a full OWASP WSTG pipeline. The `wstg-agent` orchestrator dispatches specialists based on captured HTTP traffic signals:
+
+| Agent | WSTG Category |
+|-------|---------------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | Orchestrator — dispatches specialists based on request signals |
+| `wstg-info-gathering` | 4.1 Information Gathering |
+| `wstg-config-deploy` | 4.2 Configuration & Deployment Management |
+| `wstg-identity-mgmt` | 4.3 Identity Management |
+| `wstg-authentication` | 4.4 Authentication |
+| `wstg-authorization` | 4.5 Authorization |
+| `wstg-session-mgmt` | 4.6 Session Management |
+| `wstg-input-validation` | 4.7 Input Validation |
+| `wstg-error-handling` | 4.8 Error Handling |
+| `wstg-cryptography` | 4.9 Cryptography |
+| `wstg-business-logic` | 4.10 Business Logic |
+| `wstg-client-side` | 4.11 Client-side |
+| `wstg-api` | 4.12 API Testing + OWASP API Top 10 |
+| `wstg-llm` | LLM Security |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | Cross-cutting correlation — chains findings, escalates impact |
+
+WSTG specialists are **signal-routed** — you don't invoke them directly. When HackBrowser or the Chrome Extension captures HTTP traffic, each request is analyzed and dispatched to the relevant specialist(s) based on its characteristics.
+
+### Planned Domains
+
+| Domain | Status |
+|--------|--------|
+| Cloud Security (AWS/Azure/GCP) | Planned |
+| Internal Network (AD/Kerberos) | Planned |
+| Mobile Application (MASTG/MASVS) | Planned |
+
+These will ship as separate domain packages (`@cyberstrike-io/cloud`, `@cyberstrike-io/internal-network`, `@cyberstrike-io/mobile`) and register automatically via the plugin system.
+
+## Selecting an Agent
+
+Switch agents in the TUI:
+
+| Command | Action |
+|---------|--------|
+| `/agents` or `<leader>a` | Open the agent picker |
+| `Tab` | Cycle to the next agent |
+
+Only `cyberstrike` ships as a built-in primary agent. You can create custom primary agents — see [Custom Agents](/docs/agents/custom-agents).
+
+### Configuration
+
+Set the default agent in `cyberstrike.json`:
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+## Creating Custom Agents
+
+Custom agents are Markdown files in `.cyberstrike/agents/`. See [Custom Agents](/docs/agents/custom-agents) for details.
+
+<Aside variant="info">
+  Agents can be customized per-project by placing configuration files in the `.cyberstrike/agents/` directory.
+</Aside>
+
+## Agentic Pipelines
+
+Agents don't work in isolation — they're orchestrated into [Agentic Pipelines](/docs/pipelines/) that combine agents, sub-agents, custom tools, and deterministic correlation layers into end-to-end assessment workflows. See the pipeline docs for [Web](/docs/pipelines/web) and [Cloud](/docs/pipelines/cloud) assessments.

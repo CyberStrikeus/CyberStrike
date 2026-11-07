@@ -1,0 +1,22 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+interface Props extends Omit<HTMLAttributes<"div">, "id" | "role" | "tabindex" | "hidden"> {
+  value: string;
+}
+
+const { value, class: className, ...rest } = Astro.props;
+---
+
+<div
+  class:list={["mt-4 focus-visible:outline-2 focus-visible:outline-offset-2", className]}
+  data-docs-tabs-content
+  data-value={value}
+  data-state="inactive"
+  role="tabpanel"
+  tabindex="0"
+  hidden
+  {...rest}
+>
+  <slot />
+</div>

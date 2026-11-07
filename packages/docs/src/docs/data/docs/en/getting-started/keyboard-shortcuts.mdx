@@ -1,0 +1,169 @@
+---
+title: Keyboard Shortcuts
+description: Master Cyberstrike with leader-based keyboard shortcuts
+sidebar:
+  order: 5
+  label: Keyboard Shortcuts
+---
+
+Cyberstrike's TUI is driven by leader-based keyboard shortcuts for efficient navigation. This page lists the common defaults. For the complete list of actions and how to customize them, see [Keybindings](/docs/configuration/keybindings).
+
+## Leader Key
+
+The leader key is `Ctrl+X` by default. Many shortcuts are `<leader>` followed by another key.
+
+To change the leader key:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## Session Shortcuts
+
+| Shortcut | Action |
+|----------|--------|
+| `<leader>n` | New session |
+| `<leader>l` | List sessions |
+| `<leader>c` | Compact/summarize session |
+| `<leader>g` | Session timeline |
+| `<leader>x` | Export session |
+| `Ctrl+R` | Rename session |
+| `Ctrl+D` | Delete session |
+| `Escape` | Interrupt the running session |
+
+## Navigation
+
+| Shortcut | Action |
+|----------|--------|
+| `PageUp` / `PageDown` | Scroll one page |
+| `Ctrl+Alt+U` | Scroll up half a page |
+| `Ctrl+Alt+D` | Scroll down half a page |
+| `Ctrl+G` / `Home` | Jump to first message |
+| `Ctrl+Alt+G` / `End` | Jump to last message |
+| `<leader>y` | Copy message |
+| `<leader>u` | Undo message (revert) |
+| `<leader>r` | Redo message |
+
+## Input
+
+| Shortcut | Action |
+|----------|--------|
+| `Enter` | Submit message |
+| `Shift+Enter` | New line |
+| `Ctrl+V` | Paste |
+| `Ctrl+C` | Clear input |
+| `Escape` | Interrupt the running session |
+
+## Model & Agent
+
+| Shortcut | Action |
+|----------|--------|
+| `<leader>m` | Model selection |
+| `<leader>a` | Agent selection |
+| `Tab` | Next agent |
+| `Shift+Tab` | Previous agent |
+
+## Interface
+
+| Shortcut | Action |
+|----------|--------|
+| `<leader>t` | Theme selection |
+| `<leader>s` | Status view |
+| `<leader>b` | Toggle sidebar |
+| `<leader>e` | Open in external editor |
+| `Ctrl+P` | Command list |
+
+## Dialogs
+
+When a dialog is open (model selection, sessions list, etc.), navigate with the arrow keys, press `Enter` to select, and `Escape` to close. A few dialog-specific binds:
+
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+F` | Toggle model favorite (in the model dialog) |
+| `F2` / `Shift+F2` | Cycle to the next / previous recent model |
+
+## Permission Prompts
+
+When a tool needs approval, an inline prompt appears with three options — **Allow once**, **Allow always**, and **Reject**. Use the arrow keys and `Enter` to choose; `Escape` rejects.
+
+## Customizing Keybindings
+
+Override defaults under `keybinds` in your config. Only valid action names are accepted (the object is validated strictly):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "status_view": "<leader>s",
+    "sidebar_toggle": "<leader>b",
+    "editor_open": "<leader>e",
+    "session_export": "<leader>x",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r"
+  }
+}
+```
+
+See [Keybindings](/docs/configuration/keybindings) for every configurable action and its default.
+
+## Keybinding Format
+
+- **Modifiers**: `ctrl`, `alt`, `shift`, `super`
+- **Special keys**: `return`, `escape`, `tab`, `space`, `backspace`, `pageup`, `pagedown`, `home`, `end`
+- **Leader**: `<leader>` (replaced with the configured leader key)
+- **Alternatives**: `ctrl+c,ctrl+d` (comma separates alternative bindings for one action)
+- **Disable**: `none`
+
+### Examples
+
+```
+ctrl+alt+u          # Ctrl + Alt + U
+alt+shift+f         # Alt + Shift + F
+<leader>n           # Leader key then N
+ctrl+c,ctrl+d       # either binding triggers the action
+```
+
+## Quick Reference Card
+
+```
+┌─────────────────────────────────────────┐
+│  Cyberstrike Keyboard Shortcuts         │
+├─────────────────────────────────────────┤
+│  Session                                │
+│    <leader>n   New session              │
+│    <leader>l   List sessions            │
+│    <leader>c   Compact session          │
+│    Ctrl+R      Rename session           │
+├─────────────────────────────────────────┤
+│  Navigation                             │
+│    Ctrl+Alt+U/D  Half-page scroll       │
+│    <leader>u     Undo message           │
+│    <leader>r     Redo message           │
+├─────────────────────────────────────────┤
+│  Model/Agent                            │
+│    <leader>m   Models                   │
+│    <leader>a   Agents                   │
+│    Tab         Next agent               │
+├─────────────────────────────────────────┤
+│  Interface                              │
+│    <leader>s   Status                   │
+│    <leader>t   Themes                   │
+│    <leader>b   Sidebar                  │
+│    Ctrl+P      Command list             │
+└─────────────────────────────────────────┘
+```
+
+## Related Documentation
+
+- [Keybindings](/docs/configuration/keybindings) - Full action list and customization
+- [Getting Started](/docs/getting-started) - Installation and first steps

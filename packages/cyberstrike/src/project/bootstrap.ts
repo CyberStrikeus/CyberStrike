@@ -30,4 +30,8 @@ export async function InstanceBootstrap() {
       await Project.setInitialized(Instance.project.id)
     }
   })
+
+  Project.reconcileSessionDirectories().catch((error) => {
+    Log.Default.warn("session directory reconcile failed", { error })
+  })
 }

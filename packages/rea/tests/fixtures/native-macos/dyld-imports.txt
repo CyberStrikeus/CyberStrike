@@ -1,0 +1,4 @@
+/usr/lib/libobjc.A.dylib [arm64e]:
+    -imports:
+      __Block_copy  (from libSystem)
+      _objc_bp_assist_cfg_np [weak-import] (from libSystem)

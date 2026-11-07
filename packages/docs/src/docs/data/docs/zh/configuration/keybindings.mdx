@@ -1,0 +1,215 @@
+---
+title: 按键绑定配置
+description: 自定义 Cyberstrike 的键盘快捷键
+sidebar:
+  order: 5
+  label: 按键绑定
+---
+
+自定义键盘快捷键以匹配您的工作流。按键绑定在配置文件的 `keybinds` 对象中定义。
+
+{/* TODO: Screenshot - Keybindings configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: keybindings-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">按键绑定配置选项</p>
+</div>
+
+## 配置位置
+
+按键绑定在全局或项目配置文件中配置：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "session_new": "<leader>n"
+  }
+}
+```
+
+只有本页列出的键才有效——`keybinds` 对象被严格验证，未知键会被拒绝。
+
+## Leader 键
+
+Leader 键是许多快捷键的前缀（默认 `ctrl+x`）：
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## 按键语法
+
+### 修饰键
+
+| 修饰键 | 语法 |
+|--------|------|
+| Control | `ctrl` |
+| Alt/Option | `alt` |
+| Shift | `shift` |
+| Super/Command | `super` |
+
+### 特殊键
+
+| 键 | 语法 |
+|----|------|
+| Enter | `return` |
+| Escape | `escape` |
+| Tab | `tab` |
+| Backspace | `backspace` |
+| Delete | `delete` |
+| 方向键 | `up` `down` `left` `right` |
+| Page Up / Down | `pageup` `pagedown` |
+| Home / End | `home` `end` |
+| 功能键 | `f2`、`shift+f2` |
+
+### 组合键、备选键与 Leader
+
+```
+ctrl+alt+d          # Ctrl + Alt + D
+<leader>n           # Leader 然后 N
+pageup,ctrl+alt+b   # 同一操作的两个备选绑定（逗号分隔）
+```
+
+逗号分隔同一操作的**备选**绑定。将值设为 `none` 可禁用某个操作。
+
+## 可用操作
+
+以下每个操作显示其默认绑定。在 `keybinds` 对象中覆盖任何子集。
+
+### 会话
+
+| 操作 | 默认值 | 描述 |
+|------|--------|------|
+| `session_new` | `<leader>n` | 创建新会话 |
+| `session_list` | `<leader>l` | 列出所有会话 |
+| `session_compact` | `<leader>c` | 压缩会话 |
+| `session_timeline` | `<leader>g` | 显示会话时间线 |
+| `session_rename` | `ctrl+r` | 重命名会话 |
+| `session_delete` | `ctrl+d` | 删除会话 |
+| `session_export` | `<leader>x` | 导出会话到编辑器 |
+| `session_interrupt` | `escape` | 中断当前会话 |
+| `session_fork` | `none` | 从消息分叉会话 |
+| `session_share` | `none` | 分享当前会话 |
+| `session_child_cycle` | `<leader>right` | 下一个子会话 |
+| `session_parent` | `<leader>up` | 转到父会话 |
+
+### 消息与导航
+
+| 操作 | 默认值 | 描述 |
+|------|--------|------|
+| `messages_page_up` | `pageup,ctrl+alt+b` | 向上翻一页 |
+| `messages_page_down` | `pagedown,ctrl+alt+f` | 向下翻一页 |
+| `messages_half_page_up` | `ctrl+alt+u` | 向上翻半页 |
+| `messages_half_page_down` | `ctrl+alt+d` | 向下翻半页 |
+| `messages_first` | `ctrl+g,home` | 跳转到第一条消息 |
+| `messages_last` | `ctrl+alt+g,end` | 跳转到最后一条消息 |
+| `messages_copy` | `<leader>y` | 复制消息 |
+| `messages_undo` | `<leader>u` | 撤消消息 |
+| `messages_redo` | `<leader>r` | 重做消息 |
+| `messages_toggle_conceal` | `<leader>h` | 切换代码块折叠 |
+
+### 列表与对话框
+
+| 操作 | 默认值 | 描述 |
+|------|--------|------|
+| `model_list` | `<leader>m` | 列出可用模型 |
+| `agent_list` | `<leader>a` | 列出代理 |
+| `agent_cycle` | `tab` | 下一个代理 |
+| `agent_cycle_reverse` | `shift+tab` | 上一个代理 |
+| `theme_list` | `<leader>t` | 列出可用主题 |
+| `command_list` | `ctrl+p` | 列出可用命令 |
+
+### 界面
+
+| 操作 | 默认值 | 描述 |
+|------|--------|------|
+| `sidebar_toggle` | `<leader>b` | 切换侧边栏 |
+| `status_view` | `<leader>s` | 查看状态 |
+| `editor_open` | `<leader>e` | 打开外部编辑器 |
+| `tips_toggle` | `<leader>h` | 切换主屏幕提示 |
+
+### 应用与输入
+
+| 操作 | 默认值 | 描述 |
+|------|--------|------|
+| `app_exit` | `ctrl+c,ctrl+d,<leader>q` | 退出应用 |
+| `terminal_suspend` | `ctrl+z` | 挂起终端 |
+| `input_submit` | `return` | 提交输入 |
+| `input_newline` | `shift+return,ctrl+return,alt+return,ctrl+j` | 插入换行 |
+| `input_clear` | `ctrl+c` | 清除输入框 |
+| `input_paste` | `ctrl+v` | 从剪贴板粘贴 |
+
+<Aside variant="info">
+  输入框还有大量光标移动和编辑绑定（`input_move_*`、`input_word_*`、`input_delete_*` 等）。它们遵循相同的 `keybinds` 命名，可以用相同方式覆盖。
+</Aside>
+
+## 完整配置示例
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "session_compact": "<leader>c",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r",
+    "session_export": "<leader>x",
+
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "command_list": "ctrl+p",
+
+    "sidebar_toggle": "<leader>b",
+    "status_view": "<leader>s",
+    "editor_open": "<leader>e",
+
+    "messages_half_page_up": "ctrl+alt+u",
+    "messages_half_page_down": "ctrl+alt+d",
+    "messages_undo": "<leader>u",
+
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+## 多重绑定
+
+使用逗号为一个操作分配多个快捷键：
+
+```json
+{
+  "keybinds": {
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "model_list": "<leader>m,ctrl+shift+m"
+  }
+}
+```
+
+逗号分隔备选绑定——它不是和弦序列。
+
+## 重置按键绑定
+
+没有重置命令。要恢复默认值，从 `keybinds` 对象中移除该键（或删除整个对象以恢复所有默认值）。
+
+## 故障排除
+
+1. 检查与终端模拟器的冲突
+2. 验证配置是有效的 JSON 且键名与本页完全匹配（未知键会验证失败）
+3. 在 TUI 中使用 `command_list`（`ctrl+p`）浏览已注册的命令
+
+<Aside variant="tip">
+  在 Cyberstrike 中使用 `/help` 查看活跃按键绑定的快速参考。
+</Aside>
+
+## 相关文档
+
+- [配置参考](/docs/configuration) - 所有配置选项
+- [快捷键](/docs/getting-started/keyboard-shortcuts) - 快捷键参考
+- [全局配置](/docs/configuration/global-config) - 配置指南

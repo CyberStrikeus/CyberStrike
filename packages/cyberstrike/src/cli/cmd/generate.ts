@@ -14,9 +14,9 @@ export const GenerateCommand = {
           {
             lang: "js",
             source: [
-              `import { createCyberstrikeClient } from "@cyberstrike-io/sdk`,
+              `import { createClient } from "@cyberstrike-io/sdk`,
               ``,
-              `const client = createCyberstrikeClient()`,
+              `const client = createClient()`,
               `await client.${operation.operationId}({`,
               `  ...`,
               `})`,

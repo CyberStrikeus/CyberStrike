@@ -5,14 +5,6 @@ import path from "path"
 const SCRIPTS_DIR = path.resolve(import.meta.dir, "../../data/scripts")
 
 const AVAILABLE_SCRIPTS: Record<string, { description: string; args: string }> = {
-  jwt_tamper: {
-    description: "JWT token decode/modify/re-encode for auth bypass testing (alg=none, role escalation, user ID swap)",
-    args: "TOKEN [--decode-only] [--set key=value] [--set-header key=value] [--key SECRET] [--json-output]",
-  },
-  race_tester: {
-    description: "Race condition tester — concurrent requests to detect TOCTOU vulnerabilities",
-    args: "URL [-m METHOD] [-H key:value] [-d JSON_BODY] [-c COUNT] [--delay MS] [--json-output]",
-  },
   ssrf_listener: {
     description: "SSRF callback listener — lightweight HTTP server that logs all incoming requests as evidence",
     args: "[-p PORT] [-o OUTPUT_FILE] [--timeout SECONDS]",
@@ -40,7 +32,7 @@ const AVAILABLE_SCRIPTS: Record<string, { description: string; args: string }> =
 }
 
 export const AttackScriptTool = Tool.define("attack_script", {
-  description: `Execute a bundled attack script for specialized capabilities beyond http_replay (crypto ops, async concurrency, binary file generation, recon). Available scripts: ${Object.keys(AVAILABLE_SCRIPTS).join(", ")}. Each script outputs structured results. Use --json-output for machine-readable output.`,
+  description: `Execute a bundled attack script for specialized capabilities beyond http_replay (binary file generation, TCP callbacks, recon). Available scripts: ${Object.keys(AVAILABLE_SCRIPTS).join(", ")}. Each script outputs structured results. Use --json-output for machine-readable output. NOTE: JWT attacks → use authn_test; race conditions → use business_test race mode.`,
   parameters: z.object({
     script: z.enum(Object.keys(AVAILABLE_SCRIPTS) as [string, ...string[]]).describe(
       "Script to execute. Options: " +

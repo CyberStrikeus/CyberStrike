@@ -1,0 +1,179 @@
+// The traffic store: where every Transaction lands so the rule layer and (soon) the DSL can run
+// over the whole corpus. This is an INTERFACE first — the in-memory implementation below is the
+// default and the test/embedded store; a SQLite/Drizzle-backed one will implement the same shape
+// so nothing above the store cares where the bytes live.
+import type { Transaction } from "./transaction"
+import type { Discovered } from "./discovery"
+import type { Signal, SignalTriage } from "./rule"
+import type { Canary } from "./canary"
+import type { InjectPoint, Coverage } from "./injectpoint"
+import { injectPointKey, coverageKey } from "./injectpoint"
+
+export interface TrafficStore {
+  // Insert (or replace by id). Returns the stored transaction.
+  add(tx: Transaction): Transaction
+  get(id: string): Transaction | undefined
+  all(): Transaction[]
+  // Every transaction matching a predicate — the escape hatch until the DSL lands.
+  where(predicate: (tx: Transaction) => boolean): Transaction[]
+  size(): number
+  clear(): void
+  // Discovery inventory — endpoints/JS URLs an extractor learned about (see discovery.ts). Upsert
+  // by id; returns how many were NEW. `discovered(kind?)` lists them.
+  addDiscovered(items: Discovered[]): number
+  discovered(kind?: Discovered["kind"]): Discovered[]
+  // Signal store — what the rules caught, persisted (a first-class model entity, "flags" on the
+  // traffic). Deduped by signal identity; returns how many were NEW. `signals(filter?)` reads them.
+  addSignals(signals: Signal[]): number
+  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string; triage?: SignalTriage }): Signal[]
+  updateSignalTriage(keys: string[], triage: SignalTriage): number
+  signalSummary(): Record<SignalTriage, number>
+  // Canary registry — injected markers, so a later OBSERVED response can be scanned for cross-request
+  // (stored) reflection. Deduped by token; returns how many were NEW.
+  addCanaries(canaries: Canary[]): number
+  canaries(): Canary[]
+  // Injection-point inventory — every attacker-controllable input enumerated per transaction (issue
+  // #141). Upsert by point identity (tx + location + dotpath); returns how many were NEW. A re-add of
+  // an existing point PRESERVES its `probed` flag unless the incoming point sets one. `injectPoints`
+  // reads them back, optionally filtered.
+  addInjectPoints(points: InjectPoint[]): number
+  injectPoints(filter?: { transactionId?: string; location?: InjectPoint["location"]; probed?: boolean }): InjectPoint[]
+  // Probe coverage — one row per (param, payload class) attempted, hit or clean, so "which parameter
+  // was tested and with what result" is auditable. Upsert by (paramId, payloadClass); returns NEW count.
+  recordCoverage(entries: Coverage[]): number
+  coverage(filter?: { transactionId?: string; paramId?: string; result?: Coverage["result"] }): Coverage[]
+}
+
+// The dedup identity of a signal — its dedupKey, else per (rule, transaction, title). Shared by the
+// stores so the same finding never persists twice.
+export function signalKey(s: Signal): string {
+  return s.dedupKey ?? `${s.ruleId}:${s.transactionId}:${s.title}`
+}
+
+export class MemoryStore implements TrafficStore {
+  private readonly byId = new Map<string, Transaction>()
+  private readonly discoveredById = new Map<string, Discovered>()
+  private readonly signalByKey = new Map<string, Signal>()
+  private readonly canaryByToken = new Map<string, Canary>()
+  private readonly injectPointById = new Map<string, InjectPoint>()
+  private readonly coverageByKey = new Map<string, Coverage>()
+
+  recordCoverage(entries: Coverage[]): number {
+    let added = 0
+    for (const c of entries) {
+      const k = coverageKey(c)
+      if (!this.coverageByKey.has(k)) added++
+      this.coverageByKey.set(k, c)
+    }
+    return added
+  }
+  coverage(filter?: { transactionId?: string; paramId?: string; result?: Coverage["result"] }): Coverage[] {
+    let out = [...this.coverageByKey.values()]
+    if (filter?.transactionId) out = out.filter((c) => c.transactionId === filter.transactionId)
+    if (filter?.paramId) out = out.filter((c) => c.paramId === filter.paramId)
+    if (filter?.result) out = out.filter((c) => c.result === filter.result)
+    return out
+  }
+
+  addInjectPoints(points: InjectPoint[]): number {
+    let added = 0
+    for (const pt of points) {
+      const k = injectPointKey(pt)
+      const existing = this.injectPointById.get(k)
+      if (!existing) added++
+      // A re-add keeps the prior probed flag unless the incoming point sets one.
+      this.injectPointById.set(k, { ...pt, id: k, probed: pt.probed ?? existing?.probed })
+    }
+    return added
+  }
+  injectPoints(filter?: { transactionId?: string; location?: InjectPoint["location"]; probed?: boolean }): InjectPoint[] {
+    let out = [...this.injectPointById.values()]
+    if (filter?.transactionId) out = out.filter((p) => p.transactionId === filter.transactionId)
+    if (filter?.location) out = out.filter((p) => p.location === filter.location)
+    if (filter?.probed !== undefined) out = out.filter((p) => !!p.probed === filter.probed)
+    return out
+  }
+
+  addCanaries(canaries: Canary[]): number {
+    let added = 0
+    for (const c of canaries) {
+      if (!this.canaryByToken.has(c.token)) added++
+      this.canaryByToken.set(c.token, c)
+    }
+    return added
+  }
+  canaries(): Canary[] {
+    return [...this.canaryByToken.values()]
+  }
+
+  addSignals(signals: Signal[]): number {
+    let added = 0
+    for (const s of signals) {
+      const key = signalKey(s)
+      if (!this.signalByKey.has(key)) added++
+      this.signalByKey.set(key, s)
+    }
+    return added
+  }
+  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string; triage?: SignalTriage }): Signal[] {
+    let out = [...this.signalByKey.values()]
+    if (filter?.ruleId) out = out.filter((s) => s.ruleId === filter.ruleId)
+    if (filter?.severity) out = out.filter((s) => s.severity === filter.severity)
+    if (filter?.transactionId) out = out.filter((s) => s.transactionId === filter.transactionId)
+    if (filter?.category) out = out.filter((s) => s.category === filter.category)
+    if (filter?.triage) out = out.filter((s) => (s.triage ?? "new") === filter.triage)
+    return out
+  }
+  updateSignalTriage(keys: string[], triage: SignalTriage): number {
+    let updated = 0
+    for (const key of keys) {
+      const s = this.signalByKey.get(key)
+      if (!s) continue
+      this.signalByKey.set(key, { ...s, triage })
+      updated++
+    }
+    return updated
+  }
+  signalSummary(): Record<SignalTriage, number> {
+    const counts: Record<SignalTriage, number> = { new: 0, reviewed: 0, confirmed: 0, dismissed: 0, escalated: 0 }
+    for (const s of this.signalByKey.values()) counts[s.triage ?? "new"]++
+    return counts
+  }
+
+  add(tx: Transaction): Transaction {
+    this.byId.set(tx.id, tx)
+    return tx
+  }
+  addDiscovered(items: Discovered[]): number {
+    let added = 0
+    for (const it of items) {
+      if (!this.discoveredById.has(it.id)) added++
+      this.discoveredById.set(it.id, it)
+    }
+    return added
+  }
+  discovered(kind?: Discovered["kind"]): Discovered[] {
+    const all = [...this.discoveredById.values()]
+    return kind ? all.filter((d) => d.kind === kind) : all
+  }
+  get(id: string): Transaction | undefined {
+    return this.byId.get(id)
+  }
+  all(): Transaction[] {
+    return [...this.byId.values()]
+  }
+  where(predicate: (tx: Transaction) => boolean): Transaction[] {
+    return this.all().filter(predicate)
+  }
+  size(): number {
+    return this.byId.size
+  }
+  clear(): void {
+    this.byId.clear()
+    this.discoveredById.clear()
+    this.signalByKey.clear()
+    this.canaryByToken.clear()
+    this.injectPointById.clear()
+    this.coverageByKey.clear()
+  }
+}

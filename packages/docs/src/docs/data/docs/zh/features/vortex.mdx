@@ -1,0 +1,70 @@
+---
+title: Vortex
+description: 基于 DSL 的 HTTP 流量引擎，支持规则匹配、重放和信号关联
+sidebar:
+  order: 2
+  label: Vortex
+---
+
+Vortex 是 Cyberstrike 的 HTTP 流量引擎。它拦截、存储和分析流经系统的 HTTP 请求——无论是由 [HackBrowser](/docs/features/hackbrowser)、[Chrome Extension](/docs/tools/chrome-extension) 捕获的，还是通过 API 注入的。
+
+## Vortex 的功能
+
+| 能力 | 描述 |
+|------|------|
+| **流量捕获** | 存储每个 HTTP 请求/响应对，包含完整的头部和正文 |
+| **DSL 引擎** | 使用专用表达式语言过滤和查询流量 |
+| **规则匹配** | 对捕获的流量应用声明式规则（检测、金丝雀、转换） |
+| **重放** | 重新发送捕获的请求并修改以进行测试 |
+| **信号关联** | 跨请求交叉引用发现以检测链式漏洞 |
+
+## DSL 查询
+
+Vortex 包含用于过滤 HTTP 流量的表达式引擎。按方法、路径、状态、头部、正文内容等进行查询：
+
+```
+method == "POST" && path contains "/api/" && status >= 400
+```
+
+```
+header["content-type"] contains "json" && body contains "token"
+```
+
+DSL 支持布尔逻辑、字符串匹配、数值比较和嵌套字段访问。
+
+## 规则
+
+Vortex 规则是声明式数据——不是代码。三种规则形状涵盖常见模式：
+
+| 形状 | 用途 | 示例 |
+|------|------|------|
+| **检测** | 标记匹配模式的流量 | 响应正文中的敏感数据 |
+| **金丝雀** | 注入标记并监视其反射 | SSRF、开放重定向、头部注入 |
+| **转换** | 在重放前修改请求 | 去除认证头部、交换参数值 |
+
+规则可以从内置规则包加载或按项目定义。
+
+## 与 HackBrowser 的集成
+
+当 HackBrowser 捕获流量时，Vortex 自动处理：
+
+1. 请求通过 `POST /session/ingest` 到达
+2. Vortex 存储请求并应用活跃规则
+3. 匹配的规则生成信号
+4. 信号输入到 proxy-agent 的分析流水线
+
+## 使用方式
+
+Vortex 作为 Cyberstrike 后端的一部分运行——无需单独设置。当您使用 HackBrowser、Chrome Extension 或 WSTG 流水线时，流量会自动流经它。
+
+在 TUI 中使用 `/web` 检查积累的 Vortex 数据：捕获的请求、匹配的规则和生成的信号。相关命令：
+
+| 命令 | 显示内容 |
+|------|----------|
+| `/web` | 捕获的端点、角色、凭据 |
+| `/vulnerabilities` | 来自 Vortex 信号 + WSTG 测试的发现 |
+| `/methodology` | 覆盖率和方法论状态 |
+
+<Aside variant="tip">
+  Vortex 包含在免费层级中。AI 分析层（proxy-agent 推理、信号关联）是其强大之处——这运行在您配置的 AI 提供商上。
+</Aside>

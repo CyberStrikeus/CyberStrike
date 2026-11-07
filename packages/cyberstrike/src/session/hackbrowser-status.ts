@@ -18,7 +18,6 @@ import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import { Instance } from "@/project/instance"
 import { Log } from "@/util/log"
-import type { CSEvent } from "@cyberstrike-io/hackbrowser/api"
 import z from "zod"
 
 const log = Log.create({ service: "hackbrowser-status" })
@@ -81,10 +80,8 @@ export namespace HackbrowserStatus {
 
   /**
    * Atomic write + publish. Callers compose new state from a previous
-   * Info via `get()` then call `set()` with the merged object. Keeping
-   * mutation outside this module makes the state transitions readable
-   * at call sites (handle() for CSEvent translation; the launcher's
-   * starting/completed/failed branches).
+   * Info via `get()` then call `set()` with the merged object — e.g. the
+   * launcher's crawling/completed branches.
    */
   export function set(sessionID: string, status: Info) {
     state()[sessionID] = status
@@ -94,75 +91,4 @@ export namespace HackbrowserStatus {
     })
   }
 
-  /**
-   * Translate a hackbrowser CSEvent into a state update for `sessionID`.
-   * Called from the launcher's eventSink; idempotent against missing prior
-   * state (logs a warning and bails — should not happen unless event
-   * ordering is broken).
-   *
-   * Mapping rationale (INTEGRATION.md §13.1 / §4.5):
-   *   init           — already represented by launcher's initial set()
-   *                    with phase="starting"; ignored here to avoid
-   *                    overwriting startedAt.
-   *   page-change    — increment pagesExplored, transition to crawling,
-   *                    update currentPage for sidebar display.
-   *   capture        — increment capturedEndpoints; phase stays crawling.
-   *   crawl-done     — authoritative final counts (intelligence-layer
-   *                    revisits etc. fold into summary). Launcher uses
-   *                    its own try/catch result to set phase=completed
-   *                    with finishedAt; this case keeps numbers in sync
-   *                    in the rare race where CSEvent arrives just
-   *                    before the await runCrawl resolves.
-   *   action-start / action-end / plan-received / intelligence /
-   *   llm-thinking / credential-switch — internal noise for the
-   *   browser panel; not surfaced in the TUI sidebar.
-   */
-  export function handle(sessionID: string, event: CSEvent): void {
-    const prev = state()[sessionID]
-    if (!prev) {
-      log.warn("event without prior state, dropping", {
-        sessionID,
-        type: event.type,
-      })
-      return
-    }
-
-    switch (event.type) {
-      case "init":
-        // Launcher already set phase="starting" with startedAt before
-        // kickoff. Ignoring this event keeps startedAt monotonic.
-        return
-
-      case "page-change":
-        set(sessionID, {
-          ...prev,
-          phase: "crawling",
-          pagesExplored: prev.pagesExplored + 1,
-          currentPage: event.url,
-        })
-        return
-
-      case "capture":
-        set(sessionID, {
-          ...prev,
-          capturedEndpoints: prev.capturedEndpoints + 1,
-        })
-        return
-
-      case "crawl-done":
-        // Use authoritative summary counts. Phase finalization
-        // (completed/failed) belongs to the launcher's resolve/reject
-        // handlers — they own the try/catch around runCrawl.
-        set(sessionID, {
-          ...prev,
-          pagesExplored: event.summary.pagesExplored,
-          capturedEndpoints: event.summary.capturedEndpoints,
-        })
-        return
-
-      // All other event types are intentionally not surfaced.
-      default:
-        return
-    }
-  }
 }

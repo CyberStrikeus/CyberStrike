@@ -1,0 +1,49 @@
+---
+import { docsRoute } from "@/docs/js/docsUtils";
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedRoute } from "@/docs/js/translationUtils";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+
+import ChevronLeft from "@tabler/icons/outline/chevron-left.svg";
+import ChevronRight from "@tabler/icons/outline/chevron-right.svg";
+
+interface Props {
+  prev: {
+    slug: string;
+    title: string;
+  } | null;
+  next: {
+    slug: string;
+    title: string;
+  } | null;
+}
+
+const { prev, next } = Astro.props;
+---
+
+<nav class="mt-8 flex items-center justify-between pt-8">
+  {
+    prev && (
+      <a
+        href={getLocalizedRoute(currLocale, `/${docsRoute}/${prev.slug}`)}
+        class="group text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm font-medium transition-colors"
+      >
+        <ChevronLeft class="size-4 transition-transform group-hover:-translate-x-1" />
+        {prev.title}
+      </a>
+    )
+  }
+  {!prev && <div />}
+  {
+    next && (
+      <a
+        href={getLocalizedRoute(currLocale, `/${docsRoute}/${next.slug}`)}
+        class="group text-muted-foreground hover:text-foreground flex items-center gap-2 text-sm font-medium transition-colors"
+      >
+        {next.title}
+        <ChevronRight class="size-4 transition-transform group-hover:translate-x-1" />
+      </a>
+    )
+  }
+</nav>

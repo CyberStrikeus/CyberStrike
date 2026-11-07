@@ -27,7 +27,6 @@ import type {
   ConfigProvidersResponses,
   ConfigUpdateErrors,
   ConfigUpdateResponses,
-  EventSubscribeResponse,
   EventSubscribeResponses,
   EventTuiCommandExecute,
   EventTuiPromptAppend,
@@ -48,9 +47,9 @@ import type {
   GlobalConfigUpdateResponses,
   GlobalDisposeResponses,
   GlobalEventPollResponses,
-  GlobalEventResponse,
   GlobalEventResponses,
   GlobalHealthResponses,
+  GlobalLogResponses,
   GlobalVersionCheckResponses,
   InstanceDisposeResponses,
   LspStatusResponses,
@@ -114,6 +113,7 @@ import type {
   ProviderOauthAuthorizeResponses,
   ProviderOauthCallbackErrors,
   ProviderOauthCallbackResponses,
+  ProviderRecordModelResponses,
   PtyConnectErrors,
   PtyConnectResponses,
   PtyCreateErrors,
@@ -135,8 +135,14 @@ import type {
   SessionAbortResponses,
   SessionAddWebCredentialErrors,
   SessionAddWebCredentialResponses,
+  SessionAddWebObservationsErrors,
+  SessionAddWebObservationsResponses,
+  SessionCaptureStartedErrors,
+  SessionCaptureStartedResponses,
   SessionChildrenErrors,
   SessionChildrenResponses,
+  SessionCloseWebProfilesErrors,
+  SessionCloseWebProfilesResponses,
   SessionCommandErrors,
   SessionCommandResponses,
   SessionCreateErrors,
@@ -146,6 +152,8 @@ import type {
   SessionDeleteWebCredentialErrors,
   SessionDeleteWebCredentialResponses,
   SessionDiffResponses,
+  SessionEnqueueRolesErrors,
+  SessionEnqueueRolesResponses,
   SessionForkResponses,
   SessionGetErrors,
   SessionGetResponses,
@@ -159,6 +167,10 @@ import type {
   SessionIngestResponses,
   SessionInitErrors,
   SessionInitResponses,
+  SessionInspectionLifecycleErrors,
+  SessionInspectionLifecycleResponses,
+  SessionInspectionQueueErrors,
+  SessionInspectionQueueResponses,
   SessionListResponses,
   SessionMessageErrors,
   SessionMessageResponses,
@@ -174,16 +186,23 @@ import type {
   SessionQueuePauseResponses,
   SessionQueueResumeErrors,
   SessionQueueResumeResponses,
+  SessionQueueStatus2Errors,
+  SessionQueueStatus2Responses,
   SessionQueueStatusErrors,
   SessionQueueStatusResponses,
   SessionRequestErrors,
   SessionRequestResponses,
   SessionRevertErrors,
   SessionRevertResponses,
+  SessionRouteSignalsResponses,
   SessionShareErrors,
   SessionShareResponses,
   SessionShellErrors,
   SessionShellResponses,
+  SessionSpawnedProfileCountErrors,
+  SessionSpawnedProfileCountResponses,
+  SessionSpawnWebProfileErrors,
+  SessionSpawnWebProfileResponses,
   SessionStatusErrors,
   SessionStatusResponses,
   SessionSummarizeErrors,
@@ -200,18 +219,47 @@ import type {
   SessionUpdateWebCredentialResponses,
   SessionUsageErrors,
   SessionUsageResponses,
+  SessionVortexCapturesResponses,
+  SessionVortexProbeResponses,
+  SessionVortexReportResponses,
+  SessionVortexSignalsResponses,
+  SessionVortexSignalSummaryResponses,
+  SessionVortexUpdateTriageResponses,
   SessionVulnerabilityErrors,
+  SessionVulnerabilityPosterBundleErrors,
+  SessionVulnerabilityPosterBundleResponses,
+  SessionVulnerabilityPosterErrors,
+  SessionVulnerabilityPosterResponses,
   SessionVulnerabilityResponses,
+  SessionWebActionErrors,
+  SessionWebActionResponses,
+  SessionWebControlErrors,
   SessionWebCredentialsErrors,
   SessionWebCredentialsResponses,
   SessionWebFunctionsErrors,
   SessionWebFunctionsResponses,
+  SessionWebGetDriverErrors,
+  SessionWebGetDriverResponses,
+  SessionWebJsErrors,
+  SessionWebJsResponses,
+  SessionWebLogErrors,
+  SessionWebLogReadErrors,
+  SessionWebLogReadResponses,
+  SessionWebLogResponses,
   SessionWebObjectsErrors,
   SessionWebObjectsResponses,
-  SessionWebRetestQueueErrors,
-  SessionWebRetestQueueResponses,
+  SessionWebObserveErrors,
+  SessionWebObserveResponses,
+  SessionWebPageStateErrors,
+  SessionWebPageStateResponses,
   SessionWebRolesErrors,
   SessionWebRolesResponses,
+  SessionWebSetDriverErrors,
+  SessionWebSetDriverResponses,
+  SessionWebSetHoldErrors,
+  SessionWebSetHoldResponses,
+  SessionWebStatsErrors,
+  SessionWebStatsResponses,
   SkillChainErrors,
   SkillChainResponses,
   SkillContextResponses,
@@ -263,11 +311,10 @@ import type {
   WorktreeResetResponses,
 } from "./types.gen.js"
 
-export type Options<
-  TData extends TDataShape = TDataShape,
-  ThrowOnError extends boolean = boolean,
-  TResponse = unknown,
-> = Options2<TData, ThrowOnError, TResponse> & {
+export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean> = Options2<
+  TData,
+  ThrowOnError
+> & {
   /**
    * You can provide a client instance returned by `createClient()` instead of
    * individual options. This might be also useful if you want to implement a
@@ -297,7 +344,7 @@ class HeyApiRegistry<T> {
   get(key?: string): T {
     const instance = this.instances.get(key ?? this.defaultKey)
     if (!instance) {
-      throw new Error(`No SDK client found. Create one with "new CyberstrikeClient()" to fix this error.`)
+      throw new Error(`No SDK client found. Create one with "new CyberStrikeClient()" to fix this error.`)
     }
     return instance
   }
@@ -307,7 +354,7 @@ class HeyApiRegistry<T> {
   }
 }
 
-export class Event_ extends HeyApiClient {
+export class Event extends HeyApiClient {
   /**
    * Poll global events
    *
@@ -389,9 +436,21 @@ export class Global extends HeyApiClient {
    *
    * Subscribe to global events from the CyberStrike system using server-sent events.
    */
-  public event<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError, GlobalEventResponse>) {
+  public event<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
     return (options?.client ?? this.client).sse.get<GlobalEventResponses, unknown, ThrowOnError>({
       url: "/global/event",
+      ...options,
+    })
+  }
+
+  /**
+   * Get log file contents
+   *
+   * Returns the current server log file contents. Supports tail mode with the lines query parameter.
+   */
+  public log<ThrowOnError extends boolean = false>(options?: Options<never, ThrowOnError>) {
+    return (options?.client ?? this.client).get<GlobalLogResponses, unknown, ThrowOnError>({
+      url: "/global/log",
       ...options,
     })
   }
@@ -408,9 +467,9 @@ export class Global extends HeyApiClient {
     })
   }
 
-  private _event?: Event_
-  get event2(): Event_ {
-    return (this._event ??= new Event_({ client: this.client }))
+  private _event?: Event
+  get event2(): Event {
+    return (this._event ??= new Event({ client: this.client }))
   }
 
   private _config?: Config
@@ -1045,6 +1104,87 @@ export class Experimental extends HeyApiClient {
   }
 }
 
+export class Poster extends HeyApiClient {
+  /**
+   * Generate vulnerability poster bundle
+   *
+   * Returns PNG (base64), tweet text, and markdown blog post for a vulnerability finding.
+   */
+  public bundle<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      ref: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "ref" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionVulnerabilityPosterBundleResponses,
+      SessionVulnerabilityPosterBundleErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/vulnerability/{ref}/poster/bundle",
+      ...options,
+      ...params,
+    })
+  }
+}
+
+export class Vulnerability extends HeyApiClient {
+  /**
+   * Generate vulnerability poster PNG
+   *
+   * Render a shareable OG-style card image for a specific vulnerability finding.
+   */
+  public poster<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      ref: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "path", key: "ref" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionVulnerabilityPosterResponses,
+      SessionVulnerabilityPosterErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/vulnerability/{ref}/poster",
+      ...options,
+      ...params,
+    })
+  }
+
+  private _poster?: Poster
+  get poster2(): Poster {
+    return (this._poster ??= new Poster({ client: this.client }))
+  }
+}
+
 export class Session extends HeyApiClient {
   /**
    * List sessions
@@ -1168,12 +1308,16 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      target: string
+      target?: string
       credentials?: Array<string>
       scope?: Array<string>
       exclude?: Array<string>
       steps?: number
       headless?: boolean
+      model?: {
+        providerID: string
+        modelID: string
+      }
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -1190,6 +1334,7 @@ export class Session extends HeyApiClient {
             { in: "body", key: "exclude" },
             { in: "body", key: "steps" },
             { in: "body", key: "headless" },
+            { in: "body", key: "model" },
           ],
         },
       ],
@@ -1599,7 +1744,7 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      label: string
+      label?: string
       headers?: {
         [key: string]: string
       }
@@ -1627,6 +1772,748 @@ export class Session extends HeyApiClient {
       ThrowOnError
     >({
       url: "/session/{sessionID}/web/credentials",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Ingest UI observations
+   *
+   * Record which credential could see which clickable elements on a page — the Faz B UI-affordance substrate for access-control (BFLA) reasoning. Called by the browser extension per page, per credential.
+   */
+  public addWebObservations<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      credential_id?: string
+      page_url?: string
+      elements?: Array<{
+        role: string
+        label: string
+      }>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "credential_id" },
+            { in: "body", key: "page_url" },
+            { in: "body", key: "elements" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      SessionAddWebObservationsResponses,
+      SessionAddWebObservationsErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/observations",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Spawn a role browser profile
+   *
+   * The panel 'Add role' action: open a new Chrome profile (its own cookie jar) with the hackbrowser extension, tagged with a role and attached to this session, so a second/third identity can log in and feed access-control comparison. Local only — CyberStrike spawns the browser on its own host.
+   */
+  public spawnWebProfile<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      role?: string
+      roleName?: string
+      roleLevel?: number
+      url?: string
+      headless?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "role" },
+            { in: "body", key: "roleName" },
+            { in: "body", key: "roleLevel" },
+            { in: "body", key: "url" },
+            { in: "body", key: "headless" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      SessionSpawnWebProfileResponses,
+      SessionSpawnWebProfileErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/spawn-profile",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Count spawned role browsers
+   *
+   * How many spawned role browsers are still tracked for this session — the branded panel uses it to decide whether to confirm closing them on detach.
+   */
+  public spawnedProfileCount<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionSpawnedProfileCountResponses,
+      SessionSpawnedProfileCountErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/spawned-count",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Close spawned role browsers
+   *
+   * Close every browser profile CyberStrike spawned for this session (the 'Add credential' role browsers). A short delay first lets their last captures flush. Returns how many were closed.
+   */
+  public closeWebProfiles<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      SessionCloseWebProfilesResponses,
+      SessionCloseWebProfilesErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/close-profiles",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Enqueue setup roles
+   *
+   * Add roles to this session's sequential setup queue (dedup by label). Fed by the TUI menu (a list) and the panel 'Add credential' (one at a time). Roles spawn one at a time as each prior role's capture starts.
+   */
+  public enqueueRoles<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      roles?: Array<string>
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "roles" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionEnqueueRolesResponses, SessionEnqueueRolesErrors, ThrowOnError>(
+      {
+        url: "/session/{sessionID}/web/role-queue",
+        ...options,
+        ...params,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers,
+          ...params.headers,
+        },
+      },
+    )
+  }
+
+  /**
+   * Role setup queue status
+   *
+   * The sequential-setup queue for this session — the orchestrator (first) browser polls it to show 'spawning <role>…' / 'please sign in as <role>'.
+   */
+  public queueStatus2<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionQueueStatus2Responses, SessionQueueStatus2Errors, ThrowOnError>({
+      url: "/session/{sessionID}/web/queue-status",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Signal a role's capture started
+   *
+   * A browser pressed Start capture for `role`. Advances the queue and, if a next role is pending, spawns its browser on the shared session at `url`. Returns the next role's label (now being set up) or null.
+   */
+  public captureStarted<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      role?: string
+      url?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "role" },
+            { in: "body", key: "url" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<
+      SessionCaptureStartedResponses,
+      SessionCaptureStartedErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/web/capture-started",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Store a page observation
+   *
+   * The extension posts the current page's clickables/forms/links. Feeds the get_page_state store (annotated with semantic kind) and, when credential_id is present, the per-credential UI-affordance store (Faz B).
+   */
+  public webObserve<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      url?: string
+      title?: string
+      driver?: "ai" | "human"
+      credential_id?: string
+      clickables?: Array<{
+        id: string
+        tag: string
+        role: string
+        label: string
+        href: string
+        why?: string
+        aria?: {
+          [key: string]: string
+        }
+        disabled?: boolean
+        in_viewport?: boolean
+        in_modal?: boolean
+        section?: string
+        testid?: string
+        shadow?: boolean
+        frame?: string
+      }>
+      forms?: Array<{
+        action: string
+        method: string
+        fields: Array<{
+          id?: string
+          name: string
+          type: string
+          required: boolean
+        }>
+        submit_id?: string
+        in_modal?: boolean
+      }>
+      links?: Array<string>
+      description?: string
+      location?: Array<string>
+      landmarks?: Array<{
+        role: string
+        label: string
+      }>
+      frames?: Array<{
+        src: string
+        same_origin: boolean
+        title: string
+      }>
+      canvas?: number
+      dynamic?: boolean
+      tech?: {
+        globals?: Array<string>
+        dom?: Array<string>
+        cookies?: Array<string>
+        meta?: string
+        scripts?: Array<string>
+        headers?: {
+          [key: string]: string
+        }
+      }
+      js_bundles?: Array<string>
+      runtime_libs?: Array<string>
+      resources?: Array<{
+        url: string
+        type: string
+        size: number
+      }>
+      modal_open?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "url" },
+            { in: "body", key: "title" },
+            { in: "body", key: "driver" },
+            { in: "body", key: "credential_id" },
+            { in: "body", key: "clickables" },
+            { in: "body", key: "forms" },
+            { in: "body", key: "links" },
+            { in: "body", key: "description" },
+            { in: "body", key: "location" },
+            { in: "body", key: "landmarks" },
+            { in: "body", key: "frames" },
+            { in: "body", key: "canvas" },
+            { in: "body", key: "dynamic" },
+            { in: "body", key: "tech" },
+            { in: "body", key: "js_bundles" },
+            { in: "body", key: "runtime_libs" },
+            { in: "body", key: "resources" },
+            { in: "body", key: "modal_open" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionWebObserveResponses, SessionWebObserveErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/observe",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Get page state (get_page_state substrate)
+   *
+   * The current page's clickables (each annotated with semantic kind + action policy), forms and links — what the AI reads to pick its next action. Omit url to list observed urls; view filters clickables to one kind.
+   */
+  public webPageState<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      url?: string
+      view?: "destructive" | "logout" | "auth" | "mutating" | "query" | "nav" | "other"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "url" },
+            { in: "query", key: "view" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionWebPageStateResponses, SessionWebPageStateErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/page-state",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Perform a guarded browser action
+   *
+   * click / type / navigate, relayed to the extension over the control WS. guard.ts is enforced HERE: a logout element is denied (403), a destructive one needs human confirmation (409). The AI's hands.
+   */
+  public webAction<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      op?: "click" | "type" | "navigate"
+      url?: string
+      element_id?: string
+      text?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "op" },
+            { in: "body", key: "url" },
+            { in: "body", key: "element_id" },
+            { in: "body", key: "text" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionWebActionResponses, SessionWebActionErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/action",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Browser control channel (WebSocket)
+   *
+   * The extension upgrades here to receive click/type/navigate commands from /web/action and ack them. One socket per session.
+   */
+  public webControl<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<unknown, SessionWebControlErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/control",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get the browser driver (AI / Human)
+   *
+   * The current driver for the session, or null if the panel has not reported one yet.
+   */
+  public webGetDriver<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionWebGetDriverResponses, SessionWebGetDriverErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/driver",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Set the browser driver (AI / Human)
+   *
+   * The panel's AI/Human toggle reports here so CyberStrike knows who is driving. Human mode blocks web_action (interlock); AI mode is what will start the co-driving loop. The extension POSTs on toggle and on control-WS connect.
+   */
+  public webSetDriver<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      driver?: "ai" | "human"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "driver" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionWebSetDriverResponses, SessionWebSetDriverErrors, ThrowOnError>(
+      {
+        url: "/session/{sessionID}/web/driver",
+        ...options,
+        ...params,
+        headers: {
+          "Content-Type": "application/json",
+          ...options?.headers,
+          ...params.headers,
+        },
+      },
+    )
+  }
+
+  /**
+   * Web capture stats for the panel HUD
+   *
+   * Live capture-coverage counts for the on-page panel/HUD, read from the durable store (request / endpoint_template tables + confirmed vulnerabilities) so they match the analysis + TUI and read 0 for a fresh session: captured requests, distinct endpoints, distinct pages, confirmed vulnerabilities.
+   */
+  public webStats<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionWebStatsResponses, SessionWebStatsErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/stats",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * List captured JS files
+   *
+   * The JS files (script URLs) seen during capture for this session, persisted durably — the TUI 'Captures > JS Files' view lists them and a later agent pulls + reviews each body.
+   */
+  public webJs<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionWebJsResponses, SessionWebJsErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/js",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Pause / resume the AI navigator (transient)
+   *
+   * While the user engages the on-page panel, the extension holds the co-driving loop so a full-page navigation doesn't wipe the panel out from under them. Distinct from the AI/Human driver toggle — the driver stays 'ai'; this only pauses navigation until released.
+   */
+  public webSetHold<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      held?: boolean
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "held" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionWebSetHoldResponses, SessionWebSetHoldErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/hold",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Read the HackBrowser diagnostic trail
+   *
+   * The per-session cross-layer event trail (server + extension) plus the on-disk JSONL file path.
+   */
+  public webLogRead<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      limit?: number
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "query", key: "limit" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionWebLogReadResponses, SessionWebLogReadErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/log",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Record a HackBrowser diagnostic event
+   *
+   * The extension posts its own lifecycle events (content mounted, control WS open, perform relayed, attach) into the per-session diagnostic trail. Absence of extension events is itself diagnostic.
+   */
+  public webLog<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      source?: string
+      event?: string
+      data?: unknown
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "source" },
+            { in: "body", key: "event" },
+            { in: "body", key: "data" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionWebLogResponses, SessionWebLogErrors, ThrowOnError>({
+      url: "/session/{sessionID}/web/log",
       ...options,
       ...params,
       headers: {
@@ -1815,11 +2702,230 @@ export class Session extends HeyApiClient {
   }
 
   /**
-   * Get web retest queue
+   * Vortex report
    *
-   * Retrieve pending retests triggered by new discoveries.
+   * Run the Vortex engine over the session's live web corpus and return leads + counts.
    */
-  public webRetestQueue<ThrowOnError extends boolean = false>(
+  public vortexReport<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionVortexReportResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/vortex",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Vortex active probe
+   *
+   * Actively probe the session's enumerated injection points (sends payloads to the target). No-op unless CYBERSTRIKE_VORTEX_ACTIVE_PROBE is set; governed + replay-safe. Returns probed/signal counts.
+   */
+  public vortexProbe<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionVortexProbeResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/vortex/probe",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Vortex captures
+   *
+   * The captured surface sourced from the session's Vortex store (the single source of truth the TUI Captures view reads): requests (transactions) + discovered JS files. Pages are derived from each request's pageUrl.
+   */
+  public vortexCaptures<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionVortexCapturesResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/vortex/captures",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Vortex signals
+   *
+   * Every deterministic signal Vortex produced for this session (passive rules + active probe), with its owning WSTG class, whether it auto-routed into the retest pipeline, and its endpoint's retest-queue status — the source for the TUI 'Vortex Signals' view (issue #14).
+   */
+  public vortexSignals<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionVortexSignalsResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/vortex/signals",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Vortex signal triage summary
+   *
+   * Counts of signals grouped by triage status (new/reviewed/confirmed/dismissed/escalated).
+   */
+  public vortexSignalSummary<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<SessionVortexSignalSummaryResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/vortex/signals/summary",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Update signal triage status
+   *
+   * Set the triage status of one or more signals by their dedup key. Invalidates the signals cache.
+   */
+  public vortexUpdateTriage<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+      keys?: Array<string>
+      triage?: "new" | "reviewed" | "confirmed" | "dismissed" | "escalated"
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+            { in: "body", key: "keys" },
+            { in: "body", key: "triage" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).patch<SessionVortexUpdateTriageResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/vortex/signals/triage",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
+    })
+  }
+
+  /**
+   * Force-route surfaced signals
+   *
+   * Operator action: flag EVERY owned Vortex signal for a specialist, ignoring the medium+ auto-route gate — so surfaced-but-not-auto-routed leads (e.g. a low-severity cross-identity-access = IDOR/BFLA candidate) get actively tested on demand. Idempotent; wakes the dispatcher.
+   */
+  public routeSignals<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<SessionRouteSignalsResponses, unknown, ThrowOnError>({
+      url: "/session/{sessionID}/inspection/route-signals",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get inspection queue
+   *
+   * Retrieve pending inspection targets flagged by new discoveries.
+   */
+  public inspectionQueue<ThrowOnError extends boolean = false>(
     parameters: {
       sessionID: string
       directory?: string
@@ -1838,11 +2944,45 @@ export class Session extends HeyApiClient {
       ],
     )
     return (options?.client ?? this.client).get<
-      SessionWebRetestQueueResponses,
-      SessionWebRetestQueueErrors,
+      SessionInspectionQueueResponses,
+      SessionInspectionQueueErrors,
       ThrowOnError
     >({
-      url: "/session/{sessionID}/web/retest-queue",
+      url: "/session/{sessionID}/inspection/queue",
+      ...options,
+      ...params,
+    })
+  }
+
+  /**
+   * Get inspection lifecycle
+   *
+   * Retrieve the current inspection phase, activity sources, and queue counts.
+   */
+  public inspectionLifecycle<ThrowOnError extends boolean = false>(
+    parameters: {
+      sessionID: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "sessionID" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).get<
+      SessionInspectionLifecycleResponses,
+      SessionInspectionLifecycleErrors,
+      ThrowOnError
+    >({
+      url: "/session/{sessionID}/inspection/lifecycle",
       ...options,
       ...params,
     })
@@ -1854,9 +2994,9 @@ export class Session extends HeyApiClient {
    * Send a message as if from user input (e.g. from another port or service). Creates a new session if sessionID is missing or invalid. AI response streams into the same session and appears in TUI chat.
    */
   public ingest<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
-      text: string
+      text?: string
       sessionID?: string
       agent?: string
       model?: {
@@ -1942,9 +3082,9 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      modelID: string
-      providerID: string
-      messageID: string
+      modelID?: string
+      providerID?: string
+      messageID?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2202,8 +3342,8 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      providerID: string
-      modelID: string
+      providerID?: string
+      modelID?: string
       auto?: boolean
     },
     options?: Options<never, ThrowOnError>,
@@ -2289,7 +3429,7 @@ export class Session extends HeyApiClient {
       system?: string
       variant?: string
       excludeHistory?: boolean
-      parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
+      parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2381,7 +3521,7 @@ export class Session extends HeyApiClient {
       system?: string
       variant?: string
       excludeHistory?: boolean
-      parts: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
+      parts?: Array<TextPartInput | FilePartInput | AgentPartInput | SubtaskPartInput>
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2430,8 +3570,8 @@ export class Session extends HeyApiClient {
       messageID?: string
       agent?: string
       model?: string
-      arguments: string
-      command: string
+      arguments?: string
+      command?: string
       variant?: string
       parts?: Array<{
         id?: string
@@ -2483,12 +3623,12 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      agent: string
+      agent?: string
       model?: {
         providerID: string
         modelID: string
       }
-      command: string
+      command?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2527,7 +3667,7 @@ export class Session extends HeyApiClient {
     parameters: {
       sessionID: string
       directory?: string
-      messageID: string
+      messageID?: string
       partID?: string
     },
     options?: Options<never, ThrowOnError>,
@@ -2585,6 +3725,11 @@ export class Session extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+
+  private _vulnerability?: Vulnerability
+  get vulnerability2(): Vulnerability {
+    return (this._vulnerability ??= new Vulnerability({ client: this.client }))
   }
 }
 
@@ -2674,7 +3819,7 @@ export class Permission extends HeyApiClient {
       sessionID: string
       permissionID: string
       directory?: string
-      response: "once" | "always" | "reject"
+      response?: "once" | "always" | "reject"
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2712,7 +3857,7 @@ export class Permission extends HeyApiClient {
     parameters: {
       requestID: string
       directory?: string
-      reply: "once" | "always" | "reject"
+      reply?: "once" | "always" | "reject"
       message?: string
     },
     options?: Options<never, ThrowOnError>,
@@ -2791,7 +3936,7 @@ export class Question extends HeyApiClient {
     parameters: {
       requestID: string
       directory?: string
-      answers: Array<QuestionAnswer>
+      answers?: Array<QuestionAnswer>
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2860,7 +4005,7 @@ export class Oauth extends HeyApiClient {
     parameters: {
       providerID: string
       directory?: string
-      method: number
+      method?: number
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -2901,7 +4046,7 @@ export class Oauth extends HeyApiClient {
     parameters: {
       providerID: string
       directory?: string
-      method: number
+      method?: number
       code?: string
     },
     options?: Options<never, ThrowOnError>,
@@ -2953,6 +4098,43 @@ export class Provider extends HeyApiClient {
       url: "/provider",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Record the selected model
+   *
+   * Persist the UI's selected model as most-recent so server-side model resolution (HackBrowser, the navigator, compaction, the idle watchdog) uses it. The TUI already writes this file; the web and desktop UI call this on every model change so all surfaces behave the same.
+   */
+  public recordModel<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      providerID?: string
+      modelID?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "body", key: "providerID" },
+            { in: "body", key: "modelID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ProviderRecordModelResponses, unknown, ThrowOnError>({
+      url: "/provider/model",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 
@@ -3079,7 +4261,7 @@ export class Find extends HeyApiClient {
   }
 }
 
-export class File_ extends HeyApiClient {
+export class File extends HeyApiClient {
   /**
    * List files
    *
@@ -3230,7 +4412,7 @@ export class Auth2 extends HeyApiClient {
     parameters: {
       name: string
       directory?: string
-      code: string
+      code?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3317,10 +4499,10 @@ export class Mcp extends HeyApiClient {
    * Dynamically add a new Model Context Protocol (MCP) server to the system.
    */
   public add<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
-      name: string
-      config: McpLocalConfig | McpRemoteConfig
+      name?: string
+      config?: McpLocalConfig | McpRemoteConfig
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3485,10 +4667,10 @@ export class Bolt extends HeyApiClient {
    * Dynamically add a new Bolt server.
    */
   public add<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
-      name: string
-      config: BoltConfig
+      name?: string
+      config?: BoltConfig
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3525,8 +4707,8 @@ export class Bolt extends HeyApiClient {
     parameters: {
       name: string
       directory?: string
-      url: string
-      adminToken: string
+      url?: string
+      adminToken?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3705,9 +4887,9 @@ export class Tui extends HeyApiClient {
    * Append prompt to the TUI
    */
   public appendPrompt<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
-      text: string
+      text?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3854,9 +5036,9 @@ export class Tui extends HeyApiClient {
    * Execute a TUI command (e.g. agent_cycle)
    */
   public executeCommand<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
-      command: string
+      command?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3889,11 +5071,11 @@ export class Tui extends HeyApiClient {
    * Show a toast notification in the TUI
    */
   public showToast<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
       title?: string
-      message: string
-      variant: "info" | "success" | "warning" | "error"
+      message?: string
+      variant?: "info" | "success" | "warning" | "error"
       duration?: number
     },
     options?: Options<never, ThrowOnError>,
@@ -3965,9 +5147,9 @@ export class Tui extends HeyApiClient {
    * Navigate the TUI to display the specified session.
    */
   public selectSession<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
-      sessionID: string
+      sessionID?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -4419,11 +5601,11 @@ export class App extends HeyApiClient {
    * Write a log entry to the server logs with specified level and metadata.
    */
   public log<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
-      service: string
-      level: "debug" | "info" | "error" | "warn"
-      message: string
+      service?: string
+      level?: "debug" | "info" | "error" | "warn"
+      message?: string
       extra?: {
         [key: string]: unknown
       }
@@ -4559,9 +5741,9 @@ export class Skill extends HeyApiClient {
    * Analyze findings for kill chain opportunities.
    */
   public chain<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
-      findings: Array<{
+      findings?: Array<{
         skill_id: string
         severity: "info" | "low" | "medium" | "high" | "critical"
         cwe_id?: string
@@ -4689,9 +5871,9 @@ export class Skill extends HeyApiClient {
    * Download and install a skill from a remote URL or registry.
    */
   public install<ThrowOnError extends boolean = false>(
-    parameters: {
+    parameters?: {
       directory?: string
-      url: string
+      url?: string
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -4831,7 +6013,7 @@ export class Event2 extends HeyApiClient {
     parameters?: {
       directory?: string
     },
-    options?: Options<never, ThrowOnError, EventSubscribeResponse>,
+    options?: Options<never, ThrowOnError>,
   ) {
     const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
     return (options?.client ?? this.client).sse.get<EventSubscribeResponses, unknown, ThrowOnError>({
@@ -4842,12 +6024,12 @@ export class Event2 extends HeyApiClient {
   }
 }
 
-export class CyberstrikeClient extends HeyApiClient {
-  public static readonly __registry = new HeyApiRegistry<CyberstrikeClient>()
+export class CyberStrikeClient extends HeyApiClient {
+  public static readonly __registry = new HeyApiRegistry<CyberStrikeClient>()
 
   constructor(args?: { client?: Client; key?: string }) {
     super(args)
-    CyberstrikeClient.__registry.set(this, args?.key)
+    CyberStrikeClient.__registry.set(this, args?.key)
   }
 
   private _global?: Global
@@ -4920,9 +6102,9 @@ export class CyberstrikeClient extends HeyApiClient {
     return (this._find ??= new Find({ client: this.client }))
   }
 
-  private _file?: File_
-  get file(): File_ {
-    return (this._file ??= new File_({ client: this.client }))
+  private _file?: File
+  get file(): File {
+    return (this._file ??= new File({ client: this.client }))
   }
 
   private _mcp?: Mcp

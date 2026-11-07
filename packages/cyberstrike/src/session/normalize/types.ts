@@ -13,16 +13,15 @@
 
 export type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS"
 
-export type Placeholder = "{id}" | "{uuid}" | "{hash}" | "{email}" | "{token}" | "{slug}" | "{ulid}" | `${string}_{ulid}` | string
+export type Placeholder = "{id}" | "{uuid}" | "{hash}" | "{email}" | "{token}" | "{slug}"
 
-export const ALLOWED_PLACEHOLDERS: ReadonlySet<string> = new Set([
+export const ALLOWED_PLACEHOLDERS: ReadonlySet<Placeholder> = new Set([
   "{id}",
   "{uuid}",
   "{hash}",
   "{email}",
   "{token}",
   "{slug}",
-  "{ulid}",
 ])
 
 // Tier 0 output — deterministic parse of the raw HTTP request.

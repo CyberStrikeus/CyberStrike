@@ -59,6 +59,27 @@ export const ProviderRoutes = lazy(() =>
         })
       },
     )
+    .post(
+      "/model",
+      describeRoute({
+        summary: "Record the selected model",
+        description:
+          "Persist the UI's selected model as most-recent so server-side model resolution (HackBrowser, the navigator, compaction, the idle watchdog) uses it. The TUI already writes this file; the web and desktop UI call this on every model change so all surfaces behave the same.",
+        operationId: "provider.recordModel",
+        responses: {
+          200: {
+            description: "Recorded",
+            content: { "application/json": { schema: resolver(z.object({ ok: z.boolean() })) } },
+          },
+        },
+      }),
+      validator("json", z.object({ providerID: z.string(), modelID: z.string() })),
+      async (c) => {
+        const body = c.req.valid("json")
+        await Provider.recordModel(body.providerID, body.modelID)
+        return c.json({ ok: true })
+      },
+    )
     .get(
       "/auth",
       describeRoute({

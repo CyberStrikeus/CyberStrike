@@ -9,6 +9,8 @@ import { TaskTool } from "./task"
 import { TodoWriteTool, TodoReadTool } from "./todo"
 import { ReportVulnerabilityTool } from "./vulnerability"
 import { TriageVulnerabilityTool } from "./triage-vulnerability"
+import { ProposeEscalationTool } from "./propose-escalation"
+import { OobGenerateTool, OobCheckTool } from "./oob"
 import { WebFetchTool } from "./webfetch"
 import { WriteTool } from "./write"
 import { InvalidTool } from "./invalid"
@@ -39,8 +41,16 @@ import { WebWriteFunctionTool } from "./web-write-function"
 import { WebGetSessionContextTool } from "./web-get-session-context"
 import { WebGetDetailTool } from "./web-get-detail"
 import { WebGetRequestDetailTool } from "./web-get-request-detail"
+import { WebGetPageStateTool } from "./web-get-page-state"
+import { WebActionTool } from "./web-action"
 import { InjectProbeTool } from "./inject-probe"
 import { HttpReplayTool, HttpReplayRawTool } from "./http-replay"
+import { AccessProbeTool } from "./access-probe"
+import { SessionProbeTool } from "./session-probe"
+import { ErrorProbeTool } from "./error-probe"
+import { CryptoProbeTool } from "./crypto-probe"
+import { IdentityProbeTool } from "./identity-probe"
+import { VortexTools } from "./vortex"
 import { WebGetVulnerabilitiesTool } from "./web-get-vulnerabilities"
 import { WebGetVulnDetailTool } from "./web-get-vuln-detail"
 import { WebUpdateCredentialClaimsTool } from "./web-update-credential-claims"
@@ -48,21 +58,29 @@ import { WebUpdateCredentialTool } from "./web-update-credential"
 import { CsrfExtractTool } from "./csrf-extract"
 import { HackbrowserTool } from "./hackbrowser"
 import { AddIntelTool } from "./intel"
+import { CloudRecordAssetTool } from "./cloud-record-asset"
+import { CloudRecordEdgeTool } from "./cloud-record-edge"
+import { CloudRecordExposureTool } from "./cloud-record-exposure"
+import { CloudGetContextTool } from "./cloud-get-context"
+import { EnrichVulnerabilityTool } from "./enrich-vulnerability"
 import { UpdateVrtCheckTool } from "./vrt-check"
 import { RecordCoverageNoteTool, GetCoverageNotesTool } from "./coverage-note"
 import { ScopeCheckTool } from "./scope-check"
 import { EnsureToolsTool } from "./ensure-tools"
 import { MethodologyStatusTool } from "./methodology-status"
 import { AttackScriptTool } from "./attack-script"
+import { AuthnTestTool } from "./webhook/authn/authn-test"
+import { LoginProbeTool } from "./webhook/authn/login-probe"
+import { SsrfTestTool } from "./webhook/ssrf/ssrf-test"
+import { BusinessTestTool } from "./webhook/business/business-test"
+import { MisconfigTestTool } from "./webhook/misconfig/misconfig-test"
+import { ReconTestTool } from "./webhook/recon/recon-test"
 import { GenerateReportTool } from "./generate-report"
 import { EbpfTool } from "./ebpf"
 import { WinhookTool } from "./winhook"
 import { MachookTool } from "./machook"
 import { LinuxhookTool } from "./linuxhook"
-import { AwshookTool } from "./awshook"
-import { AzurehookTool } from "./azurehook"
 import { KubehookTool } from "./kubehook"
-import { GcphookTool } from "./gcphook"
 import { ContainerhookTool } from "./containerhook"
 import { IachookTool } from "./iachook"
 import { LlmhookTool } from "./llmhook"
@@ -70,6 +88,10 @@ import { CloudAuditTool } from "./cloud-audit"
 import { K8sAuditTool } from "./k8s-audit"
 import { CiAuditTool } from "./ci-audit"
 import { CipipeTool } from "./cipipe"
+import { CveLookupTool } from "./cve-lookup"
+import { IisTildeTool } from "./webhook/technique/iis-tilde"
+import { GraphqlIntrospectTool } from "./webhook/technique/graphql-introspect"
+import { HttpSmugglingTool } from "./webhook/technique/http-smuggling"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -156,6 +178,9 @@ export namespace ToolRegistry {
       TodoWriteTool,
       ReportVulnerabilityTool,
       TriageVulnerabilityTool,
+      ProposeEscalationTool,
+      OobGenerateTool,
+      OobCheckTool,
       // TodoReadTool,
       WebSearchTool,
       CodeSearchTool,
@@ -179,19 +204,40 @@ export namespace ToolRegistry {
       WebGetSessionContextTool,
       WebGetDetailTool,
       WebGetRequestDetailTool,
+      // Co-driving (HackBrowser 2.0): the AI's eyes (page-state) and hands (action).
+      WebGetPageStateTool,
+      WebActionTool,
       InjectProbeTool,
+      AccessProbeTool,
+      SessionProbeTool,
+      ErrorProbeTool,
+      CryptoProbeTool,
+      IdentityProbeTool,
       HttpReplayTool,
       HttpReplayRawTool,
+      ...VortexTools,
       WebGetVulnerabilitiesTool,
       WebGetVulnDetailTool,
       WebUpdateCredentialClaimsTool,
       WebUpdateCredentialTool,
       CsrfExtractTool,
-      // Hackbrowser — autonomous crawler that produces captures the
-      // proxy-analyzer ingests. Upstream of the rest of the web pipeline.
+      // Smart Tools — WSTG-aligned deterministic probes (web-workflow 2.0)
+      AuthnTestTool,
+      LoginProbeTool,
+      SsrfTestTool,
+      BusinessTestTool,
+      MisconfigTestTool,
+      ReconTestTool,
+      // Hackbrowser — autonomous crawler that produces captures for
+      // the Vortex ingest pipeline. Upstream of the rest of the web pipeline.
       HackbrowserTool,
       // Methodology Engine Tools — intelligence, coverage, chain detection
       AddIntelTool,
+      CloudRecordAssetTool,
+      CloudRecordEdgeTool,
+      CloudRecordExposureTool,
+      CloudGetContextTool,
+      EnrichVulnerabilityTool,
       UpdateVrtCheckTool,
       RecordCoverageNoteTool,
       GetCoverageNotesTool,
@@ -204,10 +250,7 @@ export namespace ToolRegistry {
       WinhookTool,
       MachookTool,
       LinuxhookTool,
-      AwshookTool,
-      AzurehookTool,
       KubehookTool,
-      GcphookTool,
       ContainerhookTool,
       IachookTool,
       LlmhookTool,
@@ -215,6 +258,11 @@ export namespace ToolRegistry {
       K8sAuditTool,
       CiAuditTool,
       CipipeTool,
+      CveLookupTool,
+      // Technique Tools — algorithmic pentesting tools for specific widely-used techniques
+      IisTildeTool,
+      GraphqlIntrospectTool,
+      HttpSmugglingTool,
       ...custom,
     ]
   }

@@ -1,0 +1,29 @@
+---
+import ChevronDown from "@tabler/icons/outline/chevron-down.svg";
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+type Props = HTMLAttributes<"button">;
+
+const accordionTrigger = tv({
+  base: [
+    "starwind-accordion-trigger",
+    "flex w-full items-center justify-between gap-4 rounded-md px-5 py-4",
+    "starwind-transition-colors hover:text-muted-foreground text-left font-medium",
+    "[&[data-state=open]>svg]:rotate-180",
+    "focus-visible:outline-outline focus-visible:outline-2 focus-visible:outline-offset-0",
+  ],
+});
+
+const { class: className, ...rest } = Astro.props;
+---
+
+<button
+  type="button"
+  class={accordionTrigger({ class: className })}
+  aria-expanded="false"
+  {...rest}
+>
+  <slot />
+  <ChevronDown class="size-5 shrink-0 transition-transform duration-200" />
+</button>

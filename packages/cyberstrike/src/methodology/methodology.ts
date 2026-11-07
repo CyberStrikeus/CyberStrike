@@ -379,7 +379,7 @@ export namespace Methodology {
       infrastructure:
         "Test infrastructure: cloud misconfigurations, DNS zone transfer, open services, default installations. Log with tag 'infrastructure'.",
       reporting:
-        "Call `generate_report` to compile all session data into a structured Markdown report. Review the output, then write three AI sections: Executive Summary (overall risk posture), Risk Assessment (likelihood × impact matrix), and Remediation Priorities (actionable steps). Replace the `<!-- AI: ... -->` placeholders and save to `.cyberstrike/reports/report-<timestamp>.md` via the write tool. Ensure all blocking violations are resolved before finalizing.",
+        "Call `generate_report`. It SAVES the full report — with every finding embedded — to `.cyberstrike/reports/report-<timestamp>.md` (the path is in its output). EDIT that saved file to fill the three `<!-- AI: ... -->` placeholders: Executive Summary (overall risk posture), Risk Assessment (likelihood × impact matrix), and Remediation Priorities (actionable steps). Do NOT remove, rewrite, or re-order the findings. Ensure all blocking violations are resolved before finalizing.",
     }
     return directives[phaseId] || ""
   }

@@ -1,0 +1,159 @@
+/**
+ * * Docs global styles
+ * 
+ * Make sure this is imported in your base global.css file like so:
+ * @import "@/docs/styles/docs-global.css";
+ *
+ * This infers color tokens from the base tailwind-theme.css file
+ */
+
+@layer base {
+  #documentation-layout {
+    /* starwind component variables (will override a base global.css file styles) */
+    --background: var(--color-base-50);
+    --foreground: var(--color-base-900);
+    --card: var(--color-base-50);
+    --card-foreground: var(--color-base-950);
+    --popover: var(--color-base-50);
+    --popover-foreground: var(--color-base-950);
+    --primary: var(--color-primary-400);
+    --primary-dark: var(--color-primary-500);
+    --primary-foreground: var(--color-base-950);
+    --secondary: var(--foreground);
+    --secondary-foreground: var(--background);
+    --muted: var(--color-base-100);
+    --muted-foreground: var(--color-base-600);
+    --accent: var(--color-base-200);
+    --accent-foreground: var(--color-base-900);
+    --info: var(--color-sky-300);
+    --info-foreground: var(--color-sky-950);
+    --success: var(--color-green-300);
+    --success-foreground: var(--color-green-950);
+    --warning: var(--color-amber-300);
+    --warning-foreground: var(--color-amber-950);
+    --error: var(--color-red-700);
+    --error-foreground: var(--color-base-50);
+    --border: var(--color-base-200);
+    --input: var(--color-base-200);
+    --outline: var(--primary);
+
+    --radius: 0.5rem;
+
+    /* Various docs variables */
+    --nav-height: 3.5rem;
+    --main-content-pt: 2rem;
+    --expressive-code-bg: var(--color-base-800);
+    --expressive-code-bg-darker: var(--color-base-900);
+
+    /* default font */
+    font-family: "Inter Variable", var(--font-sans);
+  }
+
+  #documentation-layout.dark,
+  #documentation-layout .dark {
+    /* starwind component variables (will override a base global.css file styles) */
+    --background: var(--color-base-950);
+    --foreground: var(--color-base-50);
+    --card: var(--color-base-950);
+    --card-foreground: var(--color-base-50);
+    --popover: var(--color-base-950);
+    --popover-foreground: var(--color-base-50);
+    --primary: var(--color-primary-500);
+    --primary-dark: var(--color-primary-600);
+    --primary-foreground: var(--color-base-950);
+    --secondary: var(--foreground);
+    --secondary-foreground: var(--background);
+    --muted: var(--color-base-900);
+    --muted-foreground: var(--color-base-400);
+    --accent: var(--color-base-900);
+    --accent-foreground: var(--color-base-100);
+    --info: var(--color-sky-300);
+    --info-foreground: var(--color-sky-950);
+    --success: var(--color-green-300);
+    --success-foreground: var(--color-green-950);
+    --warning: var(--color-amber-300);
+    --warning-foreground: var(--color-amber-950);
+    --error: var(--color-red-800);
+    --error-foreground: var(--color-base-50);
+    --border: var(--color-base-800);
+    --input: var(--color-base-800);
+    --outline: var(--primary);
+
+    --expressive-code-bg: var(--color-base-900);
+    --expressive-code-bg-darker: var(--color-base-950);
+
+    @apply scheme-dark;
+  }
+
+  /* starwind preflight */
+  * {
+    @apply border-border outline-outline/50;
+  }
+  html {
+    @apply bg-background text-foreground leading-[1.6rem] scheme-light dark:scheme-dark;
+    scroll-behavior: smooth;
+    -moz-text-size-adjust: none;
+    -webkit-text-size-adjust: none;
+    text-size-adjust: none;
+    /* prevent layout shift */
+    scrollbar-gutter: stable;
+  }
+  button {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .docs-h1 {
+    @apply text-3xl font-semibold md:text-4xl;
+  }
+
+  .docs-h2 {
+    @apply text-2xl font-semibold md:text-3xl;
+  }
+
+  .docs-h3 {
+    @apply text-xl font-semibold md:text-2xl;
+  }
+
+  /* styles for top navbar elements like links, theme toggle, language switcher, etc. */
+  .docs-nav__link--base {
+    /* @apply text-muted-foreground hover:text-foreground transition-colors; */
+    @apply text-foreground hover:text-muted-foreground transition-colors;
+  }
+
+  /* styles for the current top navbar element */
+  .docs-nav__link--current {
+    @apply text-muted-foreground;
+  }
+
+  /* styles for sidebar and heading links */
+  .docs-nav__link--sidebar {
+    @apply text-muted-foreground hover:text-foreground transition-colors;
+  }
+
+  /* styles for current sidebar and heading links */
+  .docs-nav__link--sidebar-current {
+    @apply text-foreground;
+  }
+
+  .docs-site-container {
+    @apply mx-auto max-w-[1400px] px-4;
+  }
+}
+
+@layer utilities {
+  /* focus utility class (for when user is tabbing through items on page) */
+  .docs-primary-focus {
+    @apply focus-visible:outline-outline focus-visible:rounded-xs focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:transition-none;
+  }
+
+  /* Used for some headings */
+  .docs-text-gradient {
+    @apply from-foreground to-foreground/90 dark:to-foreground/60 bg-gradient-to-r bg-clip-text text-transparent;
+  }
+
+  .rotate-180 {
+    @apply rotate-180;
+  }
+}

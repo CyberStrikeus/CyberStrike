@@ -1,0 +1,153 @@
+---
+title: CLI 使用
+description: Cyberstrike 命令行参考——命令、标志和环境变量
+sidebar:
+  order: 2
+  label: CLI
+---
+
+CLI 面向脚本编写、CI 流水线和单命令执行——任何不需要交互式会话的场景。
+
+## 命令
+
+### `cyberstrike run`
+
+运行一次性提示并退出。
+
+```bash
+cyberstrike run "scan 192.168.1.1 for open ports"
+```
+
+#### 标志
+
+| 标志 | 描述 |
+|------|------|
+| `--model` / `-m` | 覆盖默认模型 |
+| `--provider` / `-p` | 覆盖默认提供商 |
+| `--session` / `-s` | 附加到现有会话 |
+| `--output` / `-o` | 输出格式：`text`（默认）、`json`、`stream-json` |
+| `--max-turns` | 最大代理轮数 |
+| `--permission-mode` | 权限模式：`default`、`plan`、`auto` |
+| `--allowedTools` | 允许的工具逗号分隔列表 |
+| `--disallowedTools` | 禁止的工具逗号分隔列表 |
+| `--verbose` | 启用详细输出 |
+
+#### 示例
+
+```bash
+# 使用特定模型
+cyberstrike run -m claude-sonnet-4-20250514 "analyze auth.ts for vulnerabilities"
+
+# JSON 输出用于脚本
+cyberstrike run -o json "list open ports on target" | jq '.result'
+
+# 自动权限（CI 环境）
+cyberstrike run --permission-mode auto "run nuclei scan on target.com"
+```
+
+### `cyberstrike serve`
+
+启动 Cyberstrike 服务器，附加 Cloudflare Tunnel 用于远程访问。
+
+```bash
+cyberstrike serve
+```
+
+#### 标志
+
+| 标志 | 描述 |
+|------|------|
+| `--port` / `-p` | 服务器端口（默认：4096） |
+| `--host` | 绑定主机名 |
+
+参阅 [Web 界面](/docs/usage/web) 了解完整的远程访问设置。
+
+### `cyberstrike attach`
+
+附加到现有会话。
+
+```bash
+cyberstrike attach <session-id>
+```
+
+恢复之前会话的完整上下文——消息历史、工具状态和记忆。
+
+### `cyberstrike upgrade`
+
+升级到最新版本。
+
+```bash
+cyberstrike upgrade
+```
+
+#### 标志
+
+| 标志 | 描述 |
+|------|------|
+| `--beta` | 安装最新 beta 版本 |
+| `--version` | 安装特定版本 |
+
+## 全局标志
+
+所有命令都接受以下标志：
+
+| 标志 | 描述 |
+|------|------|
+| `--help` / `-h` | 显示帮助信息 |
+| `--version` / `-v` | 显示版本号 |
+| `--verbose` | 启用详细日志 |
+| `--config` | 配置文件路径 |
+| `--cwd` | 设置工作目录 |
+
+## 环境变量
+
+| 变量 | 描述 |
+|------|------|
+| `ANTHROPIC_API_KEY` | Anthropic API 密钥 |
+| `OPENAI_API_KEY` | OpenAI API 密钥 |
+| `GOOGLE_API_KEY` | Google AI API 密钥 |
+| `CYBERSTRIKE_MODEL` | 默认模型覆盖 |
+| `CYBERSTRIKE_PROVIDER` | 默认提供商覆盖 |
+| `CYBERSTRIKE_SERVER_PASSWORD` | Web 服务器认证密码 |
+| `CYBERSTRIKE_CONFIG_DIR` | 自定义配置目录 |
+
+## 退出码
+
+| 码 | 含义 |
+|----|------|
+| `0` | 成功 |
+| `1` | 一般错误 |
+| `2` | 无效参数 |
+| `3` | 认证失败 |
+
+## 管道和脚本
+
+### Stdin 输入
+
+```bash
+echo "analyze this code for XSS" | cyberstrike run
+```
+
+### 文件输入
+
+```bash
+cyberstrike run "review this file for vulnerabilities" < src/auth.ts
+```
+
+### 与其他工具结合
+
+```bash
+# 用 nmap 扫描然后让 Cyberstrike 分析
+nmap -sV target.com -oX - | cyberstrike run "analyze this nmap output"
+
+# 批量测试多个目标
+cat targets.txt | while read target; do
+  cyberstrike run -o json "quick scan $target" >> results.json
+done
+```
+
+## 相关文档
+
+- [TUI](/docs/usage/tui) - 交互式终端界面
+- [Web 界面](/docs/usage/web) - 基于浏览器的访问
+- [配置](/docs/configuration) - 配置选项

@@ -13,6 +13,7 @@ import { Installation } from "./installation"
 import { NamedError } from "@cyberstrike-io/util/error"
 import { FormatError } from "./cli/error"
 import { ServeCommand } from "./cli/cmd/serve"
+import { OobCommand } from "./cli/cmd/oob"
 import { DebugCommand } from "./cli/cmd/debug"
 import { StatsCommand } from "./cli/cmd/stats"
 import { McpCommand } from "./cli/cmd/mcp"
@@ -29,6 +30,8 @@ import { PrCommand } from "./cli/cmd/pr"
 import { SessionCommand } from "./cli/cmd/session"
 import { ProviderCommand } from "./cli/cmd/provider"
 import { SkillCommand } from "./cli/cmd/skill"
+import { DomainsCommand } from "./cli/cmd/domains"
+import { BrainCommand } from "./cli/cmd/brain"
 import path from "path"
 import { Global } from "./global"
 import { JsonMigration } from "./storage/json-migration"
@@ -83,6 +86,11 @@ const cli = yargs(hideBin(process.argv))
     })
 
     const marker = path.join(Global.Path.data, "cyberstrike.db")
+    const dbStat = Bun.file(marker)
+    if (await dbStat.exists() && dbStat.size === 0) {
+      const { unlinkSync } = await import("fs")
+      unlinkSync(marker)
+    }
     if (!(await Bun.file(marker).exists())) {
       console.log("Performing one time database migration, may take a few minutes...")
       const tty = process.stdout.isTTY
@@ -123,6 +131,7 @@ const cli = yargs(hideBin(process.argv))
   .completion("completion", "generate shell completion script")
   .command(AcpCommand)
   .command(McpCommand)
+  .command(OobCommand)
   .command(TuiThreadCommand)
   .command(AttachCommand)
   .command(HackbrowserCommand)
@@ -144,6 +153,8 @@ const cli = yargs(hideBin(process.argv))
   .command(SessionCommand)
   .command(ProviderCommand)
   .command(SkillCommand)
+  .command(DomainsCommand)
+  .command(BrainCommand)
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||

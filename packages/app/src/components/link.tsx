@@ -16,7 +16,7 @@ export function Link(props: LinkProps) {
       onClick={(event) => {
         if (!local.href) return
         event.preventDefault()
-        platform.openLink(local.href)
+        platform.openExternal(local.href)
       }}
       {...rest}
     >

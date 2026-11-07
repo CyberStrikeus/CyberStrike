@@ -1,0 +1,23 @@
+CyberStrike — Dual-Use Content Disclosure
+=========================================
+
+CyberStrike is an offensive-security and penetration-testing platform. This
+package contains dual-use functionality intended for authorized security
+testing, including:
+
+- HackBrowser: a browser instrumentation/automation extension that observes,
+  captures, and replays web (HTTP/DOM) traffic during a testing session.
+- Vortex: a deterministic HTTP traffic analysis and rule engine.
+- Active security probes that test target applications for common web
+  weaknesses (injection, authentication/authorization, misconfiguration).
+- A postinstall step that provisions the platform's native CLI binary.
+
+Intended legitimate use
+-----------------------
+These capabilities are provided solely for lawful, authorized security work:
+penetration-testing engagements, security research, CTF competitions,
+educational use, and defensive assessment of systems that you own or are
+explicitly authorized to test. Use against systems without authorization is
+prohibited and is not a supported use of this software.
+
+Contact: contact@cyberstrike.io

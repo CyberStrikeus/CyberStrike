@@ -169,7 +169,7 @@ export function Session() {
   const contentWidth = createMemo(() => dimensions().width - (sidebarVisible() ? 42 : 0) - 4)
 
   const scrollAcceleration = createMemo(() => {
-    const tui = sync.data.config.tui
+    const tui = (sync.data.config as any).tui
     if (tui?.scroll_acceleration?.enabled) {
       return new MacOSScrollAccel()
     }
@@ -548,8 +548,25 @@ export function Session() {
       },
     },
     {
+      title: "Generate vulnerability poster",
+      value: "session.poster",
+      category: "Session",
+      slash: {
+        name: "poster",
+      },
+      onSelect: (dialog) => {
+        const list = sync.data.vulnerability[route.sessionID] ?? []
+        if (list.length === 0) {
+          toast.show({ message: "No vulnerabilities found", variant: "info" })
+          dialog.clear()
+          return
+        }
+        dialog.replace(() => <DialogVulnerability sessionID={route.sessionID} />)
+      },
+    },
+    {
       title: "View web context",
-      value: "session.web.context",
+      value: "session.web",
       category: "Session",
       slash: {
         name: "web",
@@ -585,7 +602,7 @@ export function Session() {
             onGenerate={() => {
               prompt.set({
                 input:
-                  "Generate final report with generate_report tool. Fill all AI sections and save to .cyberstrike/reports/",
+                  "Call the generate_report tool. It has already SAVED the full report — with every finding embedded — to .cyberstrike/reports/. Open that saved file and fill ONLY the `<!-- AI: ... -->` placeholders (Executive Summary, Risk Assessment, Remediation Priorities). Do NOT remove, rewrite, or re-order the findings.",
                 parts: [],
               })
             }}
@@ -703,7 +720,7 @@ export function Session() {
     },
     {
       title: showTimestamps() ? "Hide timestamps" : "Show timestamps",
-      value: "session.toggle.timestamps",
+      value: "view.timestamps",
       category: "Session",
       slash: {
         name: "timestamps",
@@ -716,7 +733,7 @@ export function Session() {
     },
     {
       title: showThinking() ? "Hide thinking" : "Show thinking",
-      value: "session.toggle.thinking",
+      value: "view.thinking",
       keybind: "display_thinking",
       category: "Session",
       slash: {
@@ -2142,7 +2159,7 @@ function Edit(props: ToolProps<typeof EditTool>) {
   const { theme, syntax } = useTheme()
 
   const view = createMemo(() => {
-    const diffStyle = ctx.sync.data.config.tui?.diff_style
+    const diffStyle = (ctx.sync.data.config as any).tui?.diff_style
     if (diffStyle === "stacked") return "unified"
     // Default to "auto" behavior
     return ctx.width > 120 ? "split" : "unified"
@@ -2213,7 +2230,7 @@ function ApplyPatch(props: ToolProps<typeof ApplyPatchTool>) {
   const files = createMemo(() => props.metadata.files ?? [])
 
   const view = createMemo(() => {
-    const diffStyle = ctx.sync.data.config.tui?.diff_style
+    const diffStyle = (ctx.sync.data.config as any).tui?.diff_style
     if (diffStyle === "stacked") return "unified"
     return ctx.width > 120 ? "split" : "unified"
   })

@@ -1,7 +1,7 @@
 import z from "zod"
 import { Tool } from "./tool"
 import { WebRole } from "../session/web/web-role"
-import { WebRetest } from "../session/web/web-retest"
+import { WebInspect } from "../session/web/web-inspect"
 import { Session } from "../session"
 
 const description = `Record a user role discovered during web application analysis.
@@ -51,10 +51,16 @@ export const WebWriteRoleTool = Tool.define("web_write_role", {
       level: params.level,
     })
 
-    const retests = WebRetest.checkTriggers({
+    // A new role applies session-wide for access-control retesting — but TARGETED: only endpoints
+    // with an access-control surface (skip static assets), so the queue tracks real attack surface
+    // instead of one retest per JS/CSS/image. Endpoint-dedup means each endpoint gets ONE queue
+    // entry whose `role` flag accumulates values — no per-role duplicate rows.
+    const flagged = WebInspect.flagMatching({
       sessionID,
-      triggerType: "new_role",
-      triggerSource: role.id,
+      type: "role",
+      value: role.name,
+      priority: "high",
+      match: WebInspect.isAccessControlSurface,
     })
 
     const output = {
@@ -64,7 +70,7 @@ export const WebWriteRoleTool = Tool.define("web_write_role", {
         level: role.level,
       },
       is_new: true,
-      retests_queued: retests.length,
+      retests_queued: flagged,
     }
 
     return {

@@ -2,7 +2,7 @@ import type { Hooks, PluginInput, Plugin as PluginInstance } from "@cyberstrike-
 import { Config } from "../config/config"
 import { Bus } from "../bus"
 import { Log } from "../util/log"
-import { createCyberstrikeClient } from "@cyberstrike-io/sdk"
+import { createClient } from "@cyberstrike-io/sdk"
 import { Server } from "../server/server"
 import { BunProc } from "../bun"
 import { Instance } from "../project/instance"
@@ -13,6 +13,10 @@ import { NamedError } from "@cyberstrike-io/util/error"
 import { CopilotAuthPlugin } from "./copilot"
 import { AnthropicAuthPlugin } from "./anthropic"
 import { gitlabAuthPlugin as GitlabAuthPlugin } from "@gitlab/opencode-gitlab-auth"
+import { registerProvider } from "../cloud/provider-registry"
+import { buildCoreRuntime } from "../cloud/core-runtime"
+import { discoverDomains } from "../cloud/domain-discovery"
+import { Tier } from "../tier/tier"
 
 export namespace Plugin {
   const log = Log.create({ service: "plugin" })
@@ -27,8 +31,34 @@ export namespace Plugin {
     GitlabAuthPlugin as unknown as PluginInstance,
   ]
 
+  // Free-tier security domains that ship WITH core (bundledDependencies) and load
+  // by default — the user gets them out of the box, no `npm install` and no plugin
+  // config. Paid domains (e.g. @cyberstrike-io/azure-pro) are user-installed via the
+  // plugin config instead. Each is a normal domain plugin: it registers via the
+  // `provider`/`tool` hooks and reaches core through the injected input.core.
+  //
+  // IMPORTANT: default domains use a STATIC import map (not `import(variable)`) so
+  // Bun's compiled-binary bundler includes their code. A dynamic `import(name)` with
+  // a variable string is invisible to the bundler → the package is silently missing
+  // at runtime inside $bunfs → web specialists never load → inspection dispatches 0
+  // child sessions. The static map fixes this while keeping the try/catch safety.
+  const DEFAULT_DOMAINS: string[] = ["@cyberstrike-io/web", "@cyberstrike-io/re"]
+  const DEFAULT_DOMAIN_MODULES: Record<string, () => Promise<any>> = {
+    "@cyberstrike-io/web": () => import("@cyberstrike-io/web"),
+    "@cyberstrike-io/re": () => import("@cyberstrike-io/re"),
+  }
+
+  // Package name of a config.plugin spec (strip a trailing @version, keep the
+  // scope's leading @, leave file:// specs untouched) — used to dedupe against
+  // auto-discovered domains so a configured package isn't also discovery-loaded.
+  function pluginPackageName(spec: string): string {
+    if (spec.startsWith("file://")) return spec
+    const at = spec.lastIndexOf("@")
+    return at > 0 ? spec.substring(0, at) : spec
+  }
+
   const state = Instance.state(async () => {
-    const client = createCyberstrikeClient({
+    const client = createClient({
       baseUrl: "http://localhost:4096",
       directory: Instance.directory,
       // @ts-ignore - fetch type incompatibility
@@ -43,12 +73,63 @@ export namespace Plugin {
       directory: Instance.directory,
       serverUrl: Server.url(),
       $: Bun.$,
+      // Live core runtime for domain plugins that need it (e.g. @cyberstrike-io/azure)
+      // — injected so they work in the compiled binary without importing the host.
+      core: buildCoreRuntime(),
     }
 
     for (const plugin of INTERNAL_PLUGINS) {
       log.info("loading internal plugin", { name: plugin.name })
       const init = await plugin(input)
       hooks.push(init)
+    }
+
+    // Default free-tier domains — bundled with core, loaded directly (no install),
+    // and given the same injected `input.core`. A broken default domain must not
+    // take down the host, so its failure is logged and skipped.
+    for (const name of DEFAULT_DOMAINS) {
+      try {
+        const loader = DEFAULT_DOMAIN_MODULES[name]
+        if (!loader) { log.warn("no static loader for default domain", { name }); continue }
+        const mod: any = await loader()
+        const init = typeof mod?.default === "function" ? mod.default : mod
+        hooks.push(await init(input))
+      } catch (err) {
+        log.error("failed to load default domain", { name, error: err })
+      }
+    }
+
+    // Auto-discovered domains — packages installed in the project's node_modules
+    // that declare a `cyberstrike` manifest (domain-discovery.ts). This makes
+    // `npm install @cyberstrike-io/<domain>` "just work" with no plugin config.
+    // Skip anything already loaded (bundled defaults) or explicitly configured
+    // (loaded by the config loop below) so nothing loads twice. Incompatible or
+    // broken domains are skipped — visible via `cyberstrike domains`, never fatal.
+    const configuredNames = new Set((config.plugin ?? []).map(pluginPackageName))
+    const discovery = await discoverDomains({ skip: [...DEFAULT_DOMAINS, ...configuredNames] })
+    for (const domain of discovery.found) {
+      if (!domain.compatible) {
+        log.warn("skipping incompatible discovered domain", { name: domain.name, reason: domain.reason })
+        continue
+      }
+      // Tier gate (issue #35): the free/public build refuses pro/enterprise domains
+      // (aws/azure/gcp/oracle/etc.); raising CYBERSTRIKE_TIER unlocks them.
+      const domainTier = domain.manifest.tier ?? "free"
+      if (!Tier.allows(domainTier)) {
+        log.info("skipped domain above active tier", { name: domain.name, tier: domainTier, active: Tier.active() })
+        continue
+      }
+      try {
+        const mod: any = await import(domain.dir)
+        const init = typeof mod?.default === "function" ? mod.default : mod
+        hooks.push(await init(input))
+        log.info("loaded discovered domain", { name: domain.name, tier: domain.manifest.tier })
+      } catch (err) {
+        log.error("failed to load discovered domain", { name: domain.name, error: err })
+      }
+    }
+    for (const bad of discovery.errors) {
+      log.warn("ignoring package with a malformed cyberstrike manifest", { name: bad.name, error: bad.error })
     }
 
     let plugins = config.plugin ?? []
@@ -98,6 +179,17 @@ export namespace Plugin {
       }
     }
 
+    // Register any domain providers a plugin contributed via its `provider` hook,
+    // so an installed domain package (e.g. @cyberstrike/aws) shows up in the agent
+    // registry. Registration is a side-effect of loading; the agent registry
+    // (built lazily, or after restart) then collects them alongside the built-ins.
+    for (const hook of hooks) {
+      for (const [key, factory] of Object.entries(hook.provider ?? {})) {
+        log.info("registering domain provider from plugin", { domain: key })
+        registerProvider(key, factory)
+      }
+    }
+
     return {
       hooks,
       input,
@@ -105,7 +197,7 @@ export namespace Plugin {
   })
 
   export async function trigger<
-    Name extends Exclude<keyof Required<Hooks>, "auth" | "event" | "tool">,
+    Name extends Exclude<keyof Required<Hooks>, "auth" | "event" | "tool" | "provider">,
     Input = Parameters<Required<Hooks>[Name]>[0],
     Output = Parameters<Required<Hooks>[Name]>[1],
   >(name: Name, input: Input, output: Output): Promise<Output> {

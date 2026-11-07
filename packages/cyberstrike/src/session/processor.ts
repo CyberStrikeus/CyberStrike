@@ -13,6 +13,7 @@ import type { Provider } from "@/provider/provider"
 import { LLM } from "./llm"
 import { Config } from "@/config/config"
 import { SessionCompaction } from "./compaction"
+import { safeStringify } from "@/util/safe-stringify"
 import { PermissionNext } from "@/permission/next"
 import { Question } from "@/question"
 import { Truncate } from "@/tool/truncation"
@@ -20,6 +21,52 @@ import { Truncate } from "@/tool/truncation"
 export namespace SessionProcessor {
   const DOOM_LOOP_THRESHOLD = 3
   const log = Log.create({ service: "session.processor" })
+  // A provider stream that yields NO event for this long is treated as stalled (a hung/flaky stream):
+  // the read is abandoned and a retryable APIError is thrown into the existing retry path, so a fresh
+  // request is attempted instead of the loop parking on the dead stream forever. The timer resets on
+  // EVERY stream event (deltas, tool-call/tool-result, …), so it only fires on TOTAL silence — set it
+  // generously above the slowest single tool round-trip. 0 disables. Env: CYBERSTRIKE_STREAM_IDLE_TIMEOUT_MS.
+  const STREAM_IDLE_TIMEOUT_MS = Math.max(0, Number(process.env.CYBERSTRIKE_STREAM_IDLE_TIMEOUT_MS) || 600_000)
+
+  const PROVIDER_WARNING_PATTERNS = [
+    "does not support assistant message prefill",
+    "must end with a user message",
+  ]
+
+  function isProviderWarning(error: ReturnType<typeof MessageV2.fromError>): boolean {
+    const msg = error.data?.message
+    if (typeof msg !== "string") return false
+    return PROVIDER_WARNING_PATTERNS.some((p) => msg.includes(p))
+  }
+
+  // Await the iterator's next value, but reject with a retryable APIError if it doesn't settle within idleMs.
+  // The pending next() is left with a no-op catch so its later settlement (e.g. when the caller closes
+  // the stream via iterator.return()) never surfaces as an unhandled rejection.
+  export async function nextWithIdleTimeout<T>(
+    iterator: AsyncIterator<T>,
+    idleMs: number,
+  ): Promise<IteratorResult<T>> {
+    const nextP = iterator.next()
+    if (idleMs <= 0) return nextP
+    nextP.catch(() => {})
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const idleP = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        // Retryable APIError → flows through the existing retry path (fresh request), and if retries
+        // exhaust it surfaces as a normal message error (session goes idle) rather than hanging forever.
+        () =>
+          reject(
+            new MessageV2.APIError({ message: `Provider sent no stream output for ${idleMs}ms (stalled)`, isRetryable: true }),
+          ),
+        idleMs,
+      )
+    })
+    try {
+      return await Promise.race([nextP, idleP])
+    } finally {
+      if (timer) clearTimeout(timer)
+    }
+  }
 
   export type Info = Awaited<ReturnType<typeof create>>
   export type Result = Awaited<ReturnType<Info["process"]>>
@@ -53,9 +100,14 @@ export namespace SessionProcessor {
             let reasoningMap: Record<string, MessageV2.ReasoningPart> = {}
             const stream = await LLM.stream(streamInput)
 
-            for await (const value of stream.fullStream) {
-              input.abort.throwIfAborted()
-              switch (value.type) {
+            const iterator = stream.fullStream[Symbol.asyncIterator]()
+            try {
+              while (true) {
+                const step = await nextWithIdleTimeout(iterator, STREAM_IDLE_TIMEOUT_MS)
+                if (step.done) break
+                const value = step.value
+                input.abort.throwIfAborted()
+                switch (value.type) {
                 case "start":
                   SessionStatus.set(input.sessionID, { type: "busy" })
                   break
@@ -159,7 +211,7 @@ export namespace SessionProcessor {
                           p.type === "tool" &&
                           p.tool === value.toolName &&
                           p.state.status !== "pending" &&
-                          JSON.stringify(p.state.input) === JSON.stringify(value.input),
+                          safeStringify(p.state.input) === safeStringify(value.input),
                       )
                     ) {
                       const agent = await Agent.get(input.assistantMessage.agent)
@@ -232,6 +284,10 @@ export namespace SessionProcessor {
                   break
                 }
                 case "error":
+                  if (typeof value.error === "string" && value.error.includes("not found")) {
+                    log.warn("stream soft error (skipped)", { error: value.error })
+                    break
+                  }
                   throw value.error
 
                 case "start-step":
@@ -267,7 +323,7 @@ export namespace SessionProcessor {
                   }
                   await Session.updatePart({
                     id: Identifier.ascending("part"),
-                    reason: value.finishReason,
+                    reason: value.finishReason ?? "unknown",
                     snapshot: await Snapshot.track(),
                     messageID: input.assistantMessage.id,
                     sessionID: input.assistantMessage.sessionID,
@@ -352,6 +408,12 @@ export namespace SessionProcessor {
                   break
 
                 case "finish":
+                  // AI SDK v6 moved finishReason from finish-step to finish.
+                  // The finish-step handler (above) reads value.finishReason but
+                  // it's always undefined in v6; the correct value lives here.
+                  if (value.finishReason) {
+                    input.assistantMessage.finish = value.finishReason
+                  }
                   break
 
                 default:
@@ -360,7 +422,15 @@ export namespace SessionProcessor {
                   })
                   continue
               }
-              if (needsCompaction) break
+                if (needsCompaction) break
+              }
+            } finally {
+              // Close the underlying stream on break/throw (incl. an idle-timeout abandon) so a hung
+              // request is released rather than leaked. Fire-and-forget on purpose — do NOT await: a
+              // stalled stream's return() can itself block on the same dead resource, which would
+              // re-introduce the very hang the idle-timeout exists to break. The no-op catch keeps its
+              // eventual rejection from surfacing as an unhandled rejection.
+              void Promise.resolve(iterator.return?.()).catch(() => {})
             }
           } catch (e: any) {
             if (input.abort.aborted) {
@@ -395,7 +465,7 @@ export namespace SessionProcessor {
               break
             }
             const retry = SessionRetry.retryable(error)
-            if (retry !== undefined) {
+            if (retry !== undefined && attempt < SessionRetry.MAX_RETRY_ATTEMPTS) {
               attempt++
               const delay = SessionRetry.delay(attempt, error.name === "APIError" ? error : undefined)
               SessionStatus.set(input.sessionID, {
@@ -407,12 +477,21 @@ export namespace SessionProcessor {
               await SessionRetry.sleep(delay, input.abort).catch(() => {})
               continue
             }
-            input.assistantMessage.error = error
-            Bus.publish(Session.Event.Error, {
-              sessionID: input.assistantMessage.sessionID,
-              error: input.assistantMessage.error,
-            })
-            SessionStatus.set(input.sessionID, { type: "idle" })
+            if (isProviderWarning(error)) {
+              log.warn("provider warning suppressed from session", {
+                sessionID: input.sessionID,
+                message: error.data?.message,
+              })
+              SessionStatus.set(input.sessionID, { type: "idle" })
+              return "stop"
+            } else {
+              input.assistantMessage.error = error
+              Bus.publish(Session.Event.Error, {
+                sessionID: input.assistantMessage.sessionID,
+                error: input.assistantMessage.error,
+              })
+              SessionStatus.set(input.sessionID, { type: "idle" })
+            }
           }
           if (snapshot) {
             const patch = await Snapshot.patch(snapshot)

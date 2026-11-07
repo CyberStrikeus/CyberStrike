@@ -1,0 +1,59 @@
+---
+title: Triage 에이전트
+description: 초안 취약점 발견 사항의 독립적 검증 및 중복 제거
+sidebar:
+  order: 6
+  label: Triage
+---
+
+`triage` 에이전트는 HTTP 증거를 재생하여 초안 취약점 발견 사항을 독립적으로 검증합니다. 보고 에이전트의 설명을 절대 신뢰하지 않으며, 모든 요청을 재생하고 응답 본문을 직접 확인합니다.
+
+## 개요
+
+| 속성 | 값 |
+|------|-----|
+| **에이전트 ID** | `triage` |
+| **모드** | `subagent` |
+| **도구 접근** | 제한됨 (read, grep, http_replay, triage_vulnerability, web_get_session_context) |
+| **설계** | 보수적 — 검증 불가능한 발견 사항은 초안으로 유지 |
+
+## 검증 프로토콜
+
+각 초안 발견 사항에 대해 triage 에이전트가 수행하는 작업:
+
+1. 첨부된 HTTP 증거(캡처된 요청/응답)를 읽습니다
+2. `http_replay`를 사용하여 독립적으로 요청을 재생합니다
+3. 재생 응답에서 실제 증거를 검토합니다
+4. 발견 사항의 운명을 결정합니다:
+
+| 판정 | 조건 |
+|------|------|
+| **분류됨** | 재생이 취약점을 확인 |
+| **거부됨** | 재생이 오탐을 표시 |
+| **중복** | 발견 사항이 다른 검증된 발견 사항과 중복 |
+| **초안** (변경 없음) | 검증 불가 — 수동 검토를 위해 유지 |
+
+## 증거의 기준
+
+triage 에이전트는 엄격한 증거 기준을 적용합니다:
+
+- `200` 상태만으로는 증거가 **아닙니다** — 응답 본문에 대상 데이터가 포함되어야 합니다
+- `deleted:0`, 빈 배열, 일반적인 성공 메시지는 증거가 **아닙니다**
+- 교차 테넌트/IDOR 발견 사항의 경우, 응답에 **다른** 테넌트의 데이터가 포함되어야 합니다
+- 권한 발견 사항의 경우, `compare` 모드 재생이 권한 경계가 깨졌음을 보여줘야 합니다
+
+## 예시
+
+```
+Draft: IDOR in GET /api/users/42 — claimed to return user data for another tenant
+
+Triage:
+1. Replay GET /api/users/42 with original auth → 200, body: {"id": 42, "name": "Other User"}
+2. Replay GET /api/users/42 with attacker auth → 200, body: {"id": 42, "name": "Other User"}
+3. Both return the same user data → CONFIRMED cross-tenant access
+4. → triage_vulnerability(id, status: "triaged")
+```
+
+<Aside variant="info">
+  triage 에이전트는 취약점 테스트 서브에이전트가 발견 사항을 보고한 후 자동으로 배치됩니다. 발견 사항이 제시되기 전 최종 품질 게이트로 실행됩니다.
+</Aside>

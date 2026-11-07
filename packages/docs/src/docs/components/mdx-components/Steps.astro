@@ -1,0 +1,57 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<div class:list={["docs-steps relative", className]}>
+  <slot />
+</div>
+
+<style is:global>
+  @import "tailwindcss/theme" theme(reference);
+  @import "@/styles/tailwind-theme.css" theme(reference);
+
+  .docs-steps {
+    /* Base size for step circles and spacing calculations */
+    --step-size: theme("spacing.8");
+    --step-gap: theme("spacing.4");
+    --step-padding: theme("spacing.12");
+    --step-line-gap: theme("spacing.1");
+    --font-size: theme("fontSize.base");
+    --line-height: 1.6;
+    /* Center the step circle relative to the first line of text */
+    --step-offset: calc((var(--step-size) - (var(--font-size) * var(--line-height))) / 2);
+
+    counter-reset: step;
+  }
+
+  .docs-steps ol {
+    @apply my-0 ml-0 list-none space-y-(--step-gap);
+  }
+
+  .docs-steps li {
+    @apply relative pl-(--step-padding);
+  }
+
+  /* Connecting line */
+  .docs-steps li:not(:last-child)::after {
+    @apply bg-border absolute w-px;
+    content: "";
+    left: calc(var(--step-size) / 2);
+    top: calc(var(--step-size) - var(--step-offset) + var(--step-line-gap));
+    height: calc(100% + var(--step-gap) - var(--step-size) - var(--step-line-gap) * 2);
+  }
+
+  /* Step numbers */
+  .docs-steps li::before {
+    @apply bg-muted border-border absolute left-0 flex items-center justify-center rounded-full border font-mono font-medium;
+    content: counter(step);
+    counter-increment: step;
+    width: var(--step-size);
+    height: var(--step-size);
+    top: calc(-1 * var(--step-offset));
+  }
+</style>

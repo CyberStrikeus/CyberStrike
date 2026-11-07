@@ -1,0 +1,155 @@
+// Per-credential UI-affordance observations (Faz B).
+//
+// COMPLEMENTS session/observation.ts. That store records which credential ACTUALLY
+// HIT which endpoint (request-level access-control). This one records which
+// credential could SEE which UI element on which page (offered-but-maybe-unexercised
+// affordance) — the signal for "admin's DOM has a Delete button, user's does not, yet
+// the DELETE endpoint may still be reachable" (BFLA by forced browsing).
+//
+// Derivation is deterministic and LLM-free (mirrors Observation's aggregation): it
+// turns raw per-credential element sightings into element_roles / page_visited_by,
+// computed at READ time (in web_get_request_detail) so it is always correct as of the
+// query — no "all contexts finished this page" barrier like the 1.x worker needed.
+//
+// Backed by web_ui_observation (mirrors request_observation): append-only, the unique
+// index makes observe() an idempotent ON CONFLICT DO NOTHING upsert. The derivation
+// functions below are pure over Row[] and unaffected by the storage layer.
+import { Database, eq, and } from "../../storage/db"
+import { WebUiObservationTable } from "../session.sql"
+import { Identifier } from "../../id/id"
+
+export namespace UiObservation {
+  export interface Row {
+    credentialID: string | null
+    pageUrl: string
+    role: string
+    label: string
+  }
+
+  export interface AccessContext {
+    elementRoles?: string[]
+    pageVisitedBy?: string[]
+  }
+
+  // "role:label" — matches the extension's trigger_element wire format exactly, so a
+  // request's trigger_element is a direct availability key.
+  function key(role: string, label: string): string {
+    return role + ":" + label
+  }
+
+  // Origin + path only — query and fragment are volatile and would split one page into
+  // many. NOTE: numeric/uuid path ids are NOT collapsed here (/users/42 vs /users/99
+  // stay distinct); id-templating is a follow-up that should reuse the request
+  // normalizer.
+  export function normalizePageUrl(u: string): string {
+    try {
+      const url = new URL(u)
+      return url.origin + url.pathname
+    } catch {
+      // Not absolute — strip a query/hash by hand, best effort.
+      const q = u.indexOf("?")
+      const h = u.indexOf("#")
+      let end = u.length
+      if (q >= 0) end = Math.min(end, q)
+      if (h >= 0) end = Math.min(end, h)
+      return u.slice(0, end)
+    }
+  }
+
+  // Append-only. The unique index (session, normalized_page, credential, role, label)
+  // drops exact re-sightings (ON CONFLICT DO NOTHING). Returns true on a new row.
+  export function observe(sessionID: string, row: Row): boolean {
+    const id = Identifier.ascending("web_ui_observation")
+    const now = Date.now()
+    const inserted = Database.use((db) =>
+      db
+        .insert(WebUiObservationTable)
+        .values({
+          id,
+          session_id: sessionID,
+          credential_id: row.credentialID ?? null,
+          normalized_page: normalizePageUrl(row.pageUrl),
+          page_url: row.pageUrl,
+          role: row.role,
+          label: row.label,
+          time_created: now,
+          time_updated: now,
+        })
+        .onConflictDoNothing({
+          target: [
+            WebUiObservationTable.session_id,
+            WebUiObservationTable.normalized_page,
+            WebUiObservationTable.credential_id,
+            WebUiObservationTable.role,
+            WebUiObservationTable.label,
+          ],
+        })
+        .returning({ id: WebUiObservationTable.id })
+        .all(),
+    )
+    return inserted.length > 0
+  }
+
+  // Rows observed on the same page (query/fragment-insensitive) for a session.
+  export function forPage(sessionID: string, pageUrl: string): Row[] {
+    const want = normalizePageUrl(pageUrl)
+    const rows = Database.use((db) =>
+      db
+        .select()
+        .from(WebUiObservationTable)
+        .where(and(eq(WebUiObservationTable.session_id, sessionID), eq(WebUiObservationTable.normalized_page, want)))
+        .all(),
+    )
+    return rows.map((r) => ({
+      credentialID: r.credential_id ?? null,
+      pageUrl: r.page_url,
+      role: r.role,
+      label: r.label,
+    }))
+  }
+
+  export function clearSession(sessionID: string): void {
+    Database.use((db) => db.delete(WebUiObservationTable).where(eq(WebUiObservationTable.session_id, sessionID)).run())
+  }
+
+  // "role:label" → the distinct credentials that saw that element. Null credentials
+  // (unattributed sightings) carry no role identity and are dropped.
+  export function elementAvailability(rows: Row[]): Map<string, string[]> {
+    const out = new Map<string, Set<string>>()
+    for (const r of rows) {
+      if (!r.credentialID) continue
+      const k = key(r.role, r.label)
+      let set = out.get(k)
+      if (!set) {
+        set = new Set()
+        out.set(k, set)
+      }
+      set.add(r.credentialID)
+    }
+    const result = new Map<string, string[]>()
+    for (const entry of out) result.set(entry[0], [...entry[1]])
+    return result
+  }
+
+  // Distinct credentials that visited the page (had any element sighting there).
+  export function pageVisitedBy(rows: Row[]): string[] {
+    const out = new Set<string>()
+    for (const r of rows) if (r.credentialID) out.add(r.credentialID)
+    return [...out]
+  }
+
+  // The read-time projection used by web_get_request_detail: from a request's
+  // page_url + trigger_element, derive who-can-see-this-element and who-visited-this
+  // -page. Credentials are expressed as credential_ids, matching observed_values.
+  export function deriveAccessContext(pageUrl: string | undefined, triggerElement: string | undefined, rows: Row[]): AccessContext {
+    const ctx: AccessContext = {}
+    if (!pageUrl || rows.length === 0) return ctx
+    const visited = pageVisitedBy(rows)
+    if (visited.length > 0) ctx.pageVisitedBy = visited
+    if (triggerElement) {
+      const roles = elementAvailability(rows).get(triggerElement)
+      if (roles && roles.length > 0) ctx.elementRoles = roles
+    }
+    return ctx
+  }
+}

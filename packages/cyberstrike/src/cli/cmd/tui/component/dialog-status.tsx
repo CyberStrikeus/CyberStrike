@@ -16,7 +16,8 @@ export function DialogStatus() {
 
   const plugins = createMemo(() => {
     const list = sync.data.config.plugin ?? []
-    const result = list.map((value) => {
+    const result = list.map((entry) => {
+      const value: string = typeof entry === "string" ? entry : entry[0]
       if (value.startsWith("file://")) {
         const path = fileURLToPath(value)
         const parts = path.split("/")

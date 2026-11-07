@@ -1,0 +1,18 @@
+---
+title: MCP tool loading cycle
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 40
+    nodeSpacing: 26
+    padding: 12
+---
+flowchart LR
+    S["MCP server<br/>hundreds of tools"]:::srv --> Q["tool_search<br/>find by capability"]:::dyn
+    Q --> L["load_tools<br/>into context"]:::dyn
+    L --> C["Agent calls the tool"]:::ok
+    C --> U["unload_tools<br/>free context"]:::dyn
+
+    classDef srv fill:#0b1220,stroke:#00d4ff,color:#00d4ff;
+    classDef dyn fill:#0b1220,stroke:#9fb3c8,color:#9fb3c8;
+    classDef ok fill:#0b1220,stroke:#00ff88,color:#00ff88;

@@ -63,7 +63,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: [],
       appliesTo: ["wildcard", "single"],
-      agents: ["explore", "web-application"],
+      agents: ["explore", "wstg-agent"],
     },
     {
       id: "technology_profiling",
@@ -73,7 +73,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["Known CVE", "Framework Vuln"],
       appliesTo: ["wildcard", "single"],
-      agents: ["explore", "web-application"],
+      agents: ["explore", "wstg-agent"],
     },
     {
       id: "authentication_testing",
@@ -83,7 +83,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["Auth Bypass", "Default Creds"],
       appliesTo: ["wildcard", "single"],
-      agents: ["web-application", "proxy-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "session_management",
@@ -93,7 +93,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["Info Disclosure"],
       appliesTo: ["wildcard", "single"],
-      agents: ["web-application", "proxy-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "authorization_testing",
@@ -103,7 +103,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["IDOR", "Privilege Escalation", "Auth Bypass", "CORS"],
       appliesTo: ["wildcard", "single"],
-      agents: ["web-application", "proxy-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "input_validation",
@@ -113,7 +113,7 @@ export namespace Phase {
       minDeliverables: 1,
       relatedVrtCategories: ["SQLi", "XSS", "SSTI", "Command Injection", "SSRF"],
       appliesTo: ["wildcard", "single"],
-      agents: ["web-application"],
+      agents: ["wstg-agent"],
     },
     {
       id: "business_logic",
@@ -123,7 +123,7 @@ export namespace Phase {
       minDeliverables: 0,
       relatedVrtCategories: ["Race Condition", "Chain Test"],
       appliesTo: ["wildcard", "single"],
-      agents: ["web-application"],
+      agents: ["wstg-agent"],
     },
     {
       id: "data_protection",
@@ -133,7 +133,7 @@ export namespace Phase {
       minDeliverables: 0,
       relatedVrtCategories: ["Info Disclosure"],
       appliesTo: ["wildcard", "single"],
-      agents: ["web-application", "explore"],
+      agents: ["wstg-agent", "explore"],
     },
     {
       id: "api_security",
@@ -143,7 +143,7 @@ export namespace Phase {
       minDeliverables: 0,
       relatedVrtCategories: ["IDOR", "Auth Bypass", "SSRF", "Info Disclosure"],
       appliesTo: ["wildcard", "single"],
-      agents: ["web-application", "proxy-agent"],
+      agents: ["wstg-agent"],
     },
     {
       id: "infrastructure",
@@ -307,6 +307,31 @@ export namespace Phase {
     vulnerability_hint: [],
     business_rule: [],
     sensitive_data: [],
+    attack_path: [
+      { category: "Privilege Escalation", path: "Broken Access Control > Privilege Escalation > Cloud IAM Chain" },
+      { category: "Lateral Movement", path: "Security Misconfiguration > Cloud Provider > Cross-Service Access" },
+      { category: "Data Exfiltration", path: "Business Logic > Data Exfiltration > Cloud Storage Chain" },
+    ],
+    iam_principal: [
+      { category: "Overprivileged", path: "Security Misconfiguration > Cloud Provider > Overprivileged IAM" },
+      { category: "Privilege Escalation", path: "Broken Access Control > Privilege Escalation > Service Principal Abuse" },
+      { category: "Persistence", path: "Security Misconfiguration > Cloud Provider > IAM Persistence" },
+    ],
+    lateral_movement: [
+      { category: "Cross-Service", path: "Security Misconfiguration > Cloud Provider > Cross-Service Access" },
+      { category: "Cross-Subscription", path: "Security Misconfiguration > Cloud Provider > Cross-Subscription Access" },
+      { category: "Network Pivot", path: "Security Misconfiguration > Cloud Provider > Network Pivot" },
+    ],
+    cloud_misconfiguration: [
+      { category: "Cloud Misconfig", path: "Security Misconfiguration > Cloud Provider > Service Misconfiguration" },
+      { category: "Missing Encryption", path: "Cryptographic Failures > Missing Encryption at Rest" },
+      { category: "Logging Gap", path: "Security Misconfiguration > Insufficient Logging > Cloud Audit Trail" },
+    ],
+    cloud_exposure: [
+      { category: "Public Storage", path: "Security Misconfiguration > Cloud Provider > Public Storage Bucket" },
+      { category: "Network Exposure", path: "Security Misconfiguration > Cloud Provider > Open Security Group" },
+      { category: "Subdomain Takeover", path: "DNS > Subdomain Takeover > CNAME Dangling" },
+    ],
   }
 
   // --- Scope Detection ---

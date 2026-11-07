@@ -1,0 +1,190 @@
+---
+title: CLI
+description: नॉन-इंटरैक्टिव सुरक्षा मूल्यांकन के लिए कमांड लाइन इंटरफ़ेस
+sidebar:
+  order: 2
+  label: CLI
+---
+
+CyberStrike CLI बिना आर्गुमेंट के चलाने पर डिफ़ॉल्ट रूप से [TUI](/docs/usage/tui) लॉन्च करता है। यह नॉन-इंटरैक्टिव और प्रोग्रामैटिक उपयोग के लिए कमांड्स भी स्वीकार करता है।
+
+```bash
+# इंटरैक्टिव TUI लॉन्च करें
+cyberstrike
+
+# एकल प्रॉम्प्ट चलाएँ
+cyberstrike run "scan example.com for open ports"
+```
+
+{/* TODO: Video — CLI run command executing a security prompt and streaming output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-run-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">स्ट्रीमिंग एजेंट आउटपुट के साथ नॉन-इंटरैक्टिव रन कमांड (~12s)</p>
+</div>
+
+## उपलब्ध कमांड्स
+
+| कमांड | विवरण |
+|---------|-------------|
+| `run` | सीधे प्रॉम्प्ट के साथ नॉन-इंटरैक्टिव मोड |
+| `serve` | API एक्सेस के लिए हेडलेस HTTP सर्वर |
+| `web` | [वेब इंटरफ़ेस](/docs/usage/web) के साथ हेडलेस सर्वर |
+| `attach` | चल रहे सर्वर से TUI कनेक्ट करें |
+| `auth` | क्रेडेंशियल्स और प्रदाता लॉगिन प्रबंधित करें |
+| `agent` | सुरक्षा एजेंट्स प्रबंधित करें |
+| `mcp` | MCP सर्वर प्रबंधित करें |
+| `models` | प्रदाताओं से उपलब्ध मॉडल सूचीबद्ध करें |
+| `session` | सेशन प्रबंधित करें |
+| `stats` | टोकन उपयोग और लागत सांख्यिकी प्रदर्शित करें |
+| `export` | सेशन डेटा JSON के रूप में निर्यात करें |
+| `import` | JSON फ़ाइल या शेयर URL से आयात करें |
+| `upgrade` | नवीनतम या विशिष्ट संस्करण में अपडेट करें |
+| `uninstall` | CyberStrike और संबंधित फ़ाइलें हटाएँ |
+
+## ग्लोबल फ़्लैग्स
+
+| फ़्लैग | उपनाम | विवरण |
+|------|-------|-------------|
+| `--help` | `-h` | सहायता जानकारी प्रदर्शित करें |
+| `--version` | `-v` | संस्करण प्रिंट करें |
+| `--print-logs` | | stderr पर लॉग्स आउटपुट करें |
+| `--log-level` | | स्तर सेट करें: `DEBUG`, `INFO`, `WARN`, `ERROR` |
+
+## run
+
+इंटरैक्टिव मोड में प्रवेश किए बिना एकल प्रॉम्प्ट निष्पादित करें।
+
+```bash
+cyberstrike run [message..] [options]
+```
+
+### विकल्प
+
+| विकल्प | उपनाम | विवरण |
+|--------|-------|-------------|
+| `--model <model>` | `-m` | `provider/model` प्रारूप में मॉडल |
+| `--agent <name>` | | उपयोग करने के लिए सुरक्षा एजेंट |
+| `--continue` | `-c` | अंतिम सेशन जारी रखें |
+| `--session <id>` | `-s` | विशिष्ट सेशन फिर से शुरू करें |
+| `--file <path>` | `-f` | संदेश में फ़ाइल(लें) संलग्न करें |
+| `--format <type>` | | आउटपुट प्रारूप: `default` या `json` |
+| `--share` | | सेशन शेयर करें |
+| `--title <text>` | | सेशन शीर्षक सेट करें |
+| `--variant <type>` | | मॉडल वेरिएंट (`high`, `max`, `minimal`) |
+
+### उदाहरण
+
+```bash
+# सुरक्षा स्कैन चलाएँ
+cyberstrike run "scan example.com for XSS vulnerabilities"
+
+# समीक्षा के लिए कॉन्फ़िग फ़ाइल संलग्न करें
+cyberstrike run "analyze this config for misconfigurations" -f nginx.conf
+
+# पाइपलाइन एकीकरण के लिए JSON के रूप में आउटपुट
+cyberstrike run "list all open ports" --format json
+
+# पिछला सेशन जारी रखें
+cyberstrike run "now check for SQLi" --continue
+```
+
+{/* TODO: Screenshot — CLI JSON output format example */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: cli-json-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">--format json फ़्लैग से स्ट्रक्चर्ड JSON आउटपुट</p>
+</div>
+
+### इनपुट पाइपिंग
+
+अन्य टूल्स के साथ एकीकरण के लिए stdin से इनपुट स्वीकार करें:
+
+```bash
+echo "analyze this code for vulnerabilities" | cyberstrike run
+nmap -sV target.local | cyberstrike run "analyze these scan results"
+cat report.json | cyberstrike run "summarize findings"
+```
+
+## serve
+
+UI के बिना हेडलेस HTTP API सर्वर शुरू करें। एकीकरण, CI/CD पाइपलाइन और रिमोट एक्सेस के लिए उपयोगी।
+
+```bash
+cyberstrike serve [options]
+```
+
+| विकल्प | विवरण |
+|--------|-------------|
+| `--port <number>` | सर्वर पोर्ट (डिफ़ॉल्ट: रैंडम उपलब्ध) |
+| `--hostname <address>` | बाइंड एड्रेस (डिफ़ॉल्ट: `127.0.0.1`) |
+
+<Aside variant="caution">
+  **प्रमाणीकरण:** नेटवर्क पर सर्वर एक्सपोज़ करते समय `CYBERSTRIKE_SERVER_PASSWORD` सेट करें। इसके बिना, सर्वर असुरक्षित होगा।
+</Aside>
+
+```bash
+# पोर्ट 4096 पर API सर्वर शुरू करें
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve --port 4096
+```
+
+{/* TODO: Video — Starting serve and piping nmap output into cyberstrike run */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-pipe-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">विश्लेषण के लिए nmap आउटपुट को cyberstrike run में पाइप करना (~10s)</p>
+</div>
+
+## attach
+
+पहले से चल रहे CyberStrike सर्वर से TUI कनेक्ट करें। यह कई टर्मिनलों को समान सेशन शेयर करने की अनुमति देता है।
+
+```bash
+cyberstrike attach <url>
+```
+
+```bash
+# एक टर्मिनल में सर्वर शुरू करें
+cyberstrike web --port 4096
+
+# दूसरे टर्मिनल से अटैच करें
+cyberstrike attach http://localhost:4096
+```
+
+## upgrade
+
+CyberStrike को नवीनतम संस्करण या विशिष्ट लक्ष्य में अपडेट करें।
+
+```bash
+# नवीनतम स्थिर संस्करण में अपग्रेड करें
+cyberstrike upgrade
+
+# विशिष्ट संस्करण में अपग्रेड करें
+cyberstrike upgrade 1.1.6
+
+# नवीनतम बीटा में अपग्रेड करें
+cyberstrike upgrade --method npm
+```
+
+समर्थित विधियाँ: `curl`, `npm`, `pnpm`, `bun`, `brew`, `choco`, `scoop`।
+
+## एनवायरनमेंट वेरिएबल्स
+
+| वेरिएबल | विवरण |
+|----------|-------------|
+| `CYBERSTRIKE_PROVIDER` | डिफ़ॉल्ट AI प्रदाता |
+| `CYBERSTRIKE_MODEL` | डिफ़ॉल्ट मॉडल |
+| `CYBERSTRIKE_AGENT` | डिफ़ॉल्ट सुरक्षा एजेंट |
+| `CYBERSTRIKE_SERVER_PASSWORD` | सर्वर प्रमाणीकरण पासवर्ड |
+| `CYBERSTRIKE_SERVER_USERNAME` | सर्वर उपयोगकर्ता नाम (डिफ़ॉल्ट: `cyberstrike`) |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | स्वचालित अपडेट जाँच अक्षम करें |
+| `CYBERSTRIKE_TUI_CONFIG` | कस्टम TUI कॉन्फ़िग पथ |
+| `ANTHROPIC_API_KEY` | Anthropic API कुंजी |
+| `OPENAI_API_KEY` | OpenAI API कुंजी |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI (Gemini) API कुंजी |
+| `OPENROUTER_API_KEY` | OpenRouter API कुंजी |
+
+## एक्ज़िट कोड्स
+
+| कोड | अर्थ |
+|------|---------|
+| `0` | सफल |
+| `1` | त्रुटि — अमान्य/अज्ञात आर्गुमेंट, या घातक त्रुटि |
+| `130` | बाधित (Ctrl+C) |

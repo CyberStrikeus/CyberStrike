@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/CyberStrikeus/CyberStrike/dev/assets/social-preview-dark.svg" alt="CyberStrike" width="800">
+  <img src="https://raw.githubusercontent.com/CyberStrikeus/CyberStrike/main/assets/banner.png" alt="CyberStrike — Agentic AI Penetration Testing Framework" width="800">
 </p>
 
 <h3 align="center">The first open-source AI agent built for offensive security.</h3>

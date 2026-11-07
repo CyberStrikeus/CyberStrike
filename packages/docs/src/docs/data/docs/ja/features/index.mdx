@@ -1,0 +1,30 @@
+---
+title: 機能
+description: Cyberstrikeのセキュリティ評価を支えるコア機能
+sidebar:
+  order: 1
+  label: 概要
+---
+
+Cyberstrikeは自動ペネトレーションテストのための専用機能を搭載しています。各機能はAIエージェントと深く統合されており、ターゲットと会話のコンテキストに基づいて、いつどのように使用するかをエージェントが決定します。
+
+## コア機能
+
+| 機能 | 説明 |
+|------|------|
+| [Vortex](/docs/features/vortex) | HTTPトラフィックエンジン — DSLによるリクエストの傍受、リプレイ、ルールマッチング |
+| [HackBrowser](/docs/features/hackbrowser) | UIコンテキストキャプチャ付きAI駆動自律型Webクローラー |
+| [Bolt](/docs/features/bolt) | コンテナ化セキュリティツールサーバー（nmap、nuclei、sqlmapなど30以上） |
+| [MCP](/docs/features/mcp) | Model Context Protocol — 任意の外部ツールサーバーに接続 |
+
+## 連携の仕組み
+
+一般的なWebアプリケーション評価では、複数の機能が連携して使用されます：
+
+1. **HackBrowser**がターゲットをクロールし、UIコンテキスト付きのHTTPトラフィックをキャプチャ
+2. **Vortex**がキャプチャされたトラフィックを処理 — ルールの適用、異常のフラグ付け、シグナルの相関
+3. **proxy-agent**がフラグ付きリクエストを分析し、脆弱性テスターを配置
+4. **Bolt**がエージェントの必要に応じて重量級ツール（nucleiテンプレート、ファジング、サブドメイン列挙）を提供
+5. **MCP**サーバーがカスタムまたはサードパーティの統合でツールセットを拡張
+
+各機能は独立して使用することもできます。HackBrowserはVortexなしで動作し、BoltはHackBrowserなしで動作し、MCPサーバーは他の設定に関係なく動作します。

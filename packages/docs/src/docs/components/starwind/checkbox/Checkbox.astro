@@ -1,0 +1,111 @@
+---
+import Check from "@tabler/icons/outline/check.svg";
+import type { HTMLAttributes } from "astro/types";
+import { tv, type VariantProps } from "tailwind-variants";
+
+type Props = Omit<HTMLAttributes<"input">, "type"> &
+  VariantProps<typeof checkbox> & {
+    /**
+     * Optional label text to display next to the checkbox
+     */
+    label?: string;
+  };
+
+const checkbox = tv({
+  slots: {
+    base: "starwind-checkbox relative flex items-center space-x-2",
+    input: [
+      "peer border-input bg-background starwind-transition-colors shrink-0 transform-gpu rounded-sm border",
+      "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:transition-none",
+      "outline-0 focus:ring-0 focus:ring-offset-0",
+      "not-disabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
+    ],
+    icon: [
+      "pointer-events-none absolute stroke-3 p-0.5 opacity-0 transition-opacity peer-checked:opacity-100",
+      "starwind-check-icon",
+    ],
+    label:
+      "font-medium peer-not-disabled:cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+  },
+  variants: {
+    size: {
+      sm: { input: "size-4", icon: "size-4", label: "text-sm" },
+      md: { input: "size-5", icon: "size-5", label: "text-base" },
+      lg: { input: "size-6", icon: "size-6", label: "text-lg" },
+    },
+    variant: {
+      default: {
+        input: "checked:bg-foreground focus-visible:outline-outline",
+        icon: "text-background",
+      },
+      primary: {
+        input: "checked:bg-primary focus-visible:outline-primary",
+        icon: "text-primary-foreground",
+      },
+      secondary: {
+        input: "checked:bg-secondary focus-visible:outline-secondary",
+        icon: "text-secondary-foreground",
+      },
+      info: { input: "checked:bg-info focus-visible:outline-info", icon: "text-info-foreground" },
+      success: {
+        input: "checked:bg-success focus-visible:outline-success",
+        icon: "text-success-foreground",
+      },
+      warning: {
+        input: "checked:bg-warning focus-visible:outline-warning",
+        icon: "text-warning-foreground",
+      },
+      error: {
+        input: "checked:bg-error focus-visible:outline-error",
+        icon: "text-error-foreground",
+      },
+    },
+  },
+  defaultVariants: { size: "md", variant: "default" },
+});
+
+const { id, label, checked, size, variant, class: className, ...rest } = Astro.props;
+
+const { base, input, icon, label: labelClass } = checkbox({ size, variant });
+---
+
+<div class={base()}>
+  <input type="checkbox" id={id} class={input({ class: className })} {checked} {...rest} />
+  <Check class={icon()} />
+  {
+    label && (
+      <label for={id} class={labelClass()}>
+        {label}
+      </label>
+    )
+  }
+</div>
+
+<style>
+  .starwind-checkbox input[type="checkbox"]:checked {
+    background-image: none;
+  }
+
+  /* Check drawing animation */
+  .starwind-check-icon {
+    stroke-dasharray: 65;
+    stroke-dashoffset: 65;
+    opacity: 0;
+  }
+
+  .starwind-checkbox input[type="checkbox"]:checked + .starwind-check-icon {
+    animation: draw-check 0.3s ease forwards;
+    animation-delay: 0.15s;
+  }
+
+  @keyframes draw-check {
+    0% {
+      stroke-dashoffset: 65;
+      opacity: 1;
+    }
+    100% {
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+  }
+</style>

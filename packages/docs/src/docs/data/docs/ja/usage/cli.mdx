@@ -1,0 +1,190 @@
+---
+title: CLI
+description: 非対話型セキュリティ評価のためのコマンドラインインターフェース
+sidebar:
+  order: 2
+  label: CLI
+---
+
+CyberStrike CLIは引数なしで実行すると、デフォルトで[TUI](/docs/usage/tui)を起動します。非対話型およびプログラマティックな使用のためのコマンドも受け付けます。
+
+```bash
+# インタラクティブTUIを起動
+cyberstrike
+
+# 単一のプロンプトを実行
+cyberstrike run "scan example.com for open ports"
+```
+
+{/* TODO: Video — CLI run command executing a security prompt and streaming output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-run-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">ストリーミングエージェント出力付きの非対話型runコマンド（約12秒）</p>
+</div>
+
+## 利用可能なコマンド
+
+| コマンド | 説明 |
+|---------|-------------|
+| `run` | 直接プロンプトによる非対話型モード |
+| `serve` | APIアクセス用のヘッドレスHTTPサーバー |
+| `web` | [Webインターフェース](/docs/usage/web)付きヘッドレスサーバー |
+| `attach` | 実行中のサーバーにTUIを接続 |
+| `auth` | クレデンシャルとプロバイダーログインの管理 |
+| `agent` | セキュリティエージェントの管理 |
+| `mcp` | MCPサーバーの管理 |
+| `models` | プロバイダーから利用可能なモデルを一覧 |
+| `session` | セッションの管理 |
+| `stats` | トークン使用量とコスト統計を表示 |
+| `export` | セッションデータをJSONとしてエクスポート |
+| `import` | JSONファイルまたは共有URLからインポート |
+| `upgrade` | 最新版または特定のバージョンに更新 |
+| `uninstall` | CyberStrikeと関連ファイルを削除 |
+
+## グローバルフラグ
+
+| フラグ | エイリアス | 説明 |
+|------|-------|-------------|
+| `--help` | `-h` | ヘルプ情報を表示 |
+| `--version` | `-v` | バージョンを表示 |
+| `--print-logs` | | ログをstderrに出力 |
+| `--log-level` | | レベルを設定：`DEBUG`、`INFO`、`WARN`、`ERROR` |
+
+## run
+
+インタラクティブモードに入らずに単一のプロンプトを実行します。
+
+```bash
+cyberstrike run [message..] [options]
+```
+
+### オプション
+
+| オプション | エイリアス | 説明 |
+|--------|-------|-------------|
+| `--model <model>` | `-m` | `provider/model` 形式のモデル |
+| `--agent <name>` | | 使用するセキュリティエージェント |
+| `--continue` | `-c` | 前回のセッションを続行 |
+| `--session <id>` | `-s` | 特定のセッションを再開 |
+| `--file <path>` | `-f` | メッセージにファイルを添付 |
+| `--format <type>` | | 出力形式：`default` または `json` |
+| `--share` | | セッションを共有 |
+| `--title <text>` | | セッションタイトルを設定 |
+| `--variant <type>` | | モデルバリアント（`high`、`max`、`minimal`） |
+
+### 例
+
+```bash
+# セキュリティスキャンを実行
+cyberstrike run "scan example.com for XSS vulnerabilities"
+
+# レビュー用に設定ファイルを添付
+cyberstrike run "analyze this config for misconfigurations" -f nginx.conf
+
+# パイプライン統合のためにJSON出力
+cyberstrike run "list all open ports" --format json
+
+# 前回のセッションを続行
+cyberstrike run "now check for SQLi" --continue
+```
+
+{/* TODO: Screenshot — CLI JSON output format example */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: cli-json-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">--format jsonフラグからの構造化JSON出力</p>
+</div>
+
+### 入力のパイプ
+
+他のツールとの統合のためにstdinからの入力を受け付けます：
+
+```bash
+echo "analyze this code for vulnerabilities" | cyberstrike run
+nmap -sV target.local | cyberstrike run "analyze these scan results"
+cat report.json | cyberstrike run "summarize findings"
+```
+
+## serve
+
+UIなしのヘッドレスHTTP APIサーバーを起動します。統合、CI/CDパイプライン、リモートアクセスに有用です。
+
+```bash
+cyberstrike serve [options]
+```
+
+| オプション | 説明 |
+|--------|-------------|
+| `--port <number>` | サーバーポート（デフォルト：利用可能なランダムポート） |
+| `--hostname <address>` | バインドアドレス（デフォルト：`127.0.0.1`） |
+
+<Aside variant="caution">
+  **認証：** ネットワークにサーバーを公開する場合は `CYBERSTRIKE_SERVER_PASSWORD` を設定してください。設定しないとサーバーは保護されません。
+</Aside>
+
+```bash
+# ポート4096でAPIサーバーを起動
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve --port 4096
+```
+
+{/* TODO: Video — Starting serve and piping nmap output into cyberstrike run */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-pipe-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">nmapの出力をcyberstrike runにパイプして分析（約10秒）</p>
+</div>
+
+## attach
+
+すでに実行中のCyberStrikeサーバーにTUIを接続します。複数のターミナルで同じセッションを共有できます。
+
+```bash
+cyberstrike attach <url>
+```
+
+```bash
+# 1つのターミナルでサーバーを起動
+cyberstrike web --port 4096
+
+# 別のターミナルからアタッチ
+cyberstrike attach http://localhost:4096
+```
+
+## upgrade
+
+CyberStrikeを最新バージョンまたは特定のバージョンに更新します。
+
+```bash
+# 最新安定版にアップグレード
+cyberstrike upgrade
+
+# 特定のバージョンにアップグレード
+cyberstrike upgrade 1.1.6
+
+# 最新ベータ版にアップグレード
+cyberstrike upgrade --method npm
+```
+
+サポートされるメソッド：`curl`、`npm`、`pnpm`、`bun`、`brew`、`choco`、`scoop`。
+
+## 環境変数
+
+| 変数 | 説明 |
+|----------|-------------|
+| `CYBERSTRIKE_PROVIDER` | デフォルトのAIプロバイダー |
+| `CYBERSTRIKE_MODEL` | デフォルトのモデル |
+| `CYBERSTRIKE_AGENT` | デフォルトのセキュリティエージェント |
+| `CYBERSTRIKE_SERVER_PASSWORD` | サーバー認証パスワード |
+| `CYBERSTRIKE_SERVER_USERNAME` | サーバーユーザー名（デフォルト：`cyberstrike`） |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | 自動更新チェックを無効化 |
+| `CYBERSTRIKE_TUI_CONFIG` | カスタムTUI設定パス |
+| `ANTHROPIC_API_KEY` | Anthropic APIキー |
+| `OPENAI_API_KEY` | OpenAI APIキー |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI（Gemini）APIキー |
+| `OPENROUTER_API_KEY` | OpenRouter APIキー |
+
+## 終了コード
+
+| コード | 意味 |
+|------|---------|
+| `0` | 成功 |
+| `1` | エラー — 不正/不明な引数、または致命的なエラー |
+| `130` | 中断（Ctrl+C） |

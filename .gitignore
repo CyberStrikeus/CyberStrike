@@ -21,7 +21,7 @@ ts-dist
 /result
 refs
 Session.vim
-cyberstrike.json
+/cyberstrike.json
 a.out
 target
 .scripts
@@ -37,5 +37,14 @@ logs/
 # Local throwaway test/eval harness (not committed)
 packages/cyberstrike/test/proxy-eval/
 
+# Desktop bundled binaries (downloaded at build time, not stored in repo)
+packages/desktop/resources/cyberstrike/bin/
+
 # Exported session transcripts and reports
 session-*.md
+*.tsbuildinfo
+
+# Stray electron-vite build output dropped at repo root (desktop main-process bundle)
+/index.js
+.vendor/
+*.tgz

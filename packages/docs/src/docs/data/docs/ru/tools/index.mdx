@@ -1,0 +1,128 @@
+---
+title: Tools Reference
+description: Complete reference for Cyberstrike built-in tools and MCP integration
+sidebar:
+  order: 1
+  label: Overview
+---
+
+Cyberstrike ships two classes of tools: **core tools** for file/shell/memory operations common to any AI agent, and **security tools** purpose-built for penetration testing.
+
+## Core Tools
+
+| Category | Tools | Description |
+|----------|-------|-------------|
+| [**Built-in Tools**](/docs/tools/built-in-tools) | Read, Write, Edit, Glob, Grep, Bash, Memory, ToolSearch | File operations, shell execution, persistent memory, and dynamic MCP tool loading |
+| **Web** | WebFetch, WebSearch, CodeSearch | Fetch web content, search the web, and search code repositories |
+| **Tasks** | Task, TodoWrite | Delegate work to specialized subagents and track task progress |
+
+---
+
+## Security Tools
+
+### Traffic Capture
+
+| Tool | Description |
+|------|-------------|
+| [**Hacker Browser**](/docs/tools/hacker-browser) | Autonomous AI-driven web crawler — logs in, walks the application, captures HTTP traffic |
+| [**Chrome Extension**](/docs/tools/chrome-extension) | Manual browser-driven traffic capture via a Chrome extension for your own browser |
+
+### Security Hooks
+
+<Badge text="412+ programs" variant="note" />
+
+Eight domain-specific hook suites, each exposing dozens of programs the agent can call by name. See [Security Hooks](/docs/tools/security-hooks) for the full catalog.
+
+| Hook | Programs | Domain |
+|------|----------|--------|
+| `windows_hook` | 156 | Windows & Active Directory post-exploitation — credential theft, Kerberos, lateral movement, AD enumeration |
+| `linux_hook` | 122 | Linux post-exploitation — credential harvesting, privilege escalation, persistence, network pivoting |
+| `mac_hook` | 48 | macOS post-exploitation — Keychain, TCC bypass, dylib hijacking, AirDrop lateral movement |
+| `llm_hook` | 25 | LLM/AI security — prompt injection, jailbreak, OWASP LLM Top 10, multi-turn attacks |
+| `container_hook` | 22 | Docker — container escape, image scanning, registry enumeration, runtime audit |
+| `k8s_hook` | 22 | Kubernetes — RBAC escalation, secret extraction, etcd dump, pod escape |
+| `iac_hook` | 17 | Infrastructure as Code — Terraform state secrets, security group audit, IAM policy review |
+| **Web testing tools** | 6 | Authentication, business logic, misconfiguration, SSRF, recon, login probing |
+
+### Deterministic Probes
+
+Six tools that fire structured, repeatable test batteries against captured requests and return raw observations for the agent to verify. See [Probes](/docs/tools/probes) for details.
+
+| Tool | WSTG | What it does |
+|------|------|-------------|
+| `inject_probe` | INPV | XSS tag survival, SSTI evaluation, command injection, LFI, CRLF, HPP, mass assignment, file upload, host header, verb tampering |
+| `access_probe` | ATHZ | Cross-identity replay — swaps every credential and unauthenticated against a request, measures response similarity to detect IDOR/BOLA |
+| `session_probe` | SESS | JWT tampering (alg:none, weak HMAC, signature bypass), cookie entropy analysis |
+| `crypto_probe` | CRYP | Sensitive data on unencrypted channels, weak HSTS, credentials in URLs, optional live TLS handshake |
+| `error_probe` | ERRH | Error-based information disclosure via response mutation |
+| `identity_probe` | IDNT | Authentication and identity verification testing |
+
+### Other Security Tools
+
+| Tool | Description |
+|------|-------------|
+| `http_replay` | Replay and modify captured HTTP requests — the core testing primitive |
+| `vulnerability` | Record a confirmed vulnerability with severity, evidence, and affected endpoint |
+| `triage_vulnerability` | Triage and prioritize recorded vulnerabilities |
+| `enrich_vulnerability` | Enrich a vulnerability with additional context, references, and remediation |
+| `vrt_check` | Check findings against the Vulnerability Rating Taxonomy |
+| `generate_report` | Compile a penetration test report from session findings |
+| `oob` | Out-of-band testing — detect blind vulnerabilities via callback channels |
+| `csrf_extract` | Extract CSRF tokens from responses for replay in subsequent requests |
+| `scope_check` | Validate whether a target is within the authorized testing scope |
+| `attack_script` | Execute structured attack scripts against targets |
+| `coverage_note` | Track methodology coverage — what has and hasn't been tested |
+| `propose_escalation` | Propose privilege escalation paths based on current findings |
+| `methodology_status` | View current methodology progress and coverage gaps |
+
+---
+
+## Custom Tools
+
+Add project-specific tools by creating files in `.cyberstrike/tools/`:
+
+```typescript title=".cyberstrike/tools/custom-scanner.ts"
+import { z } from "zod"
+
+export default {
+  description: "Custom vulnerability scanner",
+  args: {
+    target: z.string().describe("Target URL to scan"),
+    depth: z.number().default(3).describe("Scan depth"),
+  },
+  async execute(args, ctx): Promise<string> {
+    return `Scanned ${args.target} to depth ${args.depth}`
+  },
+}
+```
+
+Files in a `tool/` or `tools/` directory inside any `.cyberstrike/` folder are loaded automatically.
+
+---
+
+## Tool Permissions
+
+| Permission | Tools | Default |
+|------------|-------|---------|
+| `read` | Read | ask |
+| `edit` | Write, Edit | ask |
+| `glob` | Glob | allow |
+| `grep` | Grep | allow |
+| `bash` | Bash | ask |
+| `websearch` | WebSearch | ask |
+| `webfetch` | WebFetch | ask |
+| `codesearch` | CodeSearch | ask |
+| `task` | Task | ask |
+| `external_directory` | Access outside project | ask |
+
+Actions: `ask` (prompt for approval), `allow` (auto-approve), `deny` (block). See [Permissions](/docs/configuration/permissions) for glob patterns and the full model.
+
+---
+
+## MCP Server Tools
+
+Cyberstrike loads tools from MCP servers via the [Dynamic Loading](/docs/tools/built-in-tools#dynamic-tool-loading) system. The recommended setup is [Bolt](/docs/features/bolt) — a Docker-based plugin system with 7 plugins and ~26 aggregated MCP servers.
+
+<Aside variant="tip">
+  See [Bolt](/docs/features/bolt) for the recommended security-tools setup — all plugins are available as direct tool calls (e.g., `nmap`, `nuclei`, `ffuf`).
+</Aside>

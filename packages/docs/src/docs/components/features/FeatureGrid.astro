@@ -1,0 +1,224 @@
+---
+import { Icon } from "astro-icon/components";
+
+const title = "Why Cyberstrike?";
+const features = [
+  {
+    title: "AI-Powered Testing",
+    description: "Leverage Claude, GPT-4, and other LLMs to intelligently identify vulnerabilities and attack vectors.",
+    icon: "tabler/cpu",
+    code: "$ cyberstrike scan --target example.com",
+    color: "red",
+  },
+  {
+    title: "HackerBrowser",
+    description: "Built-in browser automation with traffic capture, HAR export, and real-time visual feedback.",
+    icon: "tabler/browser",
+    code: "Browser.navigate('https://target.com')",
+    color: "orange",
+  },
+  {
+    title: "Security Agents",
+    description: "Specialized agents for web apps, cloud infrastructure, network pentesting, and bug bounty hunting.",
+    icon: "tabler/shield-lock",
+    code: "agent: web-application",
+    color: "amber",
+  },
+  {
+    title: "MCP Integration",
+    description: "Extend capabilities with security tools, custom servers, and third-party integrations via MCP.",
+    icon: "tabler/plug-connected",
+    code: "cyberstrike mcp start bolt",
+    color: "yellow",
+  },
+];
+
+const colorClasses = {
+  red: {
+    glow: "group-hover:shadow-red-500/20",
+    border: "group-hover:border-red-500/50",
+    icon: "bg-red-500/10 text-red-500 group-hover:bg-red-500/20",
+    code: "text-red-400",
+    line: "bg-red-500",
+  },
+  orange: {
+    glow: "group-hover:shadow-orange-500/20",
+    border: "group-hover:border-orange-500/50",
+    icon: "bg-orange-500/10 text-orange-500 group-hover:bg-orange-500/20",
+    code: "text-orange-400",
+    line: "bg-orange-500",
+  },
+  amber: {
+    glow: "group-hover:shadow-amber-500/20",
+    border: "group-hover:border-amber-500/50",
+    icon: "bg-amber-500/10 text-amber-500 group-hover:bg-amber-500/20",
+    code: "text-amber-400",
+    line: "bg-amber-500",
+  },
+  yellow: {
+    glow: "group-hover:shadow-yellow-500/20",
+    border: "group-hover:border-yellow-500/50",
+    icon: "bg-yellow-500/10 text-yellow-500 group-hover:bg-yellow-500/20",
+    code: "text-yellow-400",
+    line: "bg-yellow-500",
+  },
+};
+---
+
+<div class="docs-site-container border-x py-20">
+  <div class="mx-auto max-w-5xl px-4">
+    <div class="mb-12 text-center">
+      <h2 class="docs-h2 docs-text-gradient">{title}</h2>
+      <p class="text-muted-foreground mt-4 text-lg">
+        Offensive security powered by artificial intelligence
+      </p>
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      {
+        features.map((feature, index) => {
+          const colors = colorClasses[feature.color as keyof typeof colorClasses];
+          return (
+            <div
+              class={`feature-card group relative overflow-hidden rounded-xl border border-white/10 bg-black/40 backdrop-blur-sm transition-all duration-500 hover:shadow-2xl ${colors.glow} ${colors.border}`}
+              data-spotlight
+              style={`--index: ${index}`}
+            >
+              {/* Animated top border line */}
+              <div class={`absolute top-0 left-0 h-[2px] w-0 ${colors.line} transition-all duration-500 group-hover:w-full`} />
+
+              {/* Scan line effect */}
+              <div class="scan-line absolute inset-0 opacity-0 group-hover:opacity-100" />
+
+              {/* Content */}
+              <div class="relative z-10 p-6">
+                {/* Icon and Title Row */}
+                <div class="mb-4 flex items-center gap-4">
+                  <div class={`flex size-12 items-center justify-center rounded-lg transition-all duration-300 ${colors.icon}`}>
+                    <Icon name={feature.icon} class="size-6" aria-hidden="true" />
+                  </div>
+                  <h3 class="text-lg font-semibold text-white">{feature.title}</h3>
+                </div>
+
+                {/* Description */}
+                <p class="text-muted-foreground mb-4 text-sm leading-relaxed">
+                  {feature.description}
+                </p>
+
+                {/* Terminal snippet */}
+                <div class="overflow-hidden rounded-md bg-black/60 font-mono text-xs">
+                  <div class="flex items-center gap-2 border-b border-white/5 px-3 py-2">
+                    <span class="size-2.5 rounded-full bg-red-500/80" />
+                    <span class="size-2.5 rounded-full bg-yellow-500/80" />
+                    <span class="size-2.5 rounded-full bg-green-500/80" />
+                    <span class="ml-2 text-white/30 text-[10px]">terminal</span>
+                  </div>
+                  <div class="px-3 py-3">
+                    <code class={`${colors.code}`}>{feature.code}</code>
+                    <span class={`terminal-cursor terminal-cursor-${index} ml-0.5 inline-block h-3.5 w-px bg-current`} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Corner glow effect */}
+              <div class="pointer-events-none absolute -right-20 -bottom-20 size-40 rounded-full bg-gradient-to-br from-white/5 to-transparent opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-100" />
+            </div>
+          );
+        })
+      }
+    </div>
+  </div>
+</div>
+
+<style>
+  .feature-card {
+    animation: fadeInUp 0.6s ease-out forwards;
+    animation-delay: calc(var(--index) * 0.1s);
+    opacity: 0;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .scan-line {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      transparent 100%
+    );
+    animation: scan 2s ease-in-out infinite;
+    background-size: 100% 20px;
+  }
+
+  @keyframes scan {
+    0%, 100% {
+      background-position: 0 -100%;
+    }
+    50% {
+      background-position: 0 200%;
+    }
+  }
+
+  .terminal-cursor {
+    animation: blink 1s step-end infinite;
+  }
+
+  .terminal-cursor-0 {
+    animation-duration: 0.9s;
+    animation-delay: 0s;
+  }
+
+  .terminal-cursor-1 {
+    animation-duration: 1.1s;
+    animation-delay: 0.4s;
+  }
+
+  .terminal-cursor-2 {
+    animation-duration: 0.85s;
+    animation-delay: 0.2s;
+  }
+
+  .terminal-cursor-3 {
+    animation-duration: 1.05s;
+    animation-delay: 0.6s;
+  }
+
+  @keyframes blink {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  function handleMouseMove(event: MouseEvent) {
+    const card = event.currentTarget as HTMLElement;
+    const rect = card.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+
+    card.style.setProperty("--mouse-x", `${x}px`);
+    card.style.setProperty("--mouse-y", `${y}px`);
+  }
+
+  const setupSpotlight = () => {
+    document.querySelectorAll("[data-spotlight]").forEach((card) => {
+      card.addEventListener("mousemove", handleMouseMove as EventListener);
+    });
+  };
+
+  setupSpotlight();
+  document.addEventListener("astro:after-swap", setupSpotlight);
+</script>

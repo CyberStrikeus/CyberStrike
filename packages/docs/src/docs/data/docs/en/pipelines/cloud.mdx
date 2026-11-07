@@ -1,0 +1,170 @@
+---
+title: Cloud Pipeline
+description: Cloud infrastructure security assessment for Azure, AWS, and GCP
+sidebar:
+  order: 3
+  label: Cloud
+---
+
+CyberStrike assesses cloud infrastructure across Azure, AWS, and GCP. Azure has a full autonomous multi-agent pipeline — you start it and walk away. AWS and GCP provide extensive testing programs that run through the main agent.
+
+## Starting a Cloud Assessment
+
+Tell the `cyberstrike` agent what to assess:
+
+```
+> Audit my Azure environment
+> Assess my AWS account for security issues
+> Check my GCP project
+```
+
+CyberStrike detects the cloud provider and routes to the appropriate workflow. The only prerequisite is having the provider's CLI authenticated:
+
+| Provider | Prerequisite |
+|----------|-------------|
+| Azure | `az login` (Azure CLI authenticated) |
+| AWS | AWS credentials configured (`~/.aws/credentials` or environment variables) |
+| GCP | `gcloud auth login` (Google Cloud CLI authenticated) |
+
+---
+
+## Azure
+
+Azure has the most complete cloud pipeline — a fully autonomous multi-agent assessment that runs without intervention.
+
+### What Happens
+
+When you ask CyberStrike to audit Azure, the pipeline runs in two layers:
+
+**Layer 1 — Automated Recon:** The system runs 65+ reconnaissance and compliance programs in parallel against your Azure environment. This is fast, deterministic, and produces a baseline of your infrastructure posture.
+
+**Layer 2 — Multi-Agent Assessment:** Based on what Layer 1 finds, a full agentic pipeline kicks off:
+
+1. **Identity first** — an identity analyst runs before everything else. It maps Entra ID, RBAC assignments, service principals, and managed identities. Every other agent builds on this foundation.
+
+2. **Triage** — findings from Layer 1 are classified. Straightforward issues (clear misconfigurations, compliance gaps) go to automated verification. Complex findings that need investigation get dedicated analyst agents.
+
+3. **Parallel assessment** — up to 5 analyst agents run concurrently across 9 security groups. Groups with more findings get more agents (up to 4 per group), so nothing becomes a bottleneck.
+
+4. **Follow-up** — after all analysts finish, the system looks for exploitation chains across groups. If the identity analyst found an over-privileged service principal and the network analyst found an exposed endpoint, a follow-up agent investigates whether they chain together.
+
+5. **Adversarial verification** — every finding gets verified by a dedicated agent that tries to disprove it. Duplicates are merged. Only confirmed findings survive.
+
+The entire pipeline runs within a **25-minute deadline**. Individual agents have a 10-minute timeout. A watchdog monitors progress every 30 seconds and auto-spawns helper agents if any group stalls.
+
+### Assessment Groups
+
+The pipeline covers 9 security domains:
+
+| Group | What It Assesses |
+|-------|-----------------|
+| Identity & Permissions | Entra ID, RBAC, PIM, Conditional Access, service principals |
+| Compute | VMs, AKS, App Service, Functions, Container Instances |
+| Network | NSGs, Load Balancers, Application Gateway, VPN, DNS |
+| Data Stores | Storage Accounts, SQL, Cosmos DB, Key Vault, Data Lake |
+| Security & Monitoring | Defender for Cloud, Sentinel, security policies |
+| Identity & Access Services | SSO, B2C/B2AD, API permissions, OAuth apps |
+| Specialized Services | API Management, Logic Apps, Event Grid, Service Bus |
+| CIS Compliance | 18 CIS Azure benchmark checks |
+| Exposure Analysis | Public-facing resources, attack surface mapping |
+
+### What You See
+
+You don't see the individual agents — they're invisible. What you see is:
+
+- A progress indicator as the pipeline runs
+- Findings appearing as agents complete their work
+- A final set of verified, deduplicated, severity-scored findings
+- Chain alerts when separate findings combine into higher-impact issues
+
+Use `/vulnerabilities` to review findings and `/report` to generate the assessment report.
+
+### 157 Azure Programs
+
+The `azurehook` tool that powers the pipeline carries 157 programs covering the full Azure attack lifecycle — from initial reconnaissance through credential harvesting, privilege escalation, persistence, lateral movement, defense evasion, to data exfiltration. It also includes M365 integration checks and CIS compliance benchmarks.
+
+---
+
+## AWS
+
+AWS has 173 testing programs — the most of any cloud provider — but currently runs them through the main `cyberstrike` agent rather than an autonomous pipeline.
+
+### How It Works Today
+
+When you ask CyberStrike to assess AWS, the `cyberstrike` agent uses the `awshook` tool directly. It decides which programs to run based on your request and the services it discovers in your account. This works, but it's a single-agent conversation — not a parallel multi-agent assessment.
+
+### What It Tests
+
+173 programs across 10 security categories:
+
+| Category | Programs | What It Covers |
+|----------|----------|---------------|
+| Reconnaissance | 54 | Service enumeration across 30+ AWS services, public exposure scanning, stale permission detection, cross-service policy audit |
+| Credential Harvesting | 14 | IMDS metadata, secrets extraction, access key analysis, role credentials, federation tokens, Lambda environment variables |
+| Privilege Escalation | 11 | IAM privesc paths, policy version rollback, role chaining, Lambda/Glue/CloudFormation escalation, permission boundary bypass |
+| Persistence | 11 | Lambda/IAM/EventBridge/SSM backdoors, cross-account roles, EC2 Instance Connect, ECS scheduled tasks |
+| Lateral Movement | 10 | SSM execution, ECS exec, cross-account enumeration, VPC peering, Lambda VPC pivoting, EKS lateral movement |
+| Defense Evasion | 13 | CloudTrail blind spots, GuardDuty evasion, Config/VPC Flow/Inspector disabling, WAF bypass, logging suppression |
+| Exfiltration | 18 | S3/RDS/DynamoDB/EBS/CodeCommit data extraction, S3 version recovery, replication exfiltration, data staging |
+| Compliance | 18 | CIS benchmarks, access key rotation, MFA policy, encryption at rest, public access audits, logging verification |
+| Identity | 14 | IAM deep audit, Cognito security, organization policies, role trust analysis, SSO permissions, policy simulation |
+| Impact | 10 | Resource hijack risk, ransomware simulation, billing exposure, DNS hijack, crypto mining potential |
+
+### What You See
+
+The `cyberstrike` agent runs programs and reports findings as it goes. You can steer the conversation — ask it to focus on specific services, dig deeper into IAM, or skip compliance checks.
+
+<Aside variant="info">
+  An autonomous multi-agent pipeline for AWS (matching Azure's architecture) is planned. The 173 programs already cover the attack surface — the pipeline will add parallel specialist agents, chain detection, and adversarial verification.
+</Aside>
+
+---
+
+## GCP
+
+GCP has 33 testing programs covering core Google Cloud services, running through the main `cyberstrike` agent.
+
+### How It Works Today
+
+Same as AWS — the `cyberstrike` agent uses the `gcphook` tool directly. You describe what to assess, and the agent selects and runs the relevant programs.
+
+### What It Tests
+
+33 programs across 7 categories:
+
+| Category | Programs | What It Covers |
+|----------|----------|---------------|
+| Reconnaissance | 11 | GCP/VPC/IAM/SQL/KMS/Org/DNS/Logging/Spanner/Artifact Registry/GKE enumeration |
+| Credential Harvesting | 4 | Metadata server harvesting, Secrets Manager extraction, service account key creation, Firestore data access |
+| Privilege Escalation | 3 | GCP privesc paths, custom role abuse, OS Login exploitation |
+| Persistence | 5 | Cloud Functions/Cloud Run/Scheduler/Cloud Build/Composer backdoors |
+| Exfiltration | 6 | GCS/BigQuery/Compute snapshot extraction, Pub/Sub interception, Source Repository access, DLP scanning |
+| Defense Evasion | 3 | Audit log tampering, VPC flow log manipulation, firewall rule modification |
+| Cleanup | 1 | Artifact removal and evidence cleanup |
+
+### What You See
+
+The agent runs programs conversationally and reports what it finds. GCP's program set is smaller than AWS and Azure, so assessments tend to be faster.
+
+<Aside variant="info">
+  An autonomous pipeline and expanded program set for GCP are planned.
+</Aside>
+
+---
+
+## Cross-Cloud Auditing
+
+CyberStrike also includes 18 cross-cloud programs that work across all three providers:
+
+- IAM policy audits (AWS, Azure, GCP)
+- Storage security checks
+- Network configuration review
+- Encryption-at-rest verification
+- Logging and monitoring validation
+- DNS and TLS analysis
+
+These run using the native CLI tools for each provider and are read-only — they don't make any changes to your infrastructure.
+
+<Aside variant="tip">
+  All cloud assessment tools run in the free tier. They use your local CLI credentials and your configured AI provider for reasoning. No CyberStrike account or cloud-side agent installation required.
+</Aside>

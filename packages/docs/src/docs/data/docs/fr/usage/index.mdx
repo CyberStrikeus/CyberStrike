@@ -1,0 +1,40 @@
+---
+title: Utilisation
+description: Comment utiliser CyberStrike via le terminal, la CLI et les interfaces web
+sidebar:
+  order: 1
+  label: Vue d'ensemble
+---
+
+CyberStrike offre plusieurs modes d'interaction avec le harness :
+
+- **[TUI](/fr/docs/usage/tui)** — Interface terminal interactive avec sortie des agents en temps reel, commandes slash et raccourcis clavier
+- **[CLI](/fr/docs/usage/cli)** — Mode non interactif pour le scripting, les pipelines et l'automatisation
+- **[Web](/fr/docs/usage/web)** — Interface dans le navigateur avec onglets de session, panneaux lateraux et terminal integre
+- **[Application de bureau](/fr/docs/usage/desktop-app)** — Application native pour macOS, Windows et Linux *(bientot disponible)*
+
+Chaque interface se connecte au meme moteur sous-jacent et partage les sessions, vous pouvez donc passer de l'une a l'autre librement.
+
+## Demarrage rapide
+
+```bash
+# TUI interactif (par defaut)
+cyberstrike
+
+# CLI non interactive
+cyberstrike run "scan example.com for open ports"
+
+# Interface web
+cyberstrike web
+```
+
+## Choisir une interface
+
+| Interface | Ideal pour |
+|-----------|------------|
+| TUI | Evaluations interactives quotidiennes, commandes slash, workflow au clavier |
+| CLI | Pipelines CI/CD, scripting, redirection de sortie d'outils |
+| Web | Collaboration en equipe, panneaux lateraux visuels, workflows dans le navigateur |
+| Bureau | Experience native sans terminal *(bientot disponible)* |
+
+Toutes les interfaces prennent en charge l'ensemble des agents de securite, des outils MCP et des fournisseurs d'IA.

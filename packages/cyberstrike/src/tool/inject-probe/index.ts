@@ -1,0 +1,432 @@
+import z from "zod"
+import { Tool } from "../tool"
+import { Request } from "../../session/request"
+import { Session } from "../../session"
+import type { ResolvedRequest, InjPoint, SendBudget, RegisterCanary } from "./types"
+import { resolve, resolveFromTarget, enumeratePoints, validatePoints } from "./resolve"
+import { SSTI_EXPR, SSTI_PRODUCT } from "./payloads/ssti"
+import { TESTED_LABEL, NOT_TESTED_BY_CLASS } from "./payloads/errsig"
+import { SEND_TIMEOUT_MS, type HttpSender } from "./send"
+import { ReplaySender } from "../webhook/transport"
+import { probeXssPoint } from "./probe/xss"
+import { probeSstiPoint } from "./probe/ssti"
+import { probeCmdPoint } from "./probe/cmd"
+import { probeLfiPoint } from "./probe/lfi"
+import { probeErrorSigPoint } from "./probe/errsig"
+import { probeHppPoint } from "./probe/hpp"
+import { probeCrlfPoint } from "./probe/crlf"
+import { probeTimeBlindPoint } from "./probe/time-blind"
+import { probeMassAssign } from "./probe/mass-assign"
+import { probeFileUpload } from "./probe/file-upload"
+import { MASS_ASSIGN_NOT_TESTED } from "./payloads/mass-assign"
+import { probeHostHeader, HOST_HEADER_NOT_TESTED } from "./probe/host-header"
+import { probeVerbTampering, VERB_NOT_TESTED } from "./probe/verb"
+import { createBackoff } from "./probe/base"
+import { vortexRegisterCanary, vortexRecordSignal, vortexScanProbeResponse } from "../../session/web/vortex-bridge"
+
+const description = `Fire a battery of probes at ONE parameter-bearing request and return RAW OBSERVATIONS.
+
+This tool does NOT find or confirm vulnerabilities and does NOT run a JS engine or a shell — it only reports what the server echoed back. Every observation is a LEAD you must verify yourself, never a verdict. After reading it: craft and send the actual exploit to confirm, and separately cover every class listed under coverage.not_tested (this tool does not test them).
+
+vuln_type:
+- "xss"  — reflected tag-survival (which HTML tags reflect un-encoded past a filter).
+- "ssti" — server-side template evaluation: fires a fixed arithmetic expression in several engine
+           syntaxes and reports which (if any) the server EVALUATED (product present, literal absent).
+- "cmd"  — OS command injection: fires benign READ-ONLY probes (id/ver) behind shell separators and
+           reports which (if any) produced command output in the response. Read-only DETECTION ONLY —
+           it never sends network/file/write commands.
+
+Query-string and form-urlencoded parameters only. You choose WHERE (request_id/target/target_param);
+the tool chooses the payloads (you cannot supply a command or template expression).`
+
+export const InjectProbeTool = Tool.define("inject_probe", {
+  description,
+  parameters: z.object({
+    request_id: z
+      .string()
+      .optional()
+      .describe("ID of a captured request to probe (PREFERRED — resolves URL, headers, body, credential)."),
+    target: z
+      .object({
+        method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]).default("GET"),
+        url: z.string().describe("Absolute URL including query string, e.g. http://host/page?name=x"),
+        headers: z.record(z.string(), z.string()).optional(),
+        body: z.string().optional(),
+        content_type: z.string().optional(),
+      })
+      .optional()
+      .describe(
+        "Fallback when the target is NOT a stored request (a new/unseen endpoint). Provide EITHER request_id OR target.",
+      ),
+    vuln_type: z
+      .array(z.enum(["xss", "ssti", "cmd", "sqli", "nosql", "ldap", "xpath", "lfi", "hpp", "mass_assign", "crlf", "host_header", "verb", "time_blind", "file_upload"]))
+      .min(1)
+      .describe(
+        "Injection classes to probe — YOU pick the set that fits THIS endpoint (don't run every class everywhere; e.g. no xpath on a plain REST/JSON API). xss/ssti/cmd return execution-facts; sqli/nosql/ldap/xpath return error-signature AND a true/false differential (sqli AND-based boolean, nosql $ne/$eq/$regex operator, ldap/xpath filter boolean) — a confirmation channel beyond FP-prone error strings; hpp detects HTTP Parameter Pollution parser behavior (first-wins vs last-wins). mass_assign (WSTG-INPV-20) is body-level (ignores points): it adds curated privileged fields (role/isAdmin/owner/permissions…) to a JSON/form WRITE body and reports which the server accepted + echoed — run it on write endpoints (POST/PUT/PATCH) that bind an object. file_upload (WSTG-INPV-09) is request-level too: on a captured multipart upload it runs the full matrix (dangerous extensions + blacklist-bypass spellings, content-type spoof, GIF-magic content-sniff bypass, filename path-traversal, SVG/HTML content, .htaccess/web.config) against a known-good image baseline, reports which dangerous files the server ACCEPTED, and — when the response reveals the stored URL — fetches it to classify STORED (served verbatim) vs EXECUTED (RCE). It uploads REAL files. The tool never exploits — it hands you leads.",
+      ),
+    points: z
+      .array(
+        z.object({
+          location: z.enum(["query", "form_field", "json_body", "header", "cookie", "path"]),
+          name: z
+            .string()
+            .describe(
+              "query/form param name · JSON field path (a.b.c) · header name · cookie name · 0-based path-segment index",
+            ),
+        }),
+      )
+      .optional()
+      .describe("WHERE to inject — YOU choose the points. Omit to auto-enumerate query + form-urlencoded params."),
+    target_param: z
+      .string()
+      .optional()
+      .describe(
+        "Convenience filter for the auto-enumerate path (probe only this query/form param). Ignored when `points` is given.",
+      ),
+  }),
+  async execute(params, ctx) {
+    const sessionID = Session.root(ctx.sessionID)
+    let resolved: ResolvedRequest | { error: string }
+    if (params.request_id) {
+      const request = Request.get(sessionID).find((r) => r.id === params.request_id)
+      if (!request) {
+        return { title: "inject_probe", output: `Request "${params.request_id}" not found.`, metadata: {} }
+      }
+      resolved = resolve(request)
+    } else if (params.target) {
+      const allowedHosts = new Set(
+        Request.get(sessionID)
+          .map((r) => r.host)
+          .filter(Boolean),
+      )
+      let targetHost = ""
+      try {
+        targetHost = new URL(params.target.url).hostname
+      } catch {}
+      if (!targetHost || allowedHosts.size === 0 || !allowedHosts.has(targetHost)) {
+        return {
+          title: "inject_probe — refused (out of scope)",
+          output: `Refusing target host "${targetHost || params.target.url}": not among this session's in-scope hosts [${[...allowedHosts].join(", ") || "none captured"}]. inject_probe only reaches hosts the crawl already captured.`,
+          metadata: {},
+        }
+      }
+      resolved = resolveFromTarget(params.target)
+    } else {
+      return {
+        title: "inject_probe",
+        output: "Provide either request_id (a stored request) or target (a direct {method,url} spec).",
+        metadata: {},
+      }
+    }
+    if ("error" in resolved) {
+      return { title: "inject_probe", output: `Could not resolve request: ${resolved.error}`, metadata: {} }
+    }
+    const DELAY = 120
+    const budget: SendBudget = { sent: 0, max: 120 }
+    const originRequestId = params.request_id ?? `target:${resolved.url.toString()}`
+
+    const rawSender = new ReplaySender({
+      totalTimeoutMs: SEND_TIMEOUT_MS,
+      insecureTls: true,
+      followRedirects: false,
+      signal: ctx.abort,
+    })
+    const sender: HttpSender = {
+      send: async (req) => {
+        const result = await rawSender.send(req)
+        if (!("error" in result)) {
+          vortexScanProbeResponse(sessionID, {
+            requestId: originRequestId,
+            method: req.method,
+            url: req.url,
+            status: result.status,
+            headers: result.headers,
+            body: result.body,
+          })
+        }
+        return result
+      },
+    }
+
+    const targetInfo = {
+      method: resolved.method,
+      url: resolved.url.toString(),
+      auth: resolved.auth,
+      provenance: resolved.provenance,
+    }
+
+    let points: InjPoint[]
+    let rejected: { point: string; reason: string }[] = []
+    if (params.points && params.points.length > 0) {
+      const v = validatePoints(params.points as InjPoint[])
+      points = v.points
+      rejected = v.rejected
+    } else {
+      points = enumeratePoints(resolved, params.target_param)
+    }
+
+    if (points.length === 0) {
+      return {
+        title: "inject_probe",
+        output: JSON.stringify(
+          {
+            note: "No injection points to probe (no query/form params auto-found and no explicit `points` given). Pass `points` (json_body/header/cookie/path/…) to target other locations. This tool did NOT test any injection point.",
+            target: targetInfo,
+            rejected_points: rejected.length ? rejected : undefined,
+          },
+          null,
+          2,
+        ),
+        metadata: {},
+      }
+    }
+
+    const backoff = createBackoff(DELAY)
+    const results: { class: string; observations: unknown[] }[] = []
+    const leads: string[] = []
+    const testedLabels: string[] = []
+    const notTested = new Set<string>()
+    const blockSignals = new Set<string>()
+    const markBlocked = (o: { point: string; blocked?: boolean; block_signal?: string }, cls: string) => {
+      if (o.block_signal) blockSignals.add(`${cls} @ ${o.point}: ${o.block_signal}`)
+      else if (o.blocked) blockSignals.add(`${cls} @ ${o.point}: blocked (WAF/rate-limit)`)
+    }
+    for (const cls of params.vuln_type) {
+      const classObs: unknown[] = []
+      // mass_assign is BODY-level (no injection point): add curated privileged fields to the write body
+      // once and report which the server accepted. Handled here, then skip the per-point loop.
+      if (cls === "mass_assign") {
+        if (!ctx.abort.aborted && budget.sent < budget.max) {
+          const o = await probeMassAssign(sender, resolved, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.bound.length > 0)
+            leads.push(
+              `mass_assign @ body: server ACCEPTED + echoed injected privileged field(s) [${o.bound.map((b) => b.field).join(", ")}] — mass-assignment binding; escalate with the real value (e.g. role=admin / isAdmin=true) and confirm the privilege/ownership impact.`,
+            )
+          else if (o.reflected_keys.length > 0)
+            leads.push(
+              `mass_assign @ body: injected key(s) [${o.reflected_keys.join(", ")}] surfaced in the response (weaker than an echoed value) — verify they actually bind.`,
+            )
+        }
+        results.push({ class: cls, observations: classObs })
+        testedLabels.push("mass_assign: body privileged-field binding")
+        notTested.add(MASS_ASSIGN_NOT_TESTED)
+        continue
+      }
+      // file_upload is REQUEST-level (mutates the multipart file part, ignores injection points): runs the
+      // full extension/content-type/magic-byte/filename-path/content/config matrix against a known-good
+      // image baseline; an accepted dangerous file is the finding, a retrieved canary confirms stored/RCE.
+      if (cls === "file_upload") {
+        if (!ctx.abort.aborted && budget.sent < budget.max) {
+          const o = await probeFileUpload(sender, resolved, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          for (const e of o.executed)
+            leads.push(`file_upload @ ${o.point}: uploaded "${e.filename}" was RETRIEVED AND EXECUTED (RCE) at ${e.stored_url} — ${e.danger}. Confirm and report critical.`)
+          for (const a of o.accepted_dangerous.filter((x) => x.retrieved !== "executed"))
+            leads.push(`file_upload @ ${o.point}: dangerous file "${a.filename}" (${a.category}) was ACCEPTED — ${a.danger}${a.retrieved === "verbatim" ? ` (served VERBATIM at ${a.stored_url} — stored-XSS/served-content risk)` : ""}. Verify retrieval/execution.`)
+          if (!o.baseline_accepted && o.note) blockSignals.add(`file_upload @ ${o.point}: ${o.note}`)
+        }
+        results.push({ class: cls, observations: classObs })
+        testedLabels.push("file_upload: extension/content-type/magic-byte/filename-path/content/config matrix vs baseline")
+        continue
+      }
+      // host_header is also request-level (spoofs forwarding-host headers, ignores points).
+      if (cls === "host_header") {
+        if (!ctx.abort.aborted && budget.sent < budget.max) {
+          const o = await probeHostHeader(sender, resolved, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.reflected.length > 0) {
+            const detail = o.reflected.map((x) => `${x.header}→${x.where}`).join(", ")
+            leads.push(
+              `host_header @ request: the app REFLECTED an attacker-controlled forwarding host [${detail}] — password-reset-link / web-cache poisoning surface; escalate (poison a reset link, cache-key analysis) and confirm.`,
+            )
+          }
+        }
+        results.push({ class: cls, observations: classObs })
+        testedLabels.push("host_header: X-Forwarded-Host & friends reflection")
+        notTested.add(HOST_HEADER_NOT_TESTED)
+        continue
+      }
+      // verb is request-level: a SAFE method matrix (never fires PUT/DELETE/PATCH) + Allow.
+      if (cls === "verb") {
+        if (!ctx.abort.aborted && budget.sent < budget.max) {
+          const o = await probeVerbTampering(sender, resolved, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.bypass.length > 0)
+            leads.push(
+              `verb @ request: method-based access control BYPASSED — base ${o.baseline.method} → ${o.baseline.status}, but ${o.bypass.map((b) => `${b.method}→${b.to}`).join(", ")}. The control keys on the verb; confirm the data is actually served/acted on.`,
+            )
+          if (o.arbitrary_verb_accepted)
+            leads.push(
+              `verb @ request: the server accepted an ARBITRARY method (${"CSPROBE"}) with a 2xx — unknown verbs reach a handler (method-ACL bypass surface); verify what it exposes.`,
+            )
+          if (o.dangerous_methods_allowed.length > 0)
+            leads.push(
+              `verb @ request: Allow advertises state-changing method(s) [${o.dangerous_methods_allowed.join(", ")}] — NOT fired by the probe (destructive); confirm MANUALLY via http_replay whether they are honored without auth.`,
+            )
+        }
+        results.push({ class: cls, observations: classObs })
+        testedLabels.push("verb: safe method-matrix + Allow (no destructive verbs fired)")
+        notTested.add(VERB_NOT_TESTED)
+        continue
+      }
+      for (const point of points) {
+        if (ctx.abort.aborted || budget.sent >= budget.max) break
+        const field = `${point.location}:${point.name}`
+        const reg: RegisterCanary = (token, kind) => {
+          // Register into Vortex so its scanStored catches a cross-page stored reflection and routes
+          // it via the signal bridge. No-op for a synthetic target id.
+          vortexRegisterCanary(sessionID, { token, kind, requestId: originRequestId, field, vulnClass: cls, agent: ctx.agent })
+        }
+        if (cls === "xss") {
+          const o = await probeXssPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.marker_reflected) {
+            const reflectEvidence = `marker reflected raw at ${field}${o.context ? ` (${o.context} context)` : ""}${o.marker_html_encoded ? " [HTML-encoded]" : ""}`
+            vortexRecordSignal(sessionID, {
+              ruleId: "reflected-input-xss",
+              transactionId: originRequestId,
+              category: "injection",
+              severity: "medium",
+              title: "Reflected input (XSS surface)",
+              evidence: reflectEvidence,
+            })
+          }
+          if (o.weaponized.length > 0) {
+            const poc = o.poc
+            const pocLine = poc
+              ? poc.kind === "url"
+                ? ` PoC (open in a browser → alert fires): ${poc.poc_url}`
+                : poc.kind === "form"
+                  ? ` PoC: save the poc HTML (in results) as .html and open it — it auto-submits the POST. curl: ${poc.poc_curl}`
+                  : ` PoC (${poc.location} — not a clickable link): ${poc.poc_curl}`
+              : ""
+            leads.push(
+              `xss @ ${o.point}: READY payload(s) reflected un-encoded (filter-bypass already applied): ${o.weaponized.slice(0, 4).join("  |  ")}.${pocLine}${o.poc_csp_note ? " " + o.poc_csp_note : ""} → put the PoC in the finding's poc field.`,
+            )
+          }
+          else if (o.surviving_tags.length > 0)
+            leads.push(
+              `xss @ ${o.point}: tag(s) [${o.surviving_tags.join(", ")}] reflected un-encoded${o.context ? ` in ${o.context} context` : ""} — weaponize one (event handler) and confirm.`,
+            )
+        } else if (cls === "ssti") {
+          const o = await probeSstiPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.evaluated.length > 0)
+            leads.push(
+              `ssti @ ${o.point}: syntax [${o.evaluated.map((e) => e.syntax).join(", ")}] evaluated ${SSTI_EXPR}→${SSTI_PRODUCT} server-side (snippet in evaluated) — confirm engine + weaponize.`,
+            )
+        } else if (cls === "cmd") {
+          const o = await probeCmdPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.command_output.length > 0)
+            leads.push(
+              `cmd @ ${o.point}: separator(s) [${o.command_output.map((c) => c.separator).join(", ")}] returned command output (snippet in command_output) — confirm + enumerate.`,
+            )
+        } else if (cls === "lfi") {
+          const o = await probeLfiPoint(sender, resolved, point, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.findings.length > 0)
+            leads.push(
+              `lfi @ ${o.point}: READY traversal(s) disclosed a known OS file — technique [${[...new Set(o.findings.map((x) => x.technique))].join(", ")}] read ${[...new Set(o.findings.map((x) => x.target))].join(", ")}. Payload: ${o.findings[0]!.payload} — this SHAPE beat the filter; swap in the app target (FLAG.php/config).`,
+            )
+        } else if (cls === "hpp") {
+          const o = await probeHppPoint(sender, resolved, point, ctx.abort, DELAY, budget, reg, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.append_reflected || o.prepend_reflected) {
+            const hppEvidence = `HPP duplicate-param reflected at ${field} (parser: ${o.parser_behavior})`
+            vortexRecordSignal(sessionID, {
+              ruleId: "reflected-input-hpp",
+              transactionId: originRequestId,
+              category: "injection",
+              severity: "medium",
+              title: "HPP duplicate-param reflected",
+              evidence: hppEvidence,
+            })
+          }
+          if (o.parser_behavior !== "inconclusive")
+            leads.push(
+              `hpp @ ${o.point}: parser behavior = ${o.parser_behavior} (append_reflected=${o.append_reflected}, prepend_reflected=${o.prepend_reflected}) — fire injection payloads at the duplicate position to exploit.`,
+            )
+        } else if (cls === "time_blind") {
+          const o = await probeTimeBlindPoint(sender, resolved, point, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.findings.length > 0) {
+            const f = o.findings[0]!
+            leads.push(
+              `time_blind @ ${o.point}: an injected ${f.family} delay SCALES the response (${f.injected_delay_s}s → +${f.observed_delta_ms}ms over ${o.base_ms}ms baseline), while the zero-delay and false-condition controls stayed fast — blind time-based injection (${o.findings.map((x) => x.engine).join("/")}); escalate (conditional-timing extraction) and confirm.`,
+            )
+          }
+        } else if (cls === "crlf") {
+          const o = await probeCrlfPoint(sender, resolved, point, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.injected_header)
+            leads.push(
+              `crlf @ ${o.point}: the server EMITTED an attacker-injected response header [${o.header_name}] via CR-LF in the param${o.set_cookie_injected ? " (into Set-Cookie — session-fixation surface)" : ""} — HTTP response-splitting/header-injection; escalate (cache poisoning, cookie fixation, header-based XSS) and confirm.`,
+            )
+        } else {
+          const o = await probeErrorSigPoint(sender, resolved, point, cls, ctx.abort, DELAY, budget, backoff)
+          classObs.push(o)
+          markBlocked(o, cls)
+          if (o.error_findings.length > 0)
+            leads.push(
+              `${cls} @ ${o.point}: payload(s) [${o.error_findings.map((e) => e.payload).join(" ")}] tripped a ${cls} error signature (snippet in error_findings) — investigate (exploitation is YOURS).`,
+            )
+          const diffs = o.bool_findings.filter((b) => b.differential)
+          if (diffs.length > 0)
+            leads.push(
+              `${cls} @ ${o.point}: boolean-differential on [${diffs.map((b) => `${b.pair} {${b.signals.join(",")}}`).join(" ; ")}] (baseline=${o.baseline.bytes}B±${o.baseline.byte_jitter}; true/false detail in bool_findings) — boolean-injection lead; verify.`,
+            )
+        }
+      }
+      results.push({ class: cls, observations: classObs })
+      testedLabels.push(TESTED_LABEL[cls]!)
+      for (const n of NOT_TESTED_BY_CLASS[cls]!) notTested.add(n)
+    }
+
+    const truncated = budget.sent >= budget.max
+    if (truncated)
+      notTested.add(
+        `send cap (${budget.max}) reached — some class×point combinations were NOT probed; narrow points/vuln_type and re-run.`,
+      )
+
+    const blocked = [...blockSignals]
+    const evidence = {
+      note:
+        "OBSERVATIONS ONLY — inject_probe does NOT confirm vulnerabilities and never exploits. Every entry is a LEAD you must verify yourself, never a verdict. Exploitation — UNION, OR-bypass, auth-bypass, blind extraction, weaponization — is YOUR job, not the probe's." +
+        (leads.length === 0 && blocked.length > 0
+          ? " ⚠️ NO LEADS but payloads were WAF/challenge-BLOCKED at some points — this is NOT evidence the endpoint is safe; the app was shielded. Escalate with encoding/evasion (agent-side) or a different vantage."
+          : ""),
+      target: targetInfo,
+      probed: `classes [${params.vuln_type.join(", ")}] × ${points.length} point(s)`,
+      results,
+      verification_required: true,
+      leads,
+      block_signals: blocked.length ? blocked : undefined,
+      coverage: { tested: testedLabels, not_tested: [...notTested] },
+      sends: { used: budget.sent, cap: budget.max, truncated },
+      backoff: backoff.totalBlocks > 0
+        ? { delay_ms: backoff.delay, total_blocks: backoff.totalBlocks, escalations: backoff.escalations }
+        : undefined,
+      rejected_points: rejected.length ? rejected : undefined,
+      aborted: ctx.abort.aborted || undefined,
+    }
+    const title = leads.length
+      ? `inject_probe: ${leads.length} lead(s) across [${params.vuln_type.join(",")}] (verify)`
+      : blocked.length
+        ? `inject_probe: no leads but ${blocked.length} WAF-block(s) — NOT proof of safety`
+        : `inject_probe: no leads across [${params.vuln_type.join(",")}]`
+    return { title, output: JSON.stringify(evidence, null, 2), metadata: {} }
+  },
+})

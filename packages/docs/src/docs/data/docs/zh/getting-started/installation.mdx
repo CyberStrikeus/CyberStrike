@@ -1,0 +1,177 @@
+---
+title: 安装
+description: 使用 npm 或 curl 安装 Cyberstrike
+sidebar:
+  order: 2
+  label: 安装
+---
+
+Cyberstrike 可以通过多种包管理器安装。请选择最适合您开发环境的方式。
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="安装后的 Cyberstrike TUI" className="w-full" />
+</div>
+
+## npm（推荐）
+
+适合大多数用户的推荐安装方式。
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+验证安装：
+
+```bash
+cyberstrike --version
+```
+
+## Bun <Badge text="即将推出" variant="caution" size="md" />
+
+Bun 支持尚未提供。
+
+## Homebrew (macOS) <Badge text="即将推出" variant="caution" size="md" />
+
+Homebrew 支持尚未提供。
+
+## curl (Linux/macOS)
+
+通过 shell 脚本直接安装：
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+## iwr (Windows/Powershell)
+
+运行安装脚本：
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+
+<Aside variant="caution">
+  执行安装脚本前请先审查其内容。脚本源码可在 [github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike) 查看。
+</Aside>
+
+## Docker
+
+<Aside variant="caution">
+  Docker 镜像即将推出。目前请使用 npm 或 curl。
+</Aside>
+
+
+## 验证安装
+
+安装完成后，验证 Cyberstrike 是否正常工作：
+
+```bash
+# 检查版本
+cyberstrike --version
+
+# 列出可用命令
+cyberstrike --help
+```
+
+您应该能看到 Cyberstrike 的横幅和版本号，以及可用命令列表。
+
+## 更新 Cyberstrike
+
+更新到最新版本：
+
+```bash
+# npm
+npm update -g @cyberstrike-io/cyberstrike@latest
+
+# 自更新（推荐）
+cyberstrike upgrade
+```
+
+## 卸载
+
+从系统中移除 Cyberstrike：
+
+```bash
+# npm
+npm uninstall -g @cyberstrike-io/cyberstrike@latest
+```
+
+配置文件存储在 `~/.config/cyberstrike/`（凭据存储在 `~/.local/share/cyberstrike/`），如需要可手动删除。
+
+## 故障排除
+
+### 找不到命令
+
+如果安装后找不到 `cyberstrike`：
+
+1. 检查您的 PATH 是否包含 npm 全局 bin 目录
+2. 重启终端
+3. 运行 `npm bin -g` 查找全局 bin 路径
+
+### 权限错误
+
+在 Linux/macOS 上，如果遇到权限错误：
+
+```bash
+# 修复 npm 权限
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### 版本冲突
+
+如果您有多个 Node 版本：
+
+```bash
+# 使用 nvm 管理版本
+nvm use 20
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+### 企业网络（SSL 检查 / Zscaler）
+
+在使用 SSL 检查代理（Zscaler、Netskope 等）的企业网络中，出站 HTTPS 会被拦截并使用公司自有根证书重新签名。如果 Cyberstrike 不信任该证书，TLS 验证将失败，您会看到类似以下的错误：
+
+```
+error: unable_to_get_issuer_cert_locally  downloading package manifest @cyberstrike-io/plugin
+hackbrowser:navigator  TypeError: unable to get local issuer certificate — planPage failed, retrying once
+```
+
+HackBrowser 爬虫受影响尤为严重：其规划器调用失败，导致爬虫仅探索少量页面后就提前停止。
+
+**修复方法——通过 `NODE_EXTRA_CA_CERTS` 信任您的企业根 CA。** 企业根证书已在您的操作系统信任存储中（这就是浏览器能正常工作的原因），因此只需将信任存储导出为 PEM 包并将 Cyberstrike 指向它。这会自动传播到 HackBrowser 工作进程。
+
+**Windows (PowerShell)**——导出所有机器根 CA（企业证书已包含在内，无需单独识别）：
+
+```powershell
+$out = "$env:USERPROFILE\corp-ca.pem"
+Get-ChildItem Cert:\LocalMachine\Root | ForEach-Object {
+  "-----BEGIN CERTIFICATE-----"
+  [Convert]::ToBase64String($_.RawData, 'InsertLineBreaks')
+  "-----END CERTIFICATE-----"
+} | Set-Content -Encoding ascii $out
+
+$env:NODE_EXTRA_CA_CERTS = $out       # 当前会话
+setx NODE_EXTRA_CA_CERTS "$out"       # 持久化到新会话
+```
+
+**macOS**：
+
+```bash
+security find-certificate -a -p /Library/Keychains/System.keychain > ~/corp-ca.pem
+security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain >> ~/corp-ca.pem
+export NODE_EXTRA_CA_CERTS=~/corp-ca.pem
+```
+
+然后在同一 shell 中运行 Cyberstrike。`unable to get local issuer certificate` 错误应消失，爬虫应能完整运行。
+
+<Aside variant="tip">
+  快速检查：`Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Zscaler*" }`（Windows）可确认企业根证书在导出前已存在于存储中。
+</Aside>
+
+<Aside variant="caution">
+  作为最后手段的测试，`NODE_TLS_REJECT_UNAUTHORIZED=0` 会完全禁用证书验证，也能绕过错误——但它会关闭所有连接的 TLS 验证，因此**不建议**在日常使用中采用。请优先使用 `NODE_EXTRA_CA_CERTS`。
+</Aside>

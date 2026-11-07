@@ -1,0 +1,64 @@
+---
+title: Desktop App
+description: Native desktop application for CyberStrike on macOS, Windows, and Linux
+sidebar:
+  order: 4
+  label: Desktop App
+  badge:
+    text: Coming Soon
+    variant: caution
+---
+
+CyberStrike Desktop is a native application that bundles the full harness — agents, tools, Vortex, HackBrowser, Bolt — into a standalone app. No terminal required.
+
+<Aside variant="caution">
+  The desktop app is under active development. All three platforms are planned for the initial release.
+</Aside>
+
+## macOS <Badge text="Coming Soon" variant="caution" size="md" />
+
+Native macOS app with Apple Silicon and Intel support. Distributed as a `.dmg` installer.
+
+- macOS 12 Monterey or later
+- Apple Silicon (M1+) or Intel
+- 500 MB disk space
+
+## Windows <Badge text="Coming Soon" variant="caution" size="md" />
+
+Native Windows app distributed as an `.exe` installer via NSIS.
+
+- Windows 10 (1809) or later
+- x64 architecture
+- 500 MB disk space
+
+<Aside variant="info">
+  WSL is **not** required. The desktop app runs natively on Windows.
+</Aside>
+
+## Linux <Badge text="Coming Soon" variant="caution" size="md" />
+
+Linux builds distributed as `.AppImage` and `.deb` packages.
+
+- Ubuntu 20.04+, Fedora 38+, or equivalent
+- x64 architecture
+- 500 MB disk space
+
+## What to Expect
+
+The desktop app provides the same capabilities as `cyberstrike web` but as a native window:
+
+- Full TUI feature parity — all slash commands, agents, and tools
+- Integrated HackBrowser — launches Chromium from within the app
+- Bolt server management — pair and manage containerized tools
+- MCP server panel — configure and monitor MCP connections
+- Session tabs — multiple assessments open simultaneously
+- Offline-capable — works with local providers like Ollama
+
+## Stay Updated
+
+Follow development progress:
+
+- [GitHub Releases](https://github.com/CyberStrikeus/CyberStrike/releases) — Desktop builds will appear here
+- [Discord](https://discord.gg/dr97wVJVbn) — Announcements and early access
+
+In the meantime, use the [TUI](/docs/usage/tui), [CLI](/docs/usage/cli), or [Web](/docs/usage/web) interfaces.

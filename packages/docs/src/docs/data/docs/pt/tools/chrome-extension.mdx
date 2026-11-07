@@ -1,0 +1,198 @@
+---
+title: Extensao Chrome
+description: Instale a extensao Chrome do CyberStrike para capturar trafego do seu proprio navegador para testes de seguranca automatizados
+sidebar:
+  order: 8
+  label: Chrome Extension
+---
+
+A extensao Chrome do CyberStrike captura trafego HTTP do seu navegador e o encaminha para a API do CyberStrike para testes de seguranca automatizados.
+
+## Quando Usar a Extensao
+
+Quando voce executa `/hackbrowser`, o CyberStrike inicia um navegador Chromium dedicado com a extensao **ja integrada**. Esse navegador automatizado cuida do crawling, captura de trafego e navegacao orientada por IA por padrao. Voce nao precisa instalar nada separadamente para esse fluxo de trabalho.
+
+A extensao Chrome independente e para um caso de uso diferente: **usar seu proprio navegador**. Instale-a quando quiser capturar trafego do seu Chrome do dia a dia — aquele com seus favoritos, senhas salvas, extensoes existentes e sessoes autenticadas. Isso e util quando:
+
+- A aplicacao alvo requer uma configuracao especifica de navegador que voce ja possui
+- Voce precisa testar com suas sessoes autenticadas reais e cookies
+- Voce quer navegar manualmente enquanto o CyberStrike analisa cada requisicao em segundo plano
+- A aplicacao usa SSO, MFA ou outros fluxos de autenticacao que sao mais faceis no seu proprio navegador
+
+Ambos os caminhos alimentam o mesmo pipeline de testes e podem ser combinados em uma unica sessao.
+
+## Instalacao
+
+O codigo-fonte da extensao esta incluido no repositorio do CyberStrike em `packages/hackbrowser/extension/`.
+
+1. Clone o repositorio:
+
+```bash
+git clone https://github.com/CyberStrikeus/CyberStrike.git
+```
+
+2. Abra o Chrome e navegue para `chrome://extensions`
+3. Ative o **Modo de desenvolvedor** no canto superior direito
+4. Clique em **Carregar sem compactacao**
+5. Selecione o diretorio `packages/hackbrowser/extension/` dentro do repositorio clonado
+
+O icone da extensao aparece na barra de ferramentas do Chrome apos o carregamento.
+
+<Aside variant="caution">
+  Inicie o CyberStrike antes de abrir o popup da extensao. A extensao conecta a API do CyberStrike na inicializacao.
+</Aside>
+
+## Configuracao
+
+Abra o popup da extensao clicando no icone da barra de ferramentas.
+
+### URL do Servidor
+
+A extensao conecta ao CyberStrike em:
+
+```
+http://127.0.0.1:4096
+```
+
+Altere no campo **Server URL** se voce esta executando o CyberStrike em um endereco ou porta diferente. Se voce esta usando um tunel Cloudflare para acesso remoto, insira a URL do tunel aqui.
+
+### Escopo
+
+Insira o dominio alvo no campo **Scope**:
+
+```
+shop.example.com
+```
+
+Apenas requisicoes cujo hostname corresponda a este escopo sao capturadas. Requisicoes para outros dominios sao ignoradas.
+
+Curingas de subdominio sao suportados:
+
+```
+*.example.com
+```
+
+### Sessao
+
+Selecione uma sessao existente no dropdown ou crie uma nova. Todas as requisicoes capturadas e contexto descoberto sao armazenados na sessao ativa.
+
+## Iniciando e Parando a Captura
+
+Clique em **Start** para comecar a interceptar trafego. O contador de requisicoes incrementa conforme a extensao captura requisicoes correspondentes.
+
+Clique em **Stop** para pausar a captura. A sessao permanece ativa e o CyberStrike continua processando quaisquer requisicoes na fila.
+
+## Gerenciamento de Credenciais
+
+Credenciais representam identidades de usuario autenticadas. A extensao rastreia headers de autenticacao por perfil do Chrome e vincula cada requisicao capturada a credencial apropriada.
+
+### Por Que Credenciais Importam
+
+O CyberStrike usa credenciais para testar vulnerabilidades entre usuarios:
+
+- **IDOR** — a Credencial A pode acessar recursos pertencentes a Credencial B?
+- **Bypass de autorizacao** — uma credencial com menos privilegios pode acessar endpoints que requerem privilegios mais altos?
+- **Mass assignment** — um usuario regular pode injetar campos exclusivos de admin?
+
+Quanto mais credenciais voce registrar (admin, usuario regular, convidado, etc.), mais ampla a cobertura de testes entre usuarios.
+
+### Perfis do Chrome
+
+Perfis do Chrome isolam sessoes do navegador para que voce possa estar logado como multiplos usuarios simultaneamente. Cada perfil mantem seus proprios cookies e armazenamento local.
+
+**Configuracao:**
+
+1. Clique no icone do seu perfil no canto superior direito do Chrome
+2. Clique em **Adicionar** para criar um novo perfil para cada funcao de usuario:
+   - `Admin`
+   - `Usuario Regular`
+   - `Convidado`
+3. Abra a aplicacao alvo em cada perfil e faca login com a conta correspondente
+4. No popup do CyberStrike, adicione uma credencial para cada perfil (veja abaixo)
+
+### Adicionando uma Credencial
+
+No popup:
+
+1. Clique em **Add Credential**
+2. Insira um rotulo descritivo — por exemplo `admin-user` ou `regular-user`
+3. Selecione o perfil do Chrome vinculado a essa conta
+4. Clique em **Save**
+
+A credencial e registrada na API do CyberStrike. A partir desse ponto, requisicoes capturadas desse perfil sao automaticamente marcadas com o ID da credencial.
+
+### Sincronizacao Automatica de Headers
+
+Quando a extensao detecta que um header de autenticacao mudou em um perfil — por exemplo apos uma renovacao de token — ela sincroniza automaticamente os headers atualizados para a credencial. Voce nao precisa atualizar credenciais manualmente apos rotacoes de token.
+
+### Headers de Autenticacao Rastreados
+
+A extensao monitora estes headers para rastreamento de credenciais:
+
+| Header | Descricao |
+|--------|-----------|
+| `Authorization` | Bearer tokens, Basic auth |
+| `Cookie` | Cookies de sessao |
+| `X-Auth-Token` | Tokens de auth personalizados |
+| `X-API-Key` | Chaves de API |
+| `X-Access-Token` | Tokens de acesso OAuth |
+| `X-Session-Token` | Tokens de sessao |
+| `X-CSRF-Token` | Tokens CSRF |
+
+## Filtragem de Requisicoes
+
+A extensao ignora ativos estaticos automaticamente para reduzir ruido:
+
+| Categoria | Extensoes |
+|-----------|-----------|
+| Imagens | `.png` `.jpg` `.jpeg` `.gif` `.svg` `.ico` `.webp` |
+| Estilos e Scripts | `.css` `.js` `.mjs` |
+| Fontes | `.woff` `.woff2` `.ttf` `.eot` `.otf` |
+| Midia | `.mp4` `.mp3` `.avi` `.mov` `.webm` |
+| Arquivos e Documentos | `.pdf` `.zip` `.gz` `.br` |
+| Source Maps | `.map` |
+
+Apenas requisicoes de nivel de aplicacao (chamadas de API, envios de formulario, navegacoes de pagina) sao encaminhadas.
+
+## O Que e Enviado para a API
+
+Para cada requisicao capturada, a extensao envia um payload para `POST /session/ingest`:
+
+```json
+{
+  "text": "POST /api/orders HTTP/1.1\r\nHost: shop.example.com\r\nAuthorization: Bearer eyJ...\r\nContent-Type: application/json\r\n\r\n{\"item_id\": 42, \"qty\": 1}",
+  "sessionID": "session-abc123",
+  "credential_id": "web_credential-xyz789",
+  "response": {
+    "status": 201,
+    "headers": {
+      "content-type": "application/json"
+    },
+    "body": "{\"order_id\": 573, \"total\": 29.99, \"status\": \"pending\"}"
+  }
+}
+```
+
+O campo `text` contem a requisicao HTTP bruta completa. O corpo da resposta e limitado a 500 KB pela extensao; a API o reduz ainda mais para 100 KB antes da analise.
+
+## Deteccao de Duplicatas
+
+O CyberStrike deduplica requisicoes no lado do servidor. Uma requisicao e ignorada se tiver o mesmo metodo HTTP, caminho normalizado, estrutura do corpo e chaves de parametros de query que uma requisicao processada anteriormente. Isso evita testes redundantes de endpoints identicos.
+
+## Painel de Contexto
+
+O popup exibe o contexto que o CyberStrike acumulou em todas as requisicoes processadas:
+
+| Painel | Conteudo |
+|--------|----------|
+| **Credentials** | Todas as credenciais registradas e seus perfis vinculados |
+| **Roles** | Funcoes de usuario descobertas durante a analise |
+| **Objects** | Entidades de dados (User, Order, Product) e seus campos |
+| **Functions** | Mapeamentos endpoint-funcao com tipos de acao CRUD |
+
+Este painel e somente leitura. O CyberStrike o preenche progressivamente conforme processa mais requisicoes.
+
+
+## Documentacao Relacionada
+
+- [HackBrowser](/docs/tools/hacker-browser) - Crawler autonomo por IA — a alternativa automatizada

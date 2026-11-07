@@ -1,0 +1,169 @@
+---
+title: Atalhos de Teclado
+description: Domine o Cyberstrike com atalhos de teclado baseados em tecla lider
+sidebar:
+  order: 5
+  label: Atalhos de Teclado
+---
+
+A TUI do Cyberstrike e dirigida por atalhos de teclado baseados em tecla lider para navegacao eficiente. Esta pagina lista os padroes comuns. Para a lista completa de acoes e como personaliza-las, consulte [Keybindings](/docs/configuration/keybindings).
+
+## Tecla Lider
+
+A tecla lider e `Ctrl+X` por padrao. Muitos atalhos sao `<leader>` seguido de outra tecla.
+
+Para alterar a tecla lider:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## Atalhos de Sessao
+
+| Atalho | Acao |
+|--------|------|
+| `<leader>n` | Nova sessao |
+| `<leader>l` | Listar sessoes |
+| `<leader>c` | Compactar/resumir sessao |
+| `<leader>g` | Linha do tempo da sessao |
+| `<leader>x` | Exportar sessao |
+| `Ctrl+R` | Renomear sessao |
+| `Ctrl+D` | Excluir sessao |
+| `Escape` | Interromper a sessao em execucao |
+
+## Navegacao
+
+| Atalho | Acao |
+|--------|------|
+| `PageUp` / `PageDown` | Rolar uma pagina |
+| `Ctrl+Alt+U` | Rolar meia pagina para cima |
+| `Ctrl+Alt+D` | Rolar meia pagina para baixo |
+| `Ctrl+G` / `Home` | Ir para a primeira mensagem |
+| `Ctrl+Alt+G` / `End` | Ir para a ultima mensagem |
+| `<leader>y` | Copiar mensagem |
+| `<leader>u` | Desfazer mensagem (reverter) |
+| `<leader>r` | Refazer mensagem |
+
+## Entrada
+
+| Atalho | Acao |
+|--------|------|
+| `Enter` | Enviar mensagem |
+| `Shift+Enter` | Nova linha |
+| `Ctrl+V` | Colar |
+| `Ctrl+C` | Limpar entrada |
+| `Escape` | Interromper a sessao em execucao |
+
+## Modelo e Agente
+
+| Atalho | Acao |
+|--------|------|
+| `<leader>m` | Selecao de modelo |
+| `<leader>a` | Selecao de agente |
+| `Tab` | Proximo agente |
+| `Shift+Tab` | Agente anterior |
+
+## Interface
+
+| Atalho | Acao |
+|--------|------|
+| `<leader>t` | Selecao de tema |
+| `<leader>s` | Visualizacao de status |
+| `<leader>b` | Alternar barra lateral |
+| `<leader>e` | Abrir no editor externo |
+| `Ctrl+P` | Lista de comandos |
+
+## Dialogos
+
+Quando um dialogo esta aberto (selecao de modelo, lista de sessoes, etc.), navegue com as teclas de seta, pressione `Enter` para selecionar e `Escape` para fechar. Alguns atalhos especificos de dialogo:
+
+| Atalho | Acao |
+|--------|------|
+| `Ctrl+F` | Alternar modelo favorito (no dialogo de modelo) |
+| `F2` / `Shift+F2` | Alternar para o proximo / anterior modelo recente |
+
+## Prompts de Permissao
+
+Quando uma ferramenta precisa de aprovacao, um prompt inline aparece com tres opcoes — **Permitir uma vez**, **Permitir sempre** e **Rejeitar**. Use as teclas de seta e `Enter` para escolher; `Escape` rejeita.
+
+## Personalizando Keybindings
+
+Sobrescreva os padroes em `keybinds` na sua configuracao. Apenas nomes de acoes validos sao aceitos (o objeto e validado estritamente):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "status_view": "<leader>s",
+    "sidebar_toggle": "<leader>b",
+    "editor_open": "<leader>e",
+    "session_export": "<leader>x",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r"
+  }
+}
+```
+
+Consulte [Keybindings](/docs/configuration/keybindings) para cada acao configuravel e seu padrao.
+
+## Formato de Keybinding
+
+- **Modificadores**: `ctrl`, `alt`, `shift`, `super`
+- **Teclas especiais**: `return`, `escape`, `tab`, `space`, `backspace`, `pageup`, `pagedown`, `home`, `end`
+- **Lider**: `<leader>` (substituido pela tecla lider configurada)
+- **Alternativas**: `ctrl+c,ctrl+d` (virgula separa bindings alternativos para uma acao)
+- **Desabilitar**: `none`
+
+### Exemplos
+
+```
+ctrl+alt+u          # Ctrl + Alt + U
+alt+shift+f         # Alt + Shift + F
+<leader>n           # Tecla lider e depois N
+ctrl+c,ctrl+d       # qualquer binding aciona a acao
+```
+
+## Cartao de Referencia Rapida
+
+```
+┌─────────────────────────────────────────┐
+│  Atalhos de Teclado do Cyberstrike      │
+├─────────────────────────────────────────┤
+│  Sessao                                 │
+│    <leader>n   Nova sessao              │
+│    <leader>l   Listar sessoes           │
+│    <leader>c   Compactar sessao         │
+│    Ctrl+R      Renomear sessao          │
+├─────────────────────────────────────────┤
+│  Navegacao                              │
+│    Ctrl+Alt+U/D  Rolagem meia pagina    │
+│    <leader>u     Desfazer mensagem      │
+│    <leader>r     Refazer mensagem       │
+├─────────────────────────────────────────┤
+│  Modelo/Agente                          │
+│    <leader>m   Modelos                  │
+│    <leader>a   Agentes                  │
+│    Tab         Proximo agente           │
+├─────────────────────────────────────────┤
+│  Interface                              │
+│    <leader>s   Status                   │
+│    <leader>t   Temas                    │
+│    <leader>b   Barra lateral            │
+│    Ctrl+P      Lista de comandos        │
+└─────────────────────────────────────────┘
+```
+
+## Documentacao Relacionada
+
+- [Keybindings](/docs/configuration/keybindings) - Lista completa de acoes e personalizacao
+- [Primeiros Passos](/docs/getting-started) - Instalacao e primeiros passos

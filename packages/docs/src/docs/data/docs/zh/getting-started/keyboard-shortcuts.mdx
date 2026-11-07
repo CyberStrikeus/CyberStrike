@@ -1,0 +1,169 @@
+---
+title: 快捷键
+description: 使用 Leader 快捷键掌控 Cyberstrike
+sidebar:
+  order: 5
+  label: 快捷键
+---
+
+Cyberstrike 的 TUI 使用基于 Leader 键的快捷键进行高效导航。本页面列出常用默认快捷键。完整的操作列表和自定义方式请参阅[按键绑定](/docs/configuration/keybindings)。
+
+## Leader 键
+
+Leader 键默认为 `Ctrl+X`。许多快捷键是 `<leader>` 加另一个键。
+
+修改 Leader 键：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## 会话快捷键
+
+| 快捷键 | 操作 |
+|--------|------|
+| `<leader>n` | 新建会话 |
+| `<leader>l` | 列出会话 |
+| `<leader>c` | 压缩/总结会话 |
+| `<leader>g` | 会话时间线 |
+| `<leader>x` | 导出会话 |
+| `Ctrl+R` | 重命名会话 |
+| `Ctrl+D` | 删除会话 |
+| `Escape` | 中断当前运行的会话 |
+
+## 导航
+
+| 快捷键 | 操作 |
+|--------|------|
+| `PageUp` / `PageDown` | 翻页 |
+| `Ctrl+Alt+U` | 向上滚动半页 |
+| `Ctrl+Alt+D` | 向下滚动半页 |
+| `Ctrl+G` / `Home` | 跳转到第一条消息 |
+| `Ctrl+Alt+G` / `End` | 跳转到最后一条消息 |
+| `<leader>y` | 复制消息 |
+| `<leader>u` | 撤消消息（还原） |
+| `<leader>r` | 重做消息 |
+
+## 输入
+
+| 快捷键 | 操作 |
+|--------|------|
+| `Enter` | 提交消息 |
+| `Shift+Enter` | 换行 |
+| `Ctrl+V` | 粘贴 |
+| `Ctrl+C` | 清除输入 |
+| `Escape` | 中断当前运行的会话 |
+
+## 模型与代理
+
+| 快捷键 | 操作 |
+|--------|------|
+| `<leader>m` | 模型选择 |
+| `<leader>a` | 代理选择 |
+| `Tab` | 下一个代理 |
+| `Shift+Tab` | 上一个代理 |
+
+## 界面
+
+| 快捷键 | 操作 |
+|--------|------|
+| `<leader>t` | 主题选择 |
+| `<leader>s` | 状态视图 |
+| `<leader>b` | 切换侧边栏 |
+| `<leader>e` | 在外部编辑器中打开 |
+| `Ctrl+P` | 命令列表 |
+
+## 对话框
+
+当对话框打开时（模型选择、会话列表等），使用方向键导航，按 `Enter` 选择，`Escape` 关闭。以下是一些对话框特定的快捷键：
+
+| 快捷键 | 操作 |
+|--------|------|
+| `Ctrl+F` | 切换模型收藏（在模型对话框中） |
+| `F2` / `Shift+F2` | 切换到下一个/上一个最近使用的模型 |
+
+## 权限提示
+
+当工具需要批准时，会出现内联提示，提供三个选项——**允许一次**、**始终允许**和**拒绝**。使用方向键和 `Enter` 选择；`Escape` 拒绝。
+
+## 自定义快捷键
+
+在配置中的 `keybinds` 下覆盖默认值。仅接受有效的操作名称（对象会被严格验证）：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "status_view": "<leader>s",
+    "sidebar_toggle": "<leader>b",
+    "editor_open": "<leader>e",
+    "session_export": "<leader>x",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r"
+  }
+}
+```
+
+所有可配置的操作及其默认值请参阅[按键绑定](/docs/configuration/keybindings)。
+
+## 按键格式
+
+- **修饰键**：`ctrl`、`alt`、`shift`、`super`
+- **特殊键**：`return`、`escape`、`tab`、`space`、`backspace`、`pageup`、`pagedown`、`home`、`end`
+- **Leader**：`<leader>`（替换为配置的 Leader 键）
+- **备选键**：`ctrl+c,ctrl+d`（逗号分隔同一操作的备选绑定）
+- **禁用**：`none`
+
+### 示例
+
+```
+ctrl+alt+u          # Ctrl + Alt + U
+alt+shift+f         # Alt + Shift + F
+<leader>n           # Leader 键然后 N
+ctrl+c,ctrl+d       # 任一绑定都能触发操作
+```
+
+## 快速参考卡片
+
+```
+┌─────────────────────────────────────────┐
+│  Cyberstrike 快捷键                      │
+├─────────────────────────────────────────┤
+│  会话                                    │
+│    <leader>n   新建会话                  │
+│    <leader>l   列出会话                  │
+│    <leader>c   压缩会话                  │
+│    Ctrl+R      重命名会话                │
+├─────────────────────────────────────────┤
+│  导航                                    │
+│    Ctrl+Alt+U/D  半页滚动               │
+│    <leader>u     撤消消息                │
+│    <leader>r     重做消息                │
+├─────────────────────────────────────────┤
+│  模型/代理                               │
+│    <leader>m   模型                      │
+│    <leader>a   代理                      │
+│    Tab         下一个代理                │
+├─────────────────────────────────────────┤
+│  界面                                    │
+│    <leader>s   状态                      │
+│    <leader>t   主题                      │
+│    <leader>b   侧边栏                   │
+│    Ctrl+P      命令列表                  │
+└─────────────────────────────────────────┘
+```
+
+## 相关文档
+
+- [按键绑定](/docs/configuration/keybindings) - 完整操作列表和自定义
+- [快速入门](/docs/getting-started) - 安装和首步操作

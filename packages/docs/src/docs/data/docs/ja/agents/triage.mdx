@@ -1,0 +1,59 @@
+---
+title: Triageエージェント
+description: ドラフト脆弱性発見の独立検証と重複排除
+sidebar:
+  order: 6
+  label: Triage
+---
+
+`triage` エージェントは、HTTPエビデンスをリプレイしてドラフト脆弱性発見を独立的に検証します。報告エージェントの説明を鵜呑みにせず、すべてのリクエストをリプレイしてレスポンスボディを自ら確認します。
+
+## 概要
+
+| プロパティ | 値 |
+|----------|-------|
+| **エージェントID** | `triage` |
+| **モード** | `subagent` |
+| **ツールアクセス** | 制限あり（read、grep、http_replay、triage_vulnerability、web_get_session_context） |
+| **設計** | 保守的 — 検証不可能な発見はドラフトのまま |
+
+## 検証プロトコル
+
+各ドラフト発見に対してtriageエージェントは：
+
+1. 添付されたHTTPエビデンス（キャプチャされたリクエスト/レスポンス）を読み取り
+2. `http_replay` を使用してリクエストを独立にリプレイ
+3. リプレイレスポンスで実際の証拠を確認
+4. 発見の判定を決定：
+
+| 判定 | 条件 |
+|---------|------|
+| **Triaged** | リプレイが脆弱性を確認 |
+| **Rejected** | リプレイが誤検知を示す |
+| **Duplicate** | 発見が別の検証済み発見と重複 |
+| **Draft**（変更なし） | 検証不可能 — 人間のレビューに委ねる |
+
+## 証拠として認められるもの
+
+triageエージェントは厳格なエビデンス基準を適用します：
+
+- `200` ステータスだけでは証拠に**なりません** — レスポンスボディにターゲットデータが含まれている必要があります
+- `deleted:0`、空の配列、汎用的な成功メッセージはエビデンスでは**ありません**
+- クロステナント/IDORの発見では、レスポンスに**別の**テナントのデータが含まれている必要があります
+- 認可の発見では、`compare` モードリプレイが権限境界の超越を示す必要があります
+
+## 例
+
+```
+Draft: IDOR in GET /api/users/42 — claimed to return user data for another tenant
+
+Triage:
+1. Replay GET /api/users/42 with original auth → 200, body: {"id": 42, "name": "Other User"}
+2. Replay GET /api/users/42 with attacker auth → 200, body: {"id": 42, "name": "Other User"}
+3. Both return the same user data → CONFIRMED cross-tenant access
+4. → triage_vulnerability(id, status: "triaged")
+```
+
+<Aside variant="info">
+  triageエージェントは、脆弱性テストサブエージェントが発見を報告した後に自動的にディスパッチされます。発見が提示される前の最終品質ゲートとして実行されます。
+</Aside>

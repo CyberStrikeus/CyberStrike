@@ -86,7 +86,9 @@ Use this to:
       for (const h of COMMON_AUTH_HEADERS) {
         msg = Mutate.removeHeader(msg, h)
       }
-      for (const [name, value] of Object.entries(cred.headers)) {
+      // Per-origin auth: apply this identity's headers FOR THE TARGET HOST only.
+      const host = (msg.headers.find((h) => h.name.toLowerCase() === "host")?.value ?? "").toLowerCase()
+      for (const [name, value] of Object.entries(WebCredential.authForHost(cred.authByHost, host))) {
         msg = Mutate.setHeader(msg, name, value)
       }
     }

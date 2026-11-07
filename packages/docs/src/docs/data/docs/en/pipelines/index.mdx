@@ -1,0 +1,143 @@
+---
+title: Agentic Pipelines
+description: How CyberStrike orchestrates multi-agent workflows across security domains
+sidebar:
+  order: 1
+  label: Overview
+---
+
+CyberStrike doesn't run security tests with a single agent and a flat list of tools. For each cybersecurity domain — web applications, cloud infrastructure, internal networks — it builds a **dedicated agentic pipeline**: a structured workflow of agents, sub-agents, custom tools, and deterministic correlation layers that operate together to perform a thorough assessment.
+
+## What is an Agentic Pipeline?
+
+An agentic pipeline is an end-to-end assessment workflow that combines:
+
+- **User-facing agents** you interact with directly (Tier 1)
+- **Sub-agents** spawned automatically by orchestrators to cover specific testing areas (Tier 2)
+- **Invisible pipeline agents** that run autonomously behind the scenes — dispatched, monitored, and terminated by the system (Tier 3)
+- **Custom tools** purpose-built for the domain — not generic wrappers, but instruments containing domain-specific attack logic
+- **Deterministic layers** that don't depend on AI: rule engines, signal routers, canary correlation, chain detection
+
+Each domain pipeline is self-contained. You invoke it from the primary `cyberstrike` agent with a single command or prompt, and the pipeline handles the rest — agent dispatch, tool selection, methodology coverage, finding correlation, and verification.
+
+## Three-Tier Agent Architecture
+
+Every pipeline is built on a three-tier model that separates user interaction from autonomous execution.
+
+### Tier 1: User-Facing Agents
+
+These agents appear in the UI tab bar. You can select them, talk to them, and see their responses directly.
+
+| Agent | Role |
+|-------|------|
+| **cyberstrike** | Primary orchestrator — decides which domain pipeline to invoke |
+| **wstg-agent** | Web assessment lead — orchestrates WSTG specialists |
+| **general** | General-purpose assistant and parallel task runner |
+| **triage** | Independent vulnerability verifier |
+| **explore** | Fast read-only codebase and recon analyst |
+
+The `cyberstrike` agent is the entry point for every assessment. When you describe a target, it determines the domain (web, cloud, network) and dispatches to the appropriate pipeline.
+
+### Tier 2: Sub-Agents
+
+Sub-agents are spawned programmatically by Tier 1 orchestrators. You see their findings but don't interact with them directly. They receive:
+
+- A focused scope (one WSTG category, one cloud security group)
+- A curated tool set (only the tools relevant to their testing area)
+- Shared base permissions (HTTP replay, vulnerability reporting, methodology tracking)
+- Domain-specific custom tools (probes, hooks, analysis instruments)
+
+For example, the web pipeline's `wstg-input-validation` agent receives `inject_probe` (13 injection modes), `vortex_inject_points` (automated injection point discovery), and `vortex_probe` (active traffic probing) — tools that other specialists don't need and don't get.
+
+### Tier 3: Invisible Pipeline Agents
+
+These agents are fully autonomous. The user never sees them — they are spawned, orchestrated, monitored by a watchdog, and killed by the pipeline controller.
+
+Currently, the Azure cloud pipeline is the only Tier 3 implementation: an orchestrator dispatches up to 9 domain analyst agents in parallel (identity, compute, network, data, security, access, specialized, compliance, exposure), coordinates follow-up investigations, and runs adversarial verification — all within a 25-minute deadline with per-agent timeouts and concurrency gates.
+
+### Why Three Tiers Matter
+
+This architecture scales from a simple single-agent interaction to a fully autonomous multi-agent assessment without requiring the user to manage anything:
+
+```
+Simple:     user → cyberstrike → tools → findings
+
+Full web:   user → cyberstrike → wstg-agent → 14 sub-agents
+                                    ↓
+                              Vortex correlation → chain detection → verified findings
+
+Full cloud: user → cyberstrike → cloud_audit → orchestrator
+                                    ↓
+                              9 parallel analysts → follow-up → adversarial verify
+```
+
+## Domain Pipelines
+
+Each security domain has its own pipeline with different maturity levels:
+
+| Domain | Agents | Custom Tools | Status |
+|--------|--------|--------------|--------|
+| [Web Applications](/docs/pipelines/web) | 15 sub-agents | 9 probes + 10 Vortex tools | Production |
+| [Cloud — Azure](/docs/pipelines/cloud) | 13+ invisible agents | 154 azurehook programs | Production |
+| [Cloud — AWS](/docs/pipelines/cloud) | None | 173 awshook programs | Tools ready, pipeline planned |
+| [Cloud — GCP](/docs/pipelines/cloud) | None | 33 gcphook programs | Tools ready, pipeline planned |
+| Internal Network | — | linuxhook, winhook, kubehook | In development |
+| Mobile | — | — | In development |
+
+## Custom Tools: Not Wrappers
+
+CyberStrike's custom tools are **purpose-built security testing instruments** with domain-specific attack logic. Each tool contains specialized sub-modules for a particular testing dimension.
+
+For example, `session_probe` doesn't just read JWT tokens — it contains:
+
+- **`jwt.ts`**: algorithmic attacks (alg:none bypass, RS256→HS256 downgrade, kid path traversal, expired token replay, claim forgery)
+- **`cookie.ts`**: HttpOnly/Secure/SameSite validation, session fixation, scope analysis
+
+And `inject_probe` has **13 specialized injection files**, each implementing a distinct attack class: XSS, SSTI, OS command injection, LFI, CRLF, time-blind, mass assignment, file upload, host header injection, verb tampering, HTTP parameter pollution, error signatures, and more. Each mode contains context-aware payload generation, severity scoring, and evidence collection.
+
+This level of specialization is representative across all probe tools — `crypto_probe` (TLS handshake, cipher enumeration, weak crypto detection), `error_probe` (request mutation, error elicitation, stack trace pattern matching), `identity_probe` (IDOR patterns, user enumeration via timing/response differential), and others.
+
+## Deterministic Layers
+
+Every pipeline includes layers that **don't depend on AI** — they fire on every transaction regardless of what the agents do:
+
+| Layer | What It Does |
+|-------|-------------|
+| **Rule Engine** | Pattern-matches every HTTP transaction against rule packs (~20,000 rule scale) |
+| **Canary System** | Injects tracking tokens, watches for reflection, scores severity |
+| **Signal Router** | Dispatches matched signals to the correct specialist agent |
+| **Taint Tracking** | Correlates input values to output locations across transactions |
+| **Chain Detection** | Identifies when multiple low-severity findings combine into high-impact chains |
+
+These layers ensure **zero missed signals** — even if an AI agent overlooks something, the deterministic engine catches it.
+
+## Chain Detection
+
+The chain detection engine runs after each assessment phase, correlating findings across all agents:
+
+| Pattern | Components | Impact |
+|---------|-----------|--------|
+| Credential + Endpoint | Leaked credential + API endpoint | Account Takeover |
+| Info Disclosure + SSRF | Internal URL leak + SSRF-capable endpoint | Internal Network Access |
+| Open Redirect + OAuth | Open redirect + OAuth flow | Token Theft |
+| IDOR + User Data | IDOR vulnerability + user data endpoint | Mass Data Leak |
+| XSS + State Change | XSS + state-changing endpoint | CSRF Bypass |
+| SSTI → RCE | Template injection | Remote Code Execution |
+| Race Condition + Payment | Race condition + financial endpoint | Financial Impact |
+
+Each chain is flagged with a confidence score and sent to the `escalation-hunter` agent (web) or `cloud-followup` agent (cloud) for investigation.
+
+## Domain Plugin System
+
+Pipelines are delivered as **domain packages** that register automatically:
+
+- `@cyberstrike-io/web` — auto-loaded (default domain)
+- `@cyberstrike-io/azure` — auto-discovered via plugin system
+- `@cyberstrike-io/aws` — auto-discovered, tool-only
+- `@cyberstrike-io/gcp` — auto-discovered, tool-only
+
+Each domain package can register agent specs, custom tools, lifecycle hooks, and methodology definitions. The plugin loader handles discovery and tier-gating.
+
+<Aside variant="tip">
+  The pipeline architecture is extensible. Custom domain packages can define their own agents, tools, and orchestration flows — see the domain plugin documentation for details.
+</Aside>

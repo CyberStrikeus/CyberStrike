@@ -1,0 +1,19 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+type Props = HTMLAttributes<"span"> & {
+  /**
+   * The text to display when no value is selected
+   */
+  placeholder?: string;
+};
+
+const selectValue = tv({ base: "pointer-events-none" });
+
+const { placeholder = "select", class: className, ...rest } = Astro.props;
+---
+
+<span class={selectValue({ class: className })} {...rest}>
+  {placeholder}
+</span>

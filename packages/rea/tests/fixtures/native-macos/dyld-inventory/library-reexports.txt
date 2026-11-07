@@ -1,0 +1,4 @@
+/usr/lib/libc++.1.dylib [arm64e]:
+    -exports:
+        offset      symbol
+        [re-export] __ZNKSt10bad_typeid4whatEv (from libc++abi)

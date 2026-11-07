@@ -1,37 +1,5 @@
 import { describe, test, expect } from "bun:test"
-
-// Standalone copies from inject-probe.ts (not exported)
-function setJsonField(body: string, path: string, value: string): string {
-  try {
-    const root = JSON.parse(body || "{}")
-    const keys = path.split(".")
-    let cur: any = root
-    for (let i = 0; i < keys.length - 1; i++) {
-      if (typeof cur[keys[i]] !== "object" || cur[keys[i]] == null) cur[keys[i]] = {}
-      cur = cur[keys[i]]
-    }
-    cur[keys[keys.length - 1]] = value
-    return JSON.stringify(root)
-  } catch {
-    return body
-  }
-}
-
-function setJsonValue(body: string, path: string, value: any): string {
-  try {
-    const root = JSON.parse(body || "{}")
-    const keys = path.split(".")
-    let cur: any = root
-    for (let i = 0; i < keys.length - 1; i++) {
-      if (typeof cur[keys[i]] !== "object" || cur[keys[i]] == null) cur[keys[i]] = {}
-      cur = cur[keys[i]]
-    }
-    cur[keys[keys.length - 1]] = value
-    return JSON.stringify(root)
-  } catch {
-    return body
-  }
-}
+import { setJsonField, setJsonValue } from "../../../src/tool/inject-probe/mutate"
 
 describe("setJsonField", () => {
   test("sets a top-level field", () => {

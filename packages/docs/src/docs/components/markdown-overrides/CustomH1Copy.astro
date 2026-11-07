@@ -1,0 +1,85 @@
+---
+import Link from "@tabler/icons/outline/link.svg";
+
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedPathname } from "@/docs/js/translationUtils";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+
+const { id, ...rest }: Record<string, any> = Astro.props;
+
+const domain = Astro.url.origin + (await getLocalizedPathname(currLocale, Astro.url)); // pulls from astro.config.mjs
+// console.log(domain + "#" + id);
+---
+
+<h1
+  id={id}
+  {...rest}
+  class="group flex scroll-mt-[calc(var(--nav-height)+3rem)] flex-wrap items-baseline gap-2 lg:scroll-mt-[calc(var(--nav-height)+1rem)]"
+>
+  <span><slot /></span>
+  <button
+    class="tooltip-trigger not-content after:bg-base-900 after:text-base-100 after:border-border text-foreground/80 hover:text-foreground hidden rounded-md font-sans text-sm opacity-0 transition-opacity group-hover:opacity-100 after:border md:inline"
+    data-tooltip="Copy link"
+    data-clipboard-text={domain + "#" + id}
+  >
+    <Link class="size-5 transition-colors" />
+  </button>
+</h1>
+
+<style>
+  .tooltip-trigger {
+    position: relative;
+  }
+  .tooltip-trigger::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .tooltip-trigger:hover::after {
+    opacity: 1;
+  }
+</style>
+
+<script>
+  let copyLinkButtons: NodeListOf<Element>;
+
+  function initShareButtons() {
+    copyLinkButtons = document.querySelectorAll("[data-tooltip]");
+
+    if (copyLinkButtons) {
+      copyLinkButtons.forEach((copyLinkButton) => {
+        copyLinkButton.addEventListener("click", () => {
+          const toCopy = copyLinkButton.getAttribute("data-clipboard-text") || window.location.href;
+          // copy the link to the clipboard
+          navigator.clipboard.writeText(toCopy);
+
+          // get the tooltip and svg elements
+          // change the tooltip and data-tooltip attribute to show success
+          if (copyLinkButton instanceof HTMLElement) {
+            copyLinkButton.setAttribute("data-tooltip", "copied!");
+
+            setTimeout(() => {
+              copyLinkButton.setAttribute("data-tooltip", "copy link");
+            }, 3000);
+          }
+        });
+      });
+    }
+  }
+
+  // runs on initial page load
+  initShareButtons();
+
+  // runs on view transitions navigation. Not needed if item has "transition:persist"
+  document.addEventListener("astro:after-swap", initShareButtons);
+</script>

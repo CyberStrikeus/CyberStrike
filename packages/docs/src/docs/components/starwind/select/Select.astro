@@ -1,0 +1,493 @@
+---
+import type { HTMLAttributes } from "astro/types";
+
+type Props = HTMLAttributes<"div"> & {
+  /**
+   * The name of the select field for form handling
+   */
+  name?: string;
+  /**
+   * The value of the item that should be selected by default
+   */
+  defaultValue?: string;
+
+  children: any;
+};
+
+const { class: className, name, defaultValue, ...rest } = Astro.props;
+---
+
+<div
+  class:list={["starwind-select", "relative", className]}
+  data-name={name}
+  data-value={defaultValue}
+  {...rest}
+>
+  <slot />
+</div>
+
+<script>
+  import type { SelectChangeEvent } from "./SelectTypes";
+
+  class SelectHandler {
+    private select: HTMLElement;
+    private trigger: HTMLButtonElement | null;
+    private content: HTMLElement | null;
+    private isOpen: boolean = false;
+    private selectedItem: HTMLElement | null = null;
+    private animationDuration = 150;
+    private typeaheadTimerRef: number | null = null;
+    private typeaheadSearch = "";
+    private returnFocusOnClose: boolean = true;
+
+    constructor(select: HTMLElement, selectIdx: number) {
+      this.select = select;
+      this.trigger = select.querySelector(".starwind-select-trigger");
+      this.content = select.querySelector(".starwind-select-content");
+
+      if (!this.trigger || !this.content) return;
+
+      // animationDuration is set with inline styles through passed prop to SelectContent
+      const animationDurationString = this.content.style.animationDuration;
+      if (animationDurationString.endsWith("ms")) {
+        this.animationDuration = parseFloat(animationDurationString);
+      } else if (animationDurationString.endsWith("s")) {
+        // using something like @playform/compress might optimize to use "s" instead of "ms"
+        this.animationDuration = parseFloat(animationDurationString) * 1000;
+      }
+
+      this.init(selectIdx);
+    }
+
+    private init(selectIdx: number) {
+      this.setupAccessibility(selectIdx);
+      this.setupEvents();
+      this.setupSelectField();
+      this.setInitialState();
+    }
+
+    private setupSelectField() {
+      if (!this.trigger || !this.content) return;
+      // build the standard select field
+      const selectField = document.createElement("select");
+      selectField.tabIndex = -1;
+      selectField.setAttribute("aria-hidden", "true");
+      selectField.setAttribute("placeholder", "select");
+      selectField.name = this.select.getAttribute("data-name") || "";
+
+      // you can comment out this "sr-only" class line below if you want to see the native select in action
+      selectField.classList.add("starwind-sr-only");
+
+      // The first option is a placeholder
+      const placeholderOption = document.createElement("option");
+      placeholderOption.value = "";
+      placeholderOption.textContent = "Select";
+      placeholderOption.disabled = true;
+      placeholderOption.selected = true;
+      selectField.appendChild(placeholderOption);
+
+      // add all options to the select field
+      this.content.querySelectorAll('[role="option"]').forEach((option) => {
+        const optionValue = option.getAttribute("data-value");
+        const optionText = option.textContent;
+        const optionElement = document.createElement("option");
+        optionElement.value = optionValue || "";
+        optionElement.textContent = optionText || "";
+        selectField.appendChild(optionElement);
+      });
+      this.trigger.appendChild(selectField);
+
+      // add this select field right after the trigger
+      this.trigger.parentElement?.insertBefore(selectField, this.trigger.nextSibling);
+
+      this.setSize();
+      this.content.style.width = "var(--starwind-select-trigger-width)";
+    }
+
+    private setupAccessibility(selectIdx: number) {
+      if (!this.trigger || !this.content) return;
+
+      // Generate unique IDs for accessibility
+      this.trigger.id = `starwind-select${selectIdx}-trigger`;
+      this.content.id = `starwind-select${selectIdx}-content`;
+
+      // Set up additional ARIA attributes
+      this.trigger.setAttribute("aria-controls", this.content.id);
+      this.content.setAttribute("aria-labelledby", this.trigger.id);
+    }
+
+    private setupEvents() {
+      if (!this.trigger || !this.content) return;
+
+      // Handle pointerdown
+      this.trigger.addEventListener("pointerdown", (e) => {
+        // prevent implicit pointer capture
+        // https://www.w3.org/TR/pointerevents3/#implicit-pointer-capture
+        const target = e.target as HTMLElement;
+        if (target.hasPointerCapture(e.pointerId)) {
+          target.releasePointerCapture(e.pointerId);
+        }
+
+        // prevent trigger from stealing focus from the active item after opening.
+        e.preventDefault();
+
+        // only call handler if it's the left button (mousedown gets triggered by all mouse buttons)
+        // but not when the control key is pressed (avoiding MacOS right click); also not for touch
+        // devices because that would open the menu on scroll. (pen devices behave as touch on iOS).
+        if (e.button === 0 && e.ctrlKey === false && e.pointerType === "mouse") {
+          this.returnFocusOnClose = true;
+          this.toggleSelect();
+        }
+      });
+
+      // Handle click event for mobile devices
+      this.trigger.addEventListener("click", (e) => {
+        if (window.matchMedia("(pointer: coarse)").matches) {
+          e.preventDefault();
+          this.returnFocusOnClose = true;
+          this.toggleSelect();
+        }
+      });
+
+      // add enter or space key to select trigger to toggle select
+      this.trigger.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          this.returnFocusOnClose = true;
+          this.toggleSelect();
+        }
+      });
+
+      // Handle keyboard navigation inside select content
+      this.content.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          // set element based on current focused element
+          const activeElement = document.activeElement;
+          this.returnFocusOnClose = true;
+          this.handleSelection(activeElement as HTMLElement);
+        } else if (e.key === "Escape" && this.isOpen) {
+          this.returnFocusOnClose = true;
+          this.closeSelect();
+        }
+
+        // add key navigation for accessibility
+        // "Home" goes to first element
+        // "End" goes to last element
+        // "ArrowUp" goes to previous element
+        // "ArrowDown" goes to next element
+        else if (["ArrowUp", "ArrowDown", "Home", "End"].includes(e.key)) {
+          this.handleNavigationKeys(e);
+          e.preventDefault();
+        } else {
+          const isModifierKey = e.ctrlKey || e.altKey || e.metaKey;
+
+          // select should not be navigated using tab key so we prevent it
+          if (e.key === "Tab") e.preventDefault();
+
+          if (!isModifierKey && e.key.length === 1) {
+            this.handleTypeahead(e.key);
+          }
+        }
+      });
+
+      // Handle hover on select items
+      this.content.addEventListener("mouseover", (e) => {
+        const target = e.target as HTMLElement;
+        const option = target.closest('[role="option"]');
+        if (option && option instanceof HTMLElement && this.isOpen === true) {
+          option.focus();
+        }
+      });
+
+      // handle pointerdown outside select content to close
+      document.addEventListener("pointerdown", (e) => {
+        // only close if not a mouse pointer
+        if (!window.matchMedia("(pointer: coarse)").matches) {
+          if (
+            !(
+              this.trigger?.contains(e.target as Node) || this.content?.contains(e.target as Node)
+            ) &&
+            this.isOpen
+          ) {
+            this.returnFocusOnClose = false;
+            this.closeSelect();
+          }
+        }
+      });
+
+      // Handle click outside select content to close
+      document.addEventListener("click", (e) => {
+        if (
+          !(this.trigger?.contains(e.target as Node) || this.content?.contains(e.target as Node)) &&
+          this.isOpen
+        ) {
+          this.returnFocusOnClose = false;
+          this.closeSelect();
+        }
+      });
+
+      // Handle selection of items
+      this.content?.addEventListener("click", (e) => {
+        const item = (e.target as HTMLElement).closest("[role='option']");
+        if (item instanceof HTMLElement) {
+          this.returnFocusOnClose = true;
+          this.handleSelection(item);
+        }
+      });
+
+      // passive resize listener to call setSize()
+      window.addEventListener("resize", () => this.setSize(), { passive: true });
+    }
+
+    private handleNavigationKeys(e: KeyboardEvent) {
+      if (!this.content) return;
+      const items = this.content.querySelectorAll('[role="option"]');
+
+      // current, or first item, is focused upon opening the select
+      const activeElement = document.activeElement;
+      const currentIndex = Array.from(items).indexOf(activeElement as HTMLElement);
+      if (e.key === "Home") {
+        const firstEnabledItem = Array.from(items).find(
+          (item) => item.getAttribute("data-disabled") !== "true",
+        ) as HTMLElement;
+        if (firstEnabledItem) {
+          firstEnabledItem.focus();
+        }
+        return;
+      }
+      if (e.key === "End") {
+        const lastEnabledItem = Array.from(items)
+          .reverse()
+          .find((item) => item.getAttribute("data-disabled") !== "true") as HTMLElement;
+        if (lastEnabledItem) {
+          lastEnabledItem.focus();
+        }
+        return;
+      }
+      if (e.key === "ArrowUp" && currentIndex > 0) {
+        for (let i = currentIndex - 1; i >= 0; i--) {
+          const item = items[i] as HTMLElement;
+          if (item.getAttribute("data-disabled") !== "true") {
+            item.focus();
+            break;
+          }
+        }
+        return;
+      }
+      if (e.key === "ArrowDown" && currentIndex < items.length - 1) {
+        for (let i = currentIndex + 1; i < items.length; i++) {
+          const item = items[i] as HTMLElement;
+          if (item.getAttribute("data-disabled") !== "true") {
+            item.focus();
+            break;
+          }
+        }
+        return;
+      }
+    }
+
+    private handleTypeahead(key: string) {
+      if (!this.content) return;
+      const search = this.typeaheadSearch + key;
+      const items = this.content.querySelectorAll('[role="option"]');
+
+      // find and focus the first matching option
+      const matches = Array.from(items).filter((item) =>
+        item.textContent?.toLowerCase().trim().startsWith(search.toLowerCase()),
+      ) as HTMLElement[];
+      if (matches.length > 0) {
+        matches[0].focus();
+      }
+
+      // update the typeahead search and reset the timer
+      this.typeaheadSearch = search;
+      if (this.typeaheadTimerRef) {
+        window.clearTimeout(this.typeaheadTimerRef);
+      }
+
+      // set a timer to clear the search after 1 second
+      this.typeaheadTimerRef = window.setTimeout(() => {
+        this.typeaheadSearch = "";
+        this.typeaheadTimerRef = null;
+      }, 1000);
+    }
+
+    private setSize() {
+      if (!this.trigger || !this.content) return;
+      this.content.style.setProperty(
+        "--starwind-select-content-width",
+        `${this.content.offsetWidth}px`,
+      );
+
+      this.content.style.setProperty(
+        "--starwind-select-trigger-width",
+        `${this.trigger.offsetWidth}px`,
+      );
+    }
+
+    private toggleSelect() {
+      if (this.isOpen) {
+        this.closeSelect();
+      } else {
+        this.openSelect();
+      }
+    }
+
+    private openSelect() {
+      if (!this.content || !this.trigger || this.trigger.disabled) return;
+
+      this.isOpen = true;
+      this.content.setAttribute("data-state", "open");
+      this.trigger.setAttribute("aria-expanded", "true");
+      this.content.style.removeProperty("display");
+
+      // set focus on the current selected item
+      if (this.selectedItem) {
+        this.selectedItem.focus();
+      } else {
+        // if no item is selected, focus on the first item
+        const firstItem = this.content.querySelector('[role="option"]') as HTMLElement;
+        if (firstItem) {
+          firstItem.focus();
+        }
+      }
+
+      this.positionContent();
+    }
+
+    private closeSelect() {
+      if (!this.content || !this.trigger) return;
+
+      this.isOpen = false;
+      this.content.setAttribute("data-state", "closed");
+
+      // Remove focus from any currently focused element
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur();
+      }
+
+      // Set focus on trigger if returnFocusOnClose is true
+      if (this.returnFocusOnClose) {
+        requestAnimationFrame(() => {
+          if (!this.trigger) return;
+          this.trigger.focus();
+        });
+      }
+
+      // give the content time to animate before hiding
+      setTimeout(() => {
+        if (!this.content) return;
+        this.content.style.display = "none";
+      }, this.animationDuration);
+
+      this.trigger.setAttribute("aria-expanded", "false");
+    }
+
+    private handleSelection(item: HTMLElement) {
+      if (!this.trigger) return;
+
+      // update the hidden select field
+      const selectField = this.select.querySelector("select");
+      if (selectField) {
+        const newValue = item.getAttribute("data-value") || "";
+        selectField.value = newValue;
+
+        // Dispatch custom event with the new value
+        const event = new CustomEvent<SelectChangeEvent["detail"]>("starwind-select:change", {
+          detail: { value: newValue, selectId: this.select.id, label: item.textContent || "" },
+          bubbles: true,
+          cancelable: true,
+        });
+
+        selectField.dispatchEvent(event);
+      }
+
+      // Update trigger content
+      const triggerSpan = this.trigger.firstElementChild as HTMLSpanElement;
+      if (triggerSpan) {
+        triggerSpan.textContent = item.textContent;
+      }
+
+      // Update selected states after select finishes closing
+      setTimeout(() => {
+        if (this.selectedItem) {
+          this.selectedItem.setAttribute("aria-selected", "false");
+        }
+        item.setAttribute("aria-selected", "true");
+        this.selectedItem = item;
+      }, this.animationDuration);
+
+      // Close the select
+      this.closeSelect();
+    }
+
+    /**
+     * Sets the initial state based on the default value attribute
+     */
+    private setInitialState(): void {
+      const defaultValue = this.select.dataset.value;
+      if (defaultValue) {
+        const item = this.content?.querySelector(`[data-value="${defaultValue}"]`);
+
+        if (item && item instanceof HTMLElement) {
+          this.returnFocusOnClose = false;
+          this.handleSelection(item);
+          this.selectedItem = item;
+        }
+      }
+    }
+
+    /**
+     * TODO: add position logic to avoid collisions with window boundary
+     * It will need to switch to top or bottom depending on space available
+     * It will also need to set the content max height so it doesn't overflow the viewport
+     */
+    private positionContent() {
+      // if (!this.content || !this.trigger) return;
+      // const triggerRect = this.trigger.getBoundingClientRect();
+      // const contentRect = this.content.getBoundingClientRect();
+      // const viewportHeight = window.innerHeight;
+      // // Position the content below the trigger by default
+      // let top = triggerRect.bottom;
+      // // If there's not enough space below, position it above
+      // if (top + contentRect.height > viewportHeight) {
+      //   top = triggerRect.top - contentRect.height;
+      // }
+      // this.content.style.position = "absolute";
+      // this.content.style.top = `${top}px`;
+      // this.content.style.left = `${triggerRect.left}px`;
+      // this.content.style.width = `${triggerRect.width}px`;
+      // this.content.style.zIndex = "50";
+    }
+  }
+
+  // Store instances in a WeakMap to avoid memory leaks
+  const selectInstances = new WeakMap<HTMLElement, SelectHandler>();
+
+  // Initialize selects
+  const initSelects = () => {
+    document.querySelectorAll(".starwind-select").forEach((select, idx) => {
+      if (select instanceof HTMLElement && !selectInstances.has(select)) {
+        selectInstances.set(select, new SelectHandler(select, idx));
+      }
+    });
+  };
+
+  initSelects();
+  document.addEventListener("astro:after-swap", initSelects);
+</script>
+
+<style is:global>
+  .starwind-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+</style>

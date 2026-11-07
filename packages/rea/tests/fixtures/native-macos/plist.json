@@ -1,0 +1,7 @@
+{
+  "CFBundleIdentifier": "com.example.fixture",
+  "CFBundleExecutable": "Fixture",
+  "CFBundleName": "Fixture",
+  "CFBundleVersion": "42",
+  "CFBundleShortVersionString": "1.2.3"
+}

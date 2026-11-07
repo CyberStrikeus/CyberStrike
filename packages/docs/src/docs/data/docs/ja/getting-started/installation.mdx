@@ -1,0 +1,177 @@
+---
+title: インストール
+description: npmまたはcurlを使用してCyberstrikeをインストール
+sidebar:
+  order: 2
+  label: インストール
+---
+
+Cyberstrikeは複数のパッケージマネージャーでインストールできます。開発環境に最適な方法を選択してください。
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="インストール後のCyberstrike TUI" className="w-full" />
+</div>
+
+## npm（推奨）
+
+ほとんどのユーザーに推奨されるインストール方法です。
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+インストールの確認：
+
+```bash
+cyberstrike --version
+```
+
+## Bun <Badge text="近日公開" variant="caution" size="md" />
+
+Bunサポートはまだ利用できません。
+
+## Homebrew (macOS) <Badge text="近日公開" variant="caution" size="md" />
+
+Homebrewサポートはまだ利用できません。
+
+## curl (Linux/macOS)
+
+シェルスクリプトによる直接インストール：
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+## iwr (Windows/Powershell)
+
+インストールスクリプトを実行します：
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+
+<Aside variant="caution">
+  インストールスクリプトは実行前に必ず内容を確認してください。スクリプトのソースは[github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike)で公開されています。
+</Aside>
+
+## Docker
+
+<Aside variant="caution">
+  Dockerイメージは近日公開予定です。現時点では、npmまたはcurlをご利用ください。
+</Aside>
+
+
+## インストールの確認
+
+インストール後、Cyberstrikeが正しく動作していることを確認します：
+
+```bash
+# バージョンの確認
+cyberstrike --version
+
+# 利用可能なコマンドの一覧
+cyberstrike --help
+```
+
+Cyberstrikeのバナーとバージョン番号、続いて利用可能なコマンドの一覧が表示されるはずです。
+
+## Cyberstrikeの更新
+
+最新バージョンに更新します：
+
+```bash
+# npm
+npm update -g @cyberstrike-io/cyberstrike@latest
+
+# セルフアップデート（推奨）
+cyberstrike upgrade
+```
+
+## アンインストール
+
+システムからCyberstrikeを削除します：
+
+```bash
+# npm
+npm uninstall -g @cyberstrike-io/cyberstrike@latest
+```
+
+設定は`~/.config/cyberstrike/`に保存されています（認証情報は`~/.local/share/cyberstrike/`に保存）。必要に応じて手動で削除できます。
+
+## トラブルシューティング
+
+### コマンドが見つからない
+
+インストール後に`cyberstrike`が見つからない場合：
+
+1. PATHにnpmのグローバルbinディレクトリが含まれているか確認します
+2. ターミナルを再起動します
+3. `npm bin -g`を実行してグローバルbinパスを確認します
+
+### 権限エラー
+
+Linux/macOSで権限エラーが発生した場合：
+
+```bash
+# npm権限の修正
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### バージョンの競合
+
+複数のNodeバージョンがある場合：
+
+```bash
+# nvmでバージョンを管理
+nvm use 20
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+### 企業ネットワーク（SSL検査 / Zscaler）
+
+SSL検査プロキシ（Zscaler、Netskope等）を持つ企業ネットワークでは、送信HTTPSが傍受され、企業独自のルート証明書で再署名されます。Cyberstrikeがその証明書を信頼しない場合、TLS検証が失敗し、以下のようなエラーが表示されます：
+
+```
+error: unable_to_get_issuer_cert_locally  downloading package manifest @cyberstrike-io/plugin
+hackbrowser:navigator  TypeError: unable to get local issuer certificate — planPage failed, retrying once
+```
+
+HackBrowserクローラーは特に影響を受けます：プランナー呼び出しが失敗するため、クロールはわずか数ページしか探索せず早期に停止します。
+
+**修正方法 — `NODE_EXTRA_CA_CERTS`で企業のルートCAを信頼する。** 企業のルートCAはすでにOSのトラストストアに含まれています（ブラウザが動作するのはそのためです）。ストアをPEMバンドルにエクスポートし、Cyberstrikeに指定します。これはHackBrowserワーカーにも自動的に伝播されます。
+
+**Windows (PowerShell)** — すべてのマシンのルートCA（企業のものも含む）をエクスポートします。特定する必要はありません：
+
+```powershell
+$out = "$env:USERPROFILE\corp-ca.pem"
+Get-ChildItem Cert:\LocalMachine\Root | ForEach-Object {
+  "-----BEGIN CERTIFICATE-----"
+  [Convert]::ToBase64String($_.RawData, 'InsertLineBreaks')
+  "-----END CERTIFICATE-----"
+} | Set-Content -Encoding ascii $out
+
+$env:NODE_EXTRA_CA_CERTS = $out       # 現在のセッション
+setx NODE_EXTRA_CA_CERTS "$out"       # 新しいセッション用に永続化
+```
+
+**macOS**：
+
+```bash
+security find-certificate -a -p /Library/Keychains/System.keychain > ~/corp-ca.pem
+security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain >> ~/corp-ca.pem
+export NODE_EXTRA_CA_CERTS=~/corp-ca.pem
+```
+
+その後、同じシェルでCyberstrikeを実行します。`unable to get local issuer certificate`エラーが解消され、クロールが完了まで実行されるはずです。
+
+<Aside variant="tip">
+  確認方法：`Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Zscaler*" }`（Windows）でエクスポート前にストアに企業のルートが存在することを確認できます。
+</Aside>
+
+<Aside variant="caution">
+  最終手段のテストとしてのみ、`NODE_TLS_REJECT_UNAUTHORIZED=0`で証明書検証を完全に無効にすることもエラーを回避できますが、すべての接続のTLS検証をオフにするため、通常使用には**推奨されません**。`NODE_EXTRA_CA_CERTS`を優先してください。
+</Aside>

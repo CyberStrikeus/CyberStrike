@@ -3,6 +3,8 @@ import { UI } from "../ui"
 import { cmd } from "./cmd"
 import { withNetworkOptions, resolveNetworkOptions } from "../network"
 import { Flag } from "../../flag/flag"
+import { Instance } from "../../project/instance"
+import { Log } from "@/util/log"
 import open from "open"
 import { networkInterfaces } from "os"
 
@@ -30,7 +32,12 @@ function getNetworkIPs() {
 
 export const WebCommand = cmd({
   command: "web",
-  builder: (yargs) => withNetworkOptions(yargs),
+  builder: (yargs) =>
+    withNetworkOptions(yargs).option("open", {
+      type: "boolean",
+      default: true,
+      describe: "Open the web interface in the default browser. Use --no-open for embedded/desktop hosts that load the UI themselves.",
+    }),
   describe: "start cyberstrike server and open web interface",
   handler: async (args) => {
     if (!Flag.CYBERSTRIKE_SERVER_PASSWORD) {
@@ -43,6 +50,15 @@ export const WebCommand = cmd({
     }
     const opts = await resolveNetworkOptions(args)
     const server = Server.listen(opts)
+
+    // Eagerly register the working directory as a project so a fresh install lands on a
+    // ready project on first load. Otherwise the project is only created lazily on the first
+    // request that needs it, so a client that lists projects before that sees none and
+    // dead-ends into the empty "Open project" picker. Same behavior locally and on the appliance.
+    await Instance.provide({ directory: process.cwd(), fn: () => {} }).catch((error) =>
+      Log.Default.warn("default project registration failed", { error }),
+    )
+
     UI.empty()
     UI.println(UI.logo("  "))
     UI.empty()
@@ -72,12 +88,12 @@ export const WebCommand = cmd({
         )
       }
 
-      // Open localhost in browser
-      open(localhostUrl.toString()).catch(() => {})
+      // Open localhost in browser (unless the host embeds the UI, e.g. the desktop shell)
+      if (args.open !== false) open(localhostUrl.toString()).catch(() => {})
     } else {
       const displayUrl = server.url.toString()
       UI.println(UI.Style.TEXT_INFO_BOLD + "  Web interface:    ", UI.Style.TEXT_NORMAL, displayUrl)
-      open(displayUrl).catch(() => {})
+      if (args.open !== false) open(displayUrl).catch(() => {})
     }
 
     await new Promise(() => {})

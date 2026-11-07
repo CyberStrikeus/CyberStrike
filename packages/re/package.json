@@ -1,0 +1,48 @@
+{
+  "name": "@cyberstrike-io/re",
+  "version": "0.1.0",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "description": "CyberStrike Reverse Engineering domain — multi-agent RE pipeline powered by REA MCP server (binary, mobile, firmware, web/JS, managed, network, smart contract analysis).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "cyberstrike": {
+    "coreApi": "1.2.0",
+    "domains": ["re"],
+    "tools": [],
+    "tier": "free",
+    "mcp": {
+      "rea": {
+        "type": "local",
+        "command": ["node", "../rea/scripts/rea.mjs", "--mcp"],
+        "description": "REA (Reverse Engineer Anything) — 130+ tools for binary, mobile, firmware, JS, managed, network, and smart contract reverse engineering."
+      }
+    }
+  },
+  "files": ["src"],
+  "publishConfig": {
+    "access": "restricted"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cyberstrike-io/plugin": "workspace:*",
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "cyberstrike": "*"
+  },
+  "peerDependenciesMeta": {
+    "cyberstrike": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "cyberstrike": "workspace:*",
+    "@types/node": "catalog:",
+    "@tsconfig/node22": "catalog:",
+    "typescript": "catalog:"
+  }
+}

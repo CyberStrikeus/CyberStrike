@@ -1,0 +1,324 @@
+---
+title: HackBrowser
+description: proxy-agent分析のためにUIコンテキスト付きHTTPリクエストをキャプチャするAI駆動の自律型Webクローラー
+sidebar:
+  order: 7
+  label: HackBrowser
+---
+
+
+## HackBrowserを使用するタイミング
+
+| ユースケース | 選択 |
+|----------|------|
+| 複数のロールでの手動探索 | [Chrome拡張機能](/docs/tools/chrome-extension) |
+| 無人の自動クロール | **HackBrowser** |
+| キャプチャにUIフォームコンテキスト（`readonly`、`hidden`、`disabled` フラグ）が必要 | **HackBrowser** |
+| 既存の事前認証済みブラウザセッション | どちらでも — Chrome拡張機能の方がシンプル |
+
+2つのパスは相互に排他的ではありません。どちらも同じ `/session/ingest` エンドポイントと同じproxy-agentパイプラインにフィードします。単一のセッション内で混在させることができます。
+
+## 動作の仕組み
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  Chromium (Playwright)                                             │
+│  ├── Scanner    — DOM → accessibility tree (RawElement[])          │
+│  ├── Navigator  — LLM call → page plan (form/click tasks)          │
+│  ├── Executor   — Plan → Playwright actions                        │
+│  ├── Capture    — HTTP requests + ui_context snapshot              │
+│  └── Live panel — Shadow-DOM telemetry overlay (visible mode)      │
+└────────────────────────┬───────────────────────────────────────────┘
+                         │ POST /session/ingest (HTTP loopback)
+                         │   text + response + ui_context + access_context
+                         ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  Cyberstrike API                                                   │
+│  ├── Normalize → deduplicate → Request.add                         │
+│  └── IngestQueue → SessionPrompt(agent="proxy-agent")              │
+└────────────────────────┬───────────────────────────────────────────┘
+                         ▼
+                proxy-agent → proxy-analyzer + 8 vulnerability testers
+```
+
+Chrome拡張機能とは異なり、HackBrowserはブラウザ自体を操作します。LLMはページをアクセシビリティツリー（ボタンラベル、入力ロール、ARIA属性）として認識し、どのフォームに入力しどのボタンをクリックするかを判断します。キャプチャされた各リクエストには `ui_context` スナップショット（フォームフィールド、そのフラグ（`readonly`、`disabled`、`hidden`）、UIに存在しないリクエストパラメータ）が含まれ、proxy-analyzerと`proxy-tester-mass-assignment`が疑わしいリクエスト形状を特定するために使用します。
+
+## 3つのエントリポイント
+
+同じクロールエンジンが3つのエントリポイントを駆動します。コンテキストに合ったものを選んでください。
+
+| エントリポイント | 形式 | 使用するタイミング |
+|-------------|------|-------------|
+| `cyberstrike hackbrowser <target>` | CLIサブコマンド | 新しいクロールにバインドされた新しいTUIセッションを開始 |
+| `/hackbrowser` | TUIスラッシュコマンド | すでに開いているセッション内でクロールを起動 |
+| `hackbrowser` ツール | LLMが呼び出し可能なツール | 会話に基づいてエージェントがクロールを決定 |
+
+3つすべてが同じランチャー（`launchHackbrowser`）を呼び出し、同じ `WorkerOptions` スキーマを使用し、同じ `HackbrowserStatus` サイドバーエントリに進捗を書き込みます。
+
+### CLIサブコマンド
+
+CyberStrikeを起動し、セッションを作成し、1つのコマンドでクロールを開始します：
+
+```bash
+cyberstrike hackbrowser https://shop.example.com
+```
+
+オプション：
+
+| フラグ | 説明 |
+|------|-------------|
+| `--scope <pattern>` | ホスト名スコープパターン（例：`*.example.com`）。繰り返し可能。デフォルトはターゲットURLから導出された `*.{eTLD+1}`。 |
+| `--exclude <label>` | プランナーがスキップすべきUIラベル（例：`"Delete Account"`）。繰り返し可能。セマンティックマッチ。 |
+| `--steps <n>` | クロールする最大ページ数。デフォルトは50。 |
+| `--credential <label>` | クロールに使用するクレデンシャル。繰り返し可能。手動ログインのためにブラウザの表示を強制。 |
+| `--headfull` | ブラウザを表示モードで実行。`--credential` が設定されている場合は強制。 |
+
+TUIはすぐに開き、クロールはバックグラウンドで実行されます。クロールの進行に応じてキャプチャがセッションにストリーミングされます。
+
+### スラッシュコマンド
+
+既存のセッション内で：
+
+```
+/hackbrowser
+```
+
+ターゲットURL、クレデンシャル、スコープ、除外ラベル、ステップ数、ヘッドレスモードのフィールドを持つ起動ダイアログが開きます。セッションIDは暗黙的です — キャプチャは現在のセッションに蓄積されます。
+
+実行中のクロールをキャンセルするには：
+
+```
+/hackbrowser-stop
+```
+
+このコマンドはクロールが `starting` または `crawling` フェーズにある間のみ表示されます。ブラウザは現在のページの保留中のタスクを完了し、クリーンに閉じ、最終ステータスを書き込みます。キャンセルは正常なライフサイクル終了として扱われ、失敗ではありません。
+
+### ツール
+
+エージェントは会話が必要とする場合（例：「このアプリをテストして」「ターゲットURLはあるがキャプチャされたリクエストがない」）、自律的にHackBrowserを起動できます。ツールはバックグラウンドクロールの開始後すぐに戻ります — キャプチャは次の30秒から2分間にセッションにストリーミングされます。
+
+パラメータ：
+
+| パラメータ | 説明 |
+|-----------|-------------|
+| `target` | ターゲットURL（必須） |
+| `credentials` | クロールに使用するクレデンシャルIDの配列。`headless: false` を強制。 |
+| `scope` | キャプチャを制限するホスト名パターン |
+| `exclude` | スキップするUIラベル |
+| `steps` | 最大ページ数（デフォルト50） |
+| `headless` | `false` でブラウザを表示。クレデンシャルが提供された場合は `false` に強制。 |
+
+
+## クロールフェーズ
+
+一般的なクロールは3つのフェーズを経て進行します：
+
+```
+1. 匿名
+   └── BFS探索で公開サーフェスを巡回、認証ページ（ログイン/登録/ログアウト）は後回し
+
+2. 認証遷移（以下のいずれか）
+   ├── --credential admin       — 手動ログイン、ブラウザが表示される
+   ├── (保存されたセッションファイル) — Cookieを読み込み、ログインをスキップ [スタンドアロンCLIのみ]
+   └── 遅延認証の順序付け         — 登録 → ログイン → ログアウト
+
+3. ログイン後の再探索
+   └── 訪問済みのすべてのページをフィンガープリントベースの再探索のために再キュー。
+       変更のないフィンガープリントのページはスキップされます（LLM呼び出しなし）。
+```
+
+クローラーはURL単位の再訪問上限（クレデンシャルごとに2回の訪問）とパスパターンのエンキュー上限を守るため、バグのあるアプリや無限ページングUIがクロールを停滞させることはありません。
+
+## マルチクレデンシャルクロール
+
+2つ以上の `--credential` フラグ（またはツールに `credentials: [...]`）を渡して、ロールごとの順次クロールを実行します：
+
+```bash
+cyberstrike hackbrowser https://shop.example.com \
+  --credential admin \
+  --credential customer
+```
+
+各クレデンシャルについて、HackBrowserは表示されたChromiumウィンドウを開き、手動でログインを待ち、そのクレデンシャルIDでタグ付けされた完全なクロールを実行します。各クロールからのキャプチャは個別にタグ付けされるため、proxy-agentは各ロールがアクセスできるものを比較できます。
+
+<Aside variant="caution">
+  **手動ログインのみ。** 現在のリリースでは、すべてのクレデンシャルにログインステップで人が必要です。ユーザーがいない場合、クロールはログイン待ちで停止します。以下の[計画：無人ログイン](#計画無人ログイン)を参照してください。
+</Aside>
+
+### 計画：無人ログイン
+
+クロールエンジンは内部で3つの無人ログインパスを実装済みです。スタンドアロンCLIでは公開されていますが、`cyberstrike hackbrowser` サブコマンド、`/hackbrowser` スラッシュコマンド、`hackbrowser` ツールにはまだ接続されていません。接続はロードマップに含まれています。
+
+| 計画されたフラグ | 動作 | ユースケース |
+|--------------|----------|----------|
+| `--session <path>` | 以前に保存されたセッションファイルからCookieを読み込み | 事前認証済みセッションでのCIラン |
+| `--save-session <path>` | 成功したログイン後にCookieを再利用のために保存 | 1回の対話的ログイン、その後は無人で再実行 |
+| `--user <name>` / `--pass <secret>` | 検出されたログインフォームに自動入力 | シンプルなフォームベース認証に対する完全無人クロール |
+
+これらが公開されるまで、完全無人のマルチロールテストは[Chrome拡張機能](/docs/tools/chrome-extension)とChromeプロファイルで行うのが最適です。コンテナごとに1回ログインし、キャプチャは透過的に行われます。
+
+### ページ差分と要素の利用可能性
+
+マルチクレデンシャルモードでは、すべてのクレデンシャルが同じページを訪問した後、HackBrowserは **ページ差分** レコードを `/session/ingest` に送信します：
+
+- どのクレデンシャルがページに到達したか（`visited_by`）
+- 各クレデンシャルが見ることができた対話型要素（例：`button:Delete User → ["admin"]`）
+- ページのDOMフィンガープリントがクレデンシャル間で一致したかどうか
+
+proxy-agentはこのシグナルを使用して、クレデンシャルごとにすべてのエンドポイントを再テストすることなく、ロールベースのアクセス差異を検出します。
+
+## UIコンテキストペイロード
+
+Chrome拡張機能との差別化要因は、すべてのキャプチャに付加される `ui_context` ブロックです。リクエスト発火時のフォーム構造を含みます：
+
+```json
+{
+  "text": "PUT /api/users/42 HTTP/1.1\r\n...",
+  "sessionID": "session-abc123",
+  "credential_id": "web_credential-admin",
+  "scheme": "https",
+  "response": { "status": 200, "headers": {...}, "body": "..." },
+  "ui_context": {
+    "pageUrl": "https://shop.example.com/settings/profile",
+    "pageTitle": "Edit Profile",
+    "componentPath": "Settings > Profile",
+    "formName": "Update Profile",
+    "fields": [
+      { "name": "email",    "type": "text",   "isReadOnly": true,  "isHidden": false, "value": "..." },
+      { "name": "username", "type": "text",   "isReadOnly": false, "isHidden": false, "value": "..." },
+      { "name": "role",     "type": "hidden", "isReadOnly": false, "isHidden": true,  "value": "user" }
+    ],
+    "hiddenParams": ["account_id", "_csrf"]
+  },
+  "trigger_element": "button:Save",
+  "element_roles": ["admin"],
+  "page_url": "/settings/profile",
+  "page_visited_by": ["admin", "customer"]
+}
+```
+
+proxy-analyzerと`proxy-tester-mass-assignment`はこれらのシグナルを使用して疑わしい形状をフラグ付けします：
+
+- UIでは `readonly` なフィールドがリクエストに含まれている → サーバーが強制しているかテスト
+- フィールドが `type=hidden` → マスアサインメント候補
+- リクエストパラメータが `hiddenParams` に含まれている（UI要素が全く存在しない） → 最もリスクの高い隠しパラメータ
+- 要素が `visible_to: ["admin"]` のみ → 非管理者クレデンシャルで同じエンドポイントをテスト
+
+## ネットワークスコープ
+
+デフォルトでは、HackBrowserはターゲットURLの `*.{eTLD+1}` にホスト名が一致するリクエストをキャプチャします — [Public Suffix List](https://publicsuffix.org/)を使用して導出されます。`https://shop.example.com` の場合、`*.example.com` 配下のすべてがキャプチャされます。
+
+`--scope`（CLI）または `scope: [...]`（ツール/スラッシュ）を渡してデフォルトを上書きします。複数のスコープは結合されます：
+
+```bash
+cyberstrike hackbrowser https://app.example.com \
+  --scope app.example.com \
+  --scope api.example.com
+```
+
+スコープはネットワークフィルタです。ブラウザがスコープ外のホスト（例：ログイン中のサードパーティSSOプロバイダー）にナビゲートすることは止めません — そのナビゲーションは機能しますが、トラフィックはAPIに転送されません。
+
+## 機密アクションの除外
+
+`--exclude` を使用して、クロール中にトリガーしたくないラベルからプランナーを遠ざけます：
+
+```bash
+cyberstrike hackbrowser https://app.example.com \
+  --exclude "Delete Account" \
+  --exclude "Cancel Subscription" \
+  --exclude "Wipe Data"
+```
+
+除外はLLMのタスクプランに対する**セマンティック**マッチであり、正規表現ではありません。UIに表示される通りのラベルを渡してください — プランナーはそれらのラベルに一致するタスクを決して計画しないように指示されます。
+
+これはproxy-agentディスパッチャー内のWSTG無効化アクション（テストレイヤーで破壊的なペイロードをフィルタリング可能）とは独立しています。`--exclude` は、クローラーがそのボタンをクリックすること自体を防ぐために使用します。
+
+## ライブテレメトリパネル
+
+ブラウザが表示モードで実行されると、HackBrowserはすべてのページにShadow-DOMパネルを注入します。パネルはリアルタイムのクロールイベント（ページ遷移、プランの決定、キャプチャされたリクエスト、インテリジェンスシグナル（空状態検出、再訪問トリガー）、クレデンシャル切り替え）を表示します。
+
+`--no-panel` でパネルを無効化（スタンドアロンCLI）。ツールまたはスラッシュコマンド経由で呼び出された場合、`headless: false` のときにパネルはオンになります。
+
+パネルはページに対して実行されるテストに影響しません。Shadow DOMを使用してターゲットアプリケーションからスタイルを完全に分離しています。
+
+## ステータスサイドバー
+
+クロール実行中、TUIサイドバーには `Hackbrowser` セクションが表示されます：
+
+- フェーズ：`starting` → `crawling` → `completed` / `failed`
+- ターゲットURL
+- 探索済みページ数
+- キャプチャ済みエンドポイント数
+- 現在のページ（`crawling` 中）
+- コスト（`completed` 後）
+
+サイドバーはワーカーサブプロセスから親への `CSEvent` レコードのSSEを通じてリアルタイムに更新されます。
+
+成功したクロールはサイドバーのみを更新し、チャットに合成メッセージは書き込みません。これは意図的です：成功をチャットに表示すると、エージェントがツールを繰り返しポーリングする誘因となります。一方、失敗は合成ユーザーメッセージを書き込み、エージェントが次のターンでエラーを確認できるようにします。
+
+## キャンセル
+
+実行中のクロールをキャンセルする3つの方法：
+
+| トリガー | 動作 |
+|---------|----------|
+| `/hackbrowser-stop` スラッシュコマンド | 信頼性が高い。IPC経由でワーカーにアボートを送信。 |
+| アクティブなチャットターンでの `Esc`（ツール起動のみ） | `ctx.abort` をワーカーに転送。 |
+| TUIを閉じる（CLIサブコマンド） | `onExit` が `stopHackbrowser` を呼び出してPlaywrightを解放。 |
+
+すべてのケースで、エージェントは現在のページの保留中のタスクを完了してから終了します。ブラウザはクリーンに閉じます。ステータスは `completed` に遷移し、`failed` ではありません — キャンセルは正常です。
+
+<Aside variant="info">
+  **キャンセルの遅延。** エージェントはイテレーション境界（BFSページ間）でアボートシグナルを確認します。進行中のLLM呼び出しはSDKレイヤーではキャンセルされません。最悪の場合、`/hackbrowser-stop` が発行された後に1ページ分の作業が行われます。
+</Aside>
+
+## 再入
+
+1セッションにつき1つのHackBrowser実行のみ許可されます。最初のクロールがアクティブな間に同じセッションで2番目のクロールを起動しようとするとエラーがスローされます — 実行はキューに入れられません。新しいクロールを開始するには：
+
+1. 現在の実行が完了するのを待つかキャンセルする、**または**
+2. 新しいセッションを作成する
+
+これはツール、スラッシュ、CLIサブコマンドのいずれでもランチャーレベルで強制されます。
+
+## トラブルシューティング
+
+### Chromiumブラウザがインストールされていない
+
+```
+Chromium browser is not installed at /Users/.../chrome.app/...
+Run: bunx playwright install chromium
+```
+
+HackBrowserワーカーはPlaywrightのバンドルChromiumを使用します。エラーに表示されるコマンドで1回インストールしてください。同じキャッシュが `bunx playwright install` と `npx playwright install` で共有されます。
+
+### playwrightがインストールされていない
+
+```
+playwright is not installed. Run:
+  npm install --prefix ~/.local/share/cyberstrike playwright
+  npx playwright install chromium
+```
+
+Playwright JavaScriptパッケージ自体が見つかりませんでした。最小限のインストールで発生する可能性があります。表示されている2つのコマンドを実行して、npmパッケージとChromiumブラウザバイナリをインストールしてください。
+
+### hackbrowserワーカーが見つからない
+
+```
+hackbrowser worker not found at ~/.local/share/cyberstrike/bin/hackbrowser-worker.js.
+Re-install cyberstrike (npm install -g @cyberstrike-io/cyberstrike) to set it up.
+```
+
+ワーカーJavaScriptバンドルはpostinstallスクリプトによって配置されます。CyberStrikeを再インストールして再作成してください。
+
+### マルチクレデンシャルモードにはheadless: falseが必要
+
+マルチクレデンシャルクロールは常に手動ログインを使用します。ブラウザを表示して再実行するか、シングルクレデンシャルモードにフォールバックしてください。
+
+### このセッションではhackbrowserが既に実行中
+
+現在のセッションにはアクティブなクロールがあります。完了を待つか、まず `/hackbrowser-stop` を実行してください。
+
+## 関連ドキュメント
+
+- [Chrome拡張機能](/docs/tools/chrome-extension) — Chromeプロファイルを使用した手動ブラウジングの代替

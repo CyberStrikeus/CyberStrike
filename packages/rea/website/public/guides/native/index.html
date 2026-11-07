@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Native Binary Analysis — REA</title>
+    <meta
+      name="description"
+      content="Recover a native calculation with REA: inspect instructions, follow a caller, read constants and check reconstructed C."
+    />
+    <!-- website:sharing:start -->
+    <!-- prettier-ignore -->
+    <link rel="canonical" href="https://rea.tools/guides/native/" />
+    <!-- website:languages:start -->
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="en" href="https://rea.tools/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="zh-CN" href="https://rea.tools/zh-CN/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="zh-TW" href="https://rea.tools/zh-TW/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ja" href="https://rea.tools/ja/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ko" href="https://rea.tools/ko/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="tr" href="https://rea.tools/tr/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ru" href="https://rea.tools/ru/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="vi" href="https://rea.tools/vi/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="th" href="https://rea.tools/th/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="de" href="https://rea.tools/de/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="es" href="https://rea.tools/es/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="fr" href="https://rea.tools/fr/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="uk" href="https://rea.tools/uk/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="pl" href="https://rea.tools/pl/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="pt-BR" href="https://rea.tools/pt-BR/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ar" href="https://rea.tools/ar/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="fa" href="https://rea.tools/fa/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="id" href="https://rea.tools/id/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="it" href="https://rea.tools/it/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="el" href="https://rea.tools/el/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ml" href="https://rea.tools/ml/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ur-Latn" href="https://rea.tools/ur-Latn/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="ro" href="https://rea.tools/ro/guides/native/" />
+    <!-- prettier-ignore -->
+    <link rel="alternate" hreflang="x-default" href="https://rea.tools/guides/native/" />
+    <!-- website:languages:end -->
+    <!-- prettier-ignore -->
+    <meta property="og:type" content="website" />
+    <!-- prettier-ignore -->
+    <meta property="og:site_name" content="REA" />
+    <!-- prettier-ignore -->
+    <meta property="og:title" content="Native Binary Analysis — REA" />
+    <!-- prettier-ignore -->
+    <meta property="og:description" content="Recover a native calculation with REA: inspect instructions, follow a caller, read constants and check reconstructed C." />
+    <!-- prettier-ignore -->
+    <meta property="og:url" content="https://rea.tools/guides/native/" />
+    <!-- prettier-ignore -->
+    <meta property="og:image" content="https://rea.tools/assets/social-card.png" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:type" content="image/png" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:width" content="1200" />
+    <!-- prettier-ignore -->
+    <meta property="og:image:height" content="630" />
+    <!-- prettier-ignore -->
+    <meta
+      property="og:image:alt"
+      content="REA: Find out how software works. Reverse engineering with your coding agent."
+    />
+    <!-- prettier-ignore -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <!-- prettier-ignore -->
+    <meta name="twitter:title" content="Native Binary Analysis — REA" />
+    <!-- prettier-ignore -->
+    <meta name="twitter:description" content="Recover a native calculation with REA: inspect instructions, follow a caller, read constants and check reconstructed C." />
+    <!-- prettier-ignore -->
+    <meta name="twitter:image" content="https://rea.tools/assets/social-card.png" />
+    <!-- prettier-ignore -->
+    <meta
+      name="twitter:image:alt"
+      content="REA: Find out how software works. Reverse engineering with your coding agent."
+    />
+    <!-- website:sharing:end -->
+    <!-- website:theme:start -->
+    <meta name="theme-color" content="#ffffff" />
+    <!-- Apply the saved theme before styles load, to avoid a flash on navigation. -->
+    <script src="../../assets/theme.js"></script>
+    <!-- website:theme:end -->
+    <link rel="icon" href="../../assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../assets/styles.css" />
+    <script src="../../assets/main.js" defer></script>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
+    <!-- website:header:start -->
+    <!-- prettier-ignore -->
+    <header class="site-header">
+      <div class="container header-inner">
+        <a class="brand" href="../../" aria-label="REA home"
+          ><span class="brand-name">REA</span
+          ><span class="brand-caption" data-i18n-skip>Reverse Engineer Anything</span></a
+        >
+        <nav class="navigation" aria-label="Main navigation">
+          <a href="../../get-started/" class="nav-start">Get started</a>
+          <a href="../../showcase/">Showcases</a>
+          <a href="../../blog/">Blog</a>
+          <a href="../../guides/" aria-current="page">Guides</a>
+        </nav>
+        <div class="header-social">
+          <details class="language-picker" data-i18n-skip><summary><span aria-hidden="true">文 / A</span> <span>English</span></summary><nav aria-label="English"><a href="../../guides/native/" lang="en" dir="ltr" data-language="en" aria-current="true">English</a><a href="../../zh-CN/guides/native/" lang="zh-CN" dir="ltr" data-language="zh-CN">简体中文</a><a href="../../zh-TW/guides/native/" lang="zh-TW" dir="ltr" data-language="zh-TW">繁體中文</a><a href="../../ja/guides/native/" lang="ja" dir="ltr" data-language="ja">日本語</a><a href="../../ko/guides/native/" lang="ko" dir="ltr" data-language="ko">한국어</a><a href="../../tr/guides/native/" lang="tr" dir="ltr" data-language="tr">Türkçe</a><a href="../../ru/guides/native/" lang="ru" dir="ltr" data-language="ru">Русский</a><a href="../../vi/guides/native/" lang="vi" dir="ltr" data-language="vi">Tiếng Việt</a><a href="../../th/guides/native/" lang="th" dir="ltr" data-language="th">ไทย</a><a href="../../de/guides/native/" lang="de" dir="ltr" data-language="de">Deutsch</a><a href="../../es/guides/native/" lang="es" dir="ltr" data-language="es">Español</a><a href="../../fr/guides/native/" lang="fr" dir="ltr" data-language="fr">Français</a><a href="../../uk/guides/native/" lang="uk" dir="ltr" data-language="uk">Українська</a><a href="../../pl/guides/native/" lang="pl" dir="ltr" data-language="pl">Polski</a><a href="../../pt-BR/guides/native/" lang="pt-BR" dir="ltr" data-language="pt-BR">Português (Brasil)</a><a href="../../ar/guides/native/" lang="ar" dir="rtl" data-language="ar">العربية</a><a href="../../fa/guides/native/" lang="fa" dir="rtl" data-language="fa">فارسی</a><a href="../../id/guides/native/" lang="id" dir="ltr" data-language="id">Bahasa Indonesia</a><a href="../../it/guides/native/" lang="it" dir="ltr" data-language="it">Italiano</a><a href="../../el/guides/native/" lang="el" dir="ltr" data-language="el">Ελληνικά</a><a href="../../ml/guides/native/" lang="ml" dir="ltr" data-language="ml">മലയാളം</a><a href="../../ur-Latn/guides/native/" lang="ur-Latn" dir="ltr" data-language="ur-Latn">Roman Urdu</a><a href="../../ro/guides/native/" lang="ro" dir="ltr" data-language="ro">Română</a></nav></details>
+          <button class="theme-toggle" type="button" data-theme-toggle hidden>
+            <svg class="theme-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+              <path d="M20.9 13a9 9 0 0 1-9.9-9.9A9 9 0 1 0 20.9 13Z" />
+            </svg>
+            <svg class="theme-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+            </svg>
+          </button>
+          <a
+            class="nav-github"
+            href="https://github.com/morluto/rea"
+            aria-label="REA on GitHub"
+            title="REA on GitHub"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 16 16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.65 7.65 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"
+              />
+            </svg>
+            <span class="nav-github-count" hidden aria-hidden="true"></span>
+          </a>
+          <a
+            class="nav-discord"
+            href="https://discord.gg/GkcryMnJDM"
+            aria-label="Join REA on Discord"
+            title="Join REA on Discord"
+          >
+            <svg
+              width="22"
+              height="22"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286ZM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189Zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"
+              />
+            </svg>
+          </a>
+          <a
+            class="nav-x"
+            href="https://x.com/reatools"
+            aria-label="Follow REA on X"
+            title="Follow REA on X"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                fill="currentColor"
+                d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"
+              />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </header>
+    <!-- website:header:end -->
+    <main id="main" class="container">
+      <div class="page-heading">
+        <p class="breadcrumb">
+          <a href="../../">Home</a> / <a href="../">Guides</a> / Native analysis
+        </p>
+        <h1>Recover DX-Ball's<br />sound-pan calculation.</h1>
+        <p class="lede">
+          Inspect the original instructions, identify the input and constants,
+          then check the recovered C.
+        </p>
+      </div>
+      <div class="article-layout">
+        <nav class="contents" aria-label="On this page">
+          <p>In this guide</p>
+          <ul>
+            <li><a href="#example">The example</a></li>
+            <li><a href="#ask">Ask your agent</a></li>
+            <li><a href="#follow">Read the REA results</a></li>
+            <li><a href="#result">Recover and check</a></li>
+            <li><a href="#try">Use your own binary</a></li>
+          </ul>
+        </nav>
+        <article class="article" aria-label="Native analysis">
+          <section class="article-section" id="example">
+            <h2>Calculate left/right sound panning</h2>
+            <p>
+              In DX-Ball, a brick hit supplies a horizontal screen position. The
+              sound code turns it into a left/right panning value.
+            </p>
+            <p>
+              The starting function, <code>0x00406400</code>, has a short
+              decompiler result: a call to <code>__ftol()</code>. REA also
+              returns its instructions and callers, which give the agent a way
+              to investigate the missing arithmetic.
+            </p>
+            <details class="evidence-details">
+              <summary>New to these terms?</summary>
+              <ul>
+                <li>
+                  <strong>Instructions:</strong> the steps the processor runs,
+                  shown in readable form such as <code>MOV</code> or
+                  <code>ADD</code>.
+                </li>
+                <li>
+                  <strong>Decompiler result / pseudocode:</strong> an analysis
+                  tool's attempt to turn instructions back into C-like code. It
+                  can miss parts, as in this example.
+                </li>
+                <li>
+                  <strong>Caller:</strong> a function that calls this one. It
+                  shows which values are passed in.
+                </li>
+                <li>
+                  <strong>Address:</strong> a location in the program, written
+                  in hexadecimal, such as <code>0x00406400</code>.
+                </li>
+                <li>
+                  <strong>Constants:</strong> fixed numbers stored in the
+                  program, read as raw bytes and decoded.
+                </li>
+              </ul>
+            </details>
+            <figure class="workflow-figure">
+              <p class="figure-title">
+                Three pieces of evidence, one calculation
+              </p>
+              <ol class="flow-steps">
+                <li>
+                  <span class="flow-label">01 · Instructions</span
+                  ><span class="flow-node">An integer input</span
+                  ><span class="flow-note"
+                    >A stack read supplies the value used by the floating-point
+                    instructions.</span
+                  >
+                </li>
+                <li>
+                  <span class="flow-label">02 · Caller</span
+                  ><span class="flow-node">A screen coordinate</span
+                  ><span class="flow-note"
+                    >The brick-hit caller passes
+                    <code>20 + 30 × tile_x</code>.</span
+                  >
+                </li>
+                <li>
+                  <span class="flow-label">03 · Data bytes</span
+                  ><span class="flow-node">The numeric constants</span
+                  ><span class="flow-note"
+                    >Referenced bytes decode to <code>1.5625</code>,
+                    <code>500.0</code> and a scale value.</span
+                  >
+                </li>
+              </ol>
+              <p class="flow-result">
+                <code>pan = (x × 1.5625 − 500.0) × scale</code>
+              </p>
+              <figcaption>
+                REA supplies the instructions, call relationship and bytes. The
+                agent interprets them together.
+              </figcaption>
+            </figure>
+          </section>
+          <section class="article-section" id="ask">
+            <h2>Ask about the behavior</h2>
+            <p>
+              After
+              <a href="../../get-started/#agent"
+                >connecting REA to your agent</a
+              >
+              and
+              <a href="../../get-started/#native"
+                >setting up a native analysis tool</a
+              >, provide the local executable and a question:
+            </p>
+            <details class="evidence-details">
+              <summary>Which analysis tool should I use?</summary>
+              <p>REA needs one of these to read native programs:</p>
+              <ul>
+                <li>
+                  <strong>Hopper</strong> (macOS or Linux): REA's setup detects
+                  it or offers to install it. On macOS, open Hopper once and
+                  choose demo mode or activate a license before your first
+                  analysis. Automated Linux setup requires x86_64; use Ghidra on
+                  Linux arm64.
+                </li>
+                <li>
+                  <strong>Ghidra</strong> (macOS or Linux; experimental on
+                  Windows): free, but needs an existing Ghidra 12.1.x
+                  installation and a 64-bit JDK 21 or newer.
+                </li>
+                <li>
+                  <strong>IDA</strong> (Windows; macOS arm64 headless): use an
+                  existing IDA setup with an MCP registration. The macOS
+                  headless profile requires a source build or a release that
+                  includes it.
+                </li>
+              </ul>
+              <p>
+                See
+                <a href="../../get-started/#native">Set up native analysis</a>
+                for the steps.
+              </p>
+            </details>
+            <div class="agent-terminal">
+              <div class="terminal-header">
+                <span class="terminal-title"
+                  ><span class="terminal-dots" aria-hidden="true"
+                    ><i></i><i></i><i></i></span
+                  >Your coding agent</span
+                ><button
+                  class="copy-button"
+                  type="button"
+                  data-copy="native-prompt"
+                  aria-label="Copy example prompt"
+                >
+                  Copy
+                </button>
+              </div>
+              <p class="terminal-prompt">
+                <span class="prompt-symbol" aria-hidden="true">›</span
+                ><span id="native-prompt"
+                  >Use REA to find how DX-Ball calculates sound panning. Explain
+                  the calculation and show the code.</span
+                ><span class="terminal-cursor" aria-hidden="true"></span>
+              </p>
+            </div>
+            <p class="caption">
+              Example prompt. Give your agent the path to your local DX-Ball
+              1.07 executable. REA doesn't include DX-Ball, so use your own
+              copy, or ask the same kind of question about another small Windows
+              program you have.
+            </p>
+            <details class="evidence-details">
+              <summary>How do I get a file's full path?</summary>
+              <ul>
+                <li>
+                  <strong>Windows:</strong> in File Explorer, right-click the
+                  file and choose <em>Copy as path</em>. On Windows 10, hold
+                  Shift while right-clicking.
+                </li>
+                <li>
+                  <strong>macOS:</strong> in Finder, right-click the file, hold
+                  Option and choose <em>Copy "…" as Pathname</em>.
+                </li>
+                <li>
+                  <strong>Any system:</strong> drag the file into a terminal
+                  window and its path appears.
+                </li>
+              </ul>
+            </details>
+          </section>
+          <section class="article-section" id="follow">
+            <h2>Read the REA results</h2>
+            <h3>Read the input</h3>
+            <div class="code-block">
+              <div class="code-header">
+                <span>REA instruction excerpt · 0x406409</span>
+              </div>
+              <pre><code>MOV EAX, dword ptr [EBP + 0x8]
+MOV dword ptr [EBP + -0xc], EAX
+FILD dword ptr [EBP + -0xc]</code></pre>
+            </div>
+            <p>
+              The instructions load an integer argument and convert it for
+              floating-point arithmetic. This is the input absent from the first
+              pseudocode view.
+            </p>
+            <h3 class="small-heading">Follow the caller</h3>
+            <div class="code-block">
+              <div class="code-header">
+                <span>REA caller excerpt · 0x411f5b</span>
+              </div>
+              <pre><code>ADD EAX, 0x14
+PUSH EAX
+CALL 0x00406400</code></pre>
+            </div>
+            <p>
+              REA identifies the brick-hit caller. Its earlier instructions
+              multiply the tile coordinate by 30; adding <code>0x14</code> (20)
+              gives the brick's screen position.
+            </p>
+            <h3 class="small-heading">Read the referenced constants</h3>
+            <div class="code-block">
+              <div class="code-header">
+                <span
+                  >REA byte results · interpreted as little-endian doubles</span
+                >
+              </div>
+              <pre><code>0x420068  000000000000f93f  → 1.5625
+0x420070  0000000000407f40  → 500.0
+0x4210a0  000000000000f03f  → 1.0</code></pre>
+            </div>
+            <p>
+              The arithmetic references these addresses. Reading the bytes
+              supplies the actual values; the instruction order tells the agent
+              how they are used.
+            </p>
+          </section>
+          <section class="article-section" id="result">
+            <h2>Write and check the recovered function</h2>
+            <div class="code-block">
+              <div class="code-header"><span>Recovered C · excerpt</span></div>
+              <pre><code>pan = (double)x;
+pan = pan * 1.5625;
+pan = pan - 500.0;
+pan = pan * dxball_pan_scale;
+return (DxBallInt)pan;</code></pre>
+            </div>
+            <p>
+              With a scale of 1.0, screen positions 0, 320 and 640 map to −500,
+              0 and 500 before integer conversion. The calculation puts the
+              center of the screen at the center of the stereo field.
+            </p>
+            <p>
+              The agent used REA's findings to write the C. Separate checks
+              compared 3,205 inputs against the original x86 function and
+              reproduced all 63 compiled bytes of the complete function.
+            </p>
+            <p>
+              <a href="../../showcase/dx-ball/#sound-pan"
+                >See the full investigation and assembly-to-C comparison</a
+              >
+            </p>
+          </section>
+          <section class="article-section" id="try">
+            <h2>Try it with your own binary</h2>
+            <p>
+              <a href="../../get-started/#native"
+                >Connect a native analysis provider</a
+              >, then give your agent a local executable or library and a
+              feature to investigate. Useful starting questions include “How is
+              this file parsed?” or “Which function handles this menu action?”
+            </p>
+            <p>
+              If you already know a function name or address, you can query it
+              from the terminal. For a configured Ghidra installation:
+            </p>
+            <div class="code-block">
+              <div class="code-header">
+                <span>Function analysis</span
+                ><button
+                  class="copy-button"
+                  type="button"
+                  data-copy="native-command"
+                  aria-label="Copy function analysis"
+                >
+                  Copy
+                </button>
+              </div>
+              <pre><code id="native-command">npx -y rea-agents@latest function /absolute/path/to/program main \
+  --provider ghidra --json</code></pre>
+            </div>
+            <p>
+              Replace the target path and <code>main</code> with your own
+              function name or address. Each CLI invocation imports and analyzes
+              the binary, then closes its session. Your agent's MCP queries
+              reuse the imported binary while that session is open.
+            </p>
+            <p>
+              Read the pseudocode alongside instructions and references. When a
+              result leaves a call or value unresolved, use that location as the
+              next question.
+            </p>
+          </section>
+        </article>
+      </div>
+    </main>
+    <!-- website:footer:start -->
+    <!-- prettier-ignore -->
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <p>REA · Reverse Engineer Anything</p>
+        <div class="footer-links">
+          <a href="../../faq/">FAQ</a
+          ><a href="../../contributors/">Contributors</a
+          ><a href="https://github.com/morluto/rea">Source</a
+          ><a href="https://github.com/morluto/rea/blob/main/LICENSE">MIT license</a
+          ><a href="https://discord.gg/GkcryMnJDM">Join the community</a
+          ><a href="https://x.com/reatools">Follow us on X</a>
+        </div>
+      </div>
+    </footer>
+    <p class="sr-only" id="copy-status" role="status" aria-live="polite"></p>
+    <a class="back-to-top" href="#top" aria-label="Back to top">
+      <span aria-hidden="true">↑</span> Top
+    </a>
+    <!-- website:footer:end -->
+  </body>
+</html>

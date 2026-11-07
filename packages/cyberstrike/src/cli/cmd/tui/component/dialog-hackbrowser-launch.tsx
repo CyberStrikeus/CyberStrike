@@ -177,20 +177,24 @@ export function DialogHackbrowserLaunch(props: DialogHackbrowserLaunchProps) {
 
         <box gap={1}>
           <text fg={store.active === "credentials" ? theme.primary : theme.text}>
-            Credentials (optional, comma-separated IDs):
+            Roles (comma-separated; Anonymous by default):
           </text>
           <textarea
             onSubmit={submitFromTextarea}
             height={1}
             keyBindings={[{ name: "return", action: "submit" }]}
-            ref={(val: TextareaRenderable) => (credsArea = val)}
-            placeholder="cred_admin, cred_user"
+            ref={(val: TextareaRenderable) => {
+              credsArea = val
+              // Default to Anonymous; the user can append roles (e.g. "Anonymous, user").
+              val.setText("Anonymous")
+            }}
+            placeholder="Anonymous, user, admin"
             textColor={theme.text}
             focusedTextColor={theme.text}
             cursorColor={theme.text}
           />
           <text fg={theme.textMuted} paddingLeft={1}>
-            Anonymous crawl when empty. Each ID = one manual browser login. Multiple IDs run sequentially per identity.
+            Anonymous opens first. Each added role opens a browser to log in and Start capture, one at a time.
           </text>
         </box>
 

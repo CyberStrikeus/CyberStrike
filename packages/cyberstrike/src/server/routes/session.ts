@@ -13,17 +13,46 @@ import { HackbrowserStatus } from "@/session/hackbrowser-status"
 import { SessionSummary } from "@/session/summary"
 import { Todo } from "../../session/todo"
 import { Vulnerability } from "../../session/vulnerability"
+import { render as renderPoster, generate as generatePoster } from "../../poster/poster"
+import { Instance } from "../../project/instance"
+import path from "path"
+import { mkdirSync } from "fs"
+import { normalizeStatus, VulnStatus } from "../../session/vulnerability-status"
 import { Request } from "../../session/request"
 import { Observation } from "../../session/observation"
-import { CoverageNote } from "../../session/coverage-note"
 import { Normalize } from "../../session/normalize"
 import { IngestSummary } from "../../session/ingest-summary"
 import { IngestQueue } from "../../session/ingest-queue"
 import { WebCredential } from "../../session/web/web-credential"
 import { WebRole } from "../../session/web/web-role"
+import { WebJs } from "../../session/web/web-js"
+import { WebStats } from "../../session/web/web-stats"
 import { WebObject } from "../../session/web/web-object"
 import { WebFunction } from "../../session/web/web-function"
-import { WebRetest } from "../../session/web/web-retest"
+import { WebInspect } from "../../session/web/web-inspect"
+import { WellKnown } from "../../session/web/well-known"
+import { ensureWebInspection, getWebInspection, addWebActivitySource, ensureAssessmentNotifier, ensureWatchdog, armWatchdog } from "../../inspection"
+import { ApiProbe } from "../../session/web/api-probe"
+import { WebScope } from "../../session/web/scope"
+import { UiObservation } from "../../session/web/ui-observation"
+import { SpawnedProfiles } from "../../session/web/spawned-profiles"
+import { RoleQueue } from "../../session/web/role-queue"
+import { PageState } from "../../session/web/page-state"
+import { WebControl } from "../../session/web/control"
+import { WebDriver } from "../../session/web/driver"
+import { WebHold } from "../../session/web/hold"
+import { CoDrive } from "../../session/web/nav/co-drive-runner"
+import { DataCollector } from "../../session/web/data-collector"
+import { EndpointTemplate } from "../../session/web/endpoint-template"
+import { JsMiner } from "../../session/web/js-miner"
+import { ingestBrowserTransaction, vortexReport, vortexProbe, vortexDiscoverJs, vortexCaptures, vortexSignals, vortexSignalSummary, vortexUpdateTriage, vortexRecordLoads, vortexRecordRuntimeLibs, ingestActive, routeAllSignals } from "../../session/web/vortex-bridge"
+import { Identifier } from "../../id/id"
+import { HBLog } from "../../session/web/hblog"
+import { FrameworkFingerprinter } from "../../session/web/tech"
+import { upgradeWebSocket } from "hono/bun"
+
+const RoleInfoSchema = z.object({ label: z.string(), phase: z.enum(["pending", "spawning", "awaiting", "capturing"]) })
+const QueueStatusSchema = z.object({ roles: z.array(RoleInfoSchema), setup: RoleInfoSchema.nullable() })
 import { Agent } from "../../agent/agent"
 import { Provider } from "../../provider/provider"
 import { Snapshot } from "@/snapshot"
@@ -31,8 +60,30 @@ import { Log } from "../../util/log"
 import { PermissionNext } from "@/permission/next"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
+import { Server } from "../server"
 
 const log = Log.create({ service: "server" })
+
+// Sessions whose pre-existing duplicate clusters have already been reconciled once this process (#108).
+const reconciledDuplicates = new Set<string>()
+
+// Server-side observe dedup (#18, defense-in-depth): a live SPA mutates continuously, so a stale
+// extension (one without the content-signature skip in content.js) re-POSTs the identical observation
+// hundreds of times, each triggering PageState.set + UiObservation + JS-miner wake + diag. Skip that
+// work when the incoming signature matches the one already stored FOR THAT URL in PageState —
+// independent of extension version, no reload needed. Tying it to PageState (not a side map) keeps it
+// correct: if the page-state was never stored or was cleared, there is no signature to match and the
+// observation is processed. The signature mirrors content.js's observationSignature.
+function observeSignature(b: {
+  url: string
+  modal_open?: boolean
+  clickables: { role: string; label: string; href: string; disabled?: boolean; in_modal?: boolean }[]
+  forms?: { submit_id?: string; fields: { name: string; type: string }[] }[]
+}): string {
+  const clicks = b.clickables.map((c) => `${c.role}|${c.label}|${c.href}|${c.disabled ? 1 : 0}|${c.in_modal ? 1 : 0}`).join("~")
+  const forms = (b.forms ?? []).map((f) => `${f.submit_id ?? ""}:${f.fields.map((x) => `${x.name}/${x.type}`).join(",")}`).join("~")
+  return `${b.url}#${b.modal_open ? 1 : 0}#${clicks}#${forms}`
+}
 
 const MAX_REQUEST_SIZE = 16 * 1024 // 16 KB
 const MAX_REQUEST_HEADERS = 20 // First N headers
@@ -123,14 +174,12 @@ export interface AccessContextInput {
 // so the orchestrator and subagents see the same structured signals.
 export function renderAccessContextLines(accessContext: AccessContextInput): string[] {
   const ac = accessContext
-  const hasData = ac.triggerElement || ac.pageUrl || ac.uiContext || ac.pageVisitedBy?.length
+  const hasData = ac.triggerElement || ac.pageUrl || ac.uiContext
   if (!hasData) return []
   const lines: string[] = ["", "## Access Context"]
   if (ac.pageUrl) {
     const visitedBy = ac.pageVisitedBy?.length ? ` (visited by: ${ac.pageVisitedBy.join(", ")})` : ""
     lines.push(`Page: ${ac.pageUrl}${visitedBy}`)
-  } else if (ac.pageVisitedBy?.length) {
-    lines.push(`Visited by: ${ac.pageVisitedBy.join(", ")}`)
   }
   if (ac.triggerElement) {
     const visibleTo = ac.elementRoles?.length ? ` (visible to: ${ac.elementRoles.join(", ")})` : ""
@@ -170,32 +219,6 @@ export function renderAccessContextLines(accessContext: AccessContextInput): str
   return lines
 }
 
-// Derive visited_by from observed credential attribution (request_observation), merging
-// with any capture-time label. This is the Firefox fix: Firefox traffic has no
-// page_visited_by at capture time, but request_observation carries per-credential
-// reachability for both paths. Merged, distinct, label-resolved.
-export function getVisitedByForKeyHash(
-  sessionID: string,
-  keyHash: string,
-  captureVisitedBy?: string[],
-): string[] {
-  const obs = Observation.listByKeyHash(sessionID, keyHash)
-  const ids = [...new Set(obs.map((o) => o.credential_id).filter((id): id is string => !!id))]
-  const labels = ids.map((id) => WebCredential.getById(id)?.label ?? id)
-  const merged = new Set<string>([...(captureVisitedBy ?? []), ...labels])
-  return [...merged]
-}
-
-export function resolveVisitedBy(input: {
-  sessionID: string
-  keyHash?: string
-  captureVisitedBy?: string[]
-}): string[] | undefined {
-  if (!input.keyHash) return input.captureVisitedBy
-  const derived = getVisitedByForKeyHash(input.sessionID, input.keyHash, input.captureVisitedBy)
-  return derived.length ? derived : input.captureVisitedBy
-}
-
 // Renders the `## Observed Values` block: the concrete input values each credential was
 // observed using on THIS endpoint shape (deterministic, redaction-aware). RAW FACTS ONLY —
 // no interpretation. What the values mean (access-control/IDOR/etc.) is the orchestrator's
@@ -224,6 +247,25 @@ function renderObservedValuesLines(tree: Observation.EndpointTree): string[] {
   return lines
 }
 
+// "METHOD scheme://host/path" from a raw HTTP request's request-line + Host header.
+// Returns just the request line if no Host is present, or undefined if unparseable.
+export function parseRequestTarget(rawRequest: string): string | undefined {
+  const head = rawRequest.split(/\r?\n/)
+  const requestLine = head[0]?.trim()
+  if (!requestLine) return undefined
+  const m = /^([A-Z]+)\s+(\S+)/.exec(requestLine)
+  if (!m) return undefined
+  const [, method, path] = m
+  const hostLine = head.find((l) => /^host:/i.test(l))
+  const host = hostLine ? hostLine.slice(hostLine.indexOf(":") + 1).trim() : ""
+  return host ? `${method} ${host}${path.startsWith("/") ? path : "/" + path}` : `${method} ${path}`
+}
+
+function firstLine(s: string): string {
+  const line = s.split(/\r?\n/, 1)[0]?.trim() ?? ""
+  return line.length > 120 ? line.slice(0, 120) + "…" : line
+}
+
 function buildPromptWithCredentialContext(
   rawRequest: string,
   credentialID?: string,
@@ -244,30 +286,33 @@ function buildPromptWithCredentialContext(
     lines.push("")
   }
 
-  lines.push("## Credential Context")
+  // The root ingest prompt is a DISPATCH BRIEF, not a full dump: the orchestrator only
+  // needs enough to route this endpoint to the right specialist(s). The full raw request/
+  // response + credential tokens are prepended to each specialist it dispatches (task.ts,
+  // a separate path), so they are intentionally omitted here to keep the root transcript
+  // readable. Kept: target URL, identity (label + role, not the token), a one-line
+  // response status (routing signal: 200 vs 401 vs 403), and observed values (IDOR leads).
 
+  // ## Target — method + URL parsed from the raw request line + Host header.
+  const target = parseRequestTarget(rawRequest)
+  if (target) {
+    lines.push("## Target")
+    lines.push(`${target}${operationContext ? ` (${operationContext.protocol} ${operationContext.operation})` : ""}`)
+    lines.push("")
+  }
+
+  // ## Identity — who this request was captured as: role label + auth state. NOT the token.
+  lines.push("## Identity")
   if (!credentialID) {
-    lines.push("UNAUTHENTICATED (no credential provided by browser extension)")
+    lines.push("- UNAUTHENTICATED (no credential)")
   } else {
     const cred = WebCredential.getById(credentialID)
     if (!cred) {
-      lines.push(`- credential_id: ${credentialID} (NOT FOUND in database)`)
+      lines.push(`- credential ${credentialID} (NOT FOUND)`)
     } else {
-      lines.push(`- credential_id: ${cred.id}`)
-      lines.push(`- label: ${cred.label}`)
-      if (cred.container_id) {
-        lines.push(`- container_id: ${cred.container_id}`)
-      }
-      if (Object.keys(cred.headers).length > 0) {
-        lines.push("- headers:")
-        for (const [key, value] of Object.entries(cred.headers)) {
-          const displayValue = value.length > 80 ? value.slice(0, 80) + "..." : value
-          lines.push(`  - ${key}: ${displayValue}`)
-        }
-      }
-      if (cred.role_id) {
-        lines.push(`- role_id: ${cred.role_id}`)
-      }
+      const role = cred.role_id ? WebRole.getById(cred.role_id) : undefined
+      const authed = Object.keys(cred.headers).length > 0
+      lines.push(`- ${cred.label}${role ? ` (role: ${role.name})` : ""} — ${authed ? "authenticated" : "no captured auth"}`)
     }
   }
 
@@ -279,19 +324,18 @@ function buildPromptWithCredentialContext(
     lines.push(...renderObservedValuesLines(observedValues))
   }
 
-  lines.push("")
-  lines.push("## Raw HTTP Request")
-  lines.push("```")
-  lines.push(rawRequest)
-  lines.push("```")
-
-  if (processedResponse) {
+  // ## Response — one line: status + content-type. The full body goes to the specialist.
+  const statusLine = processedResponse ? firstLine(processedResponse) : undefined
+  if (statusLine) {
     lines.push("")
-    lines.push("## Response")
-    lines.push("```")
-    lines.push(processedResponse)
-    lines.push("```")
+    lines.push(`## Response: ${statusLine}`)
   }
+
+  lines.push("")
+  lines.push("## Your job")
+  lines.push(
+    "Route this endpoint to the right specialist(s) and dispatch them. The full raw request/response and credential tokens are attached to each specialist — you do not need them here.",
+  )
 
   return lines.join("\n")
 }
@@ -309,6 +353,14 @@ function inferScheme(rawText: string): "http" | "https" {
   const hostMatch = rawText.match(/^[Hh]ost:\s*[^\r\n]*?:80\b/m)
   if (hostMatch) return "http"
   return "https"
+}
+
+// Case-insensitive lookup over a header map (capture sources vary in header casing).
+function headerValue(headers: Record<string, string> | undefined, name: string): string | undefined {
+  if (!headers) return undefined
+  const want = name.toLowerCase()
+  for (const k in headers) if (k.toLowerCase() === want) return headers[k]
+  return undefined
 }
 
 // Bridge between the ingest payload and Normalize.run. Returns null when the
@@ -487,6 +539,7 @@ export const SessionRoutes = lazy(() =>
           exclude: z.array(z.string()).optional(),
           steps: z.number().int().min(1).max(200).optional(),
           headless: z.boolean().optional(),
+          model: z.object({ providerID: z.string(), modelID: z.string() }).optional(),
         }),
       ),
       async (c) => {
@@ -501,6 +554,7 @@ export const SessionRoutes = lazy(() =>
           exclude: body.exclude,
           steps: body.steps,
           headless: body.headless,
+          model: body.model,
         })
         return c.json(result)
       },
@@ -717,8 +771,115 @@ export const SessionRoutes = lazy(() =>
       ),
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
+        // One-time retroactive dedup correction for pre-existing sessions (#108): on first read, make the
+        // strongest member of each duplicate cluster the active primary so a mis-marked critical surfaces.
+        if (!reconciledDuplicates.has(sessionID)) {
+          reconciledDuplicates.add(sessionID)
+          Vulnerability.reconcileDuplicates(sessionID)
+        }
         const list = Vulnerability.get(sessionID)
         return c.json(list)
+      },
+    )
+    .get(
+      "/:sessionID/vulnerability/:ref/poster",
+      describeRoute({
+        summary: "Generate vulnerability poster PNG",
+        description: "Render a shareable OG-style card image for a specific vulnerability finding.",
+        operationId: "session.vulnerability.poster",
+        responses: {
+          200: {
+            description: "PNG image",
+            content: { "image/png": { schema: { type: "string", format: "binary" } } },
+          },
+          ...errors(404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+          ref: z.string(),
+        }),
+      ),
+      async (c) => {
+        const p = c.req.valid("param")
+        const vulns = Vulnerability.get(p.sessionID)
+        const v = vulns.find((x) => x.ref === p.ref)
+        if (!v) return c.json({ error: "vulnerability not found" }, 404)
+        const png = await renderPoster({
+          title: v.title,
+          severity: v.severity,
+          description: v.description ?? "",
+          ref: v.ref,
+          cwe: v.cwe_id,
+          endpoint: v.endpoint,
+          cvss: v.cvss,
+          attack: v.attack_vector,
+          verified: v.status === "confirmed",
+          date: v.time?.created ? new Date(v.time.created).toISOString() : undefined,
+        })
+        return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/png", "Cache-Control": "no-cache" } })
+      },
+    )
+    .get(
+      "/:sessionID/vulnerability/:ref/poster/bundle",
+      describeRoute({
+        summary: "Generate vulnerability poster bundle",
+        description: "Returns PNG (base64), tweet text, and markdown blog post for a vulnerability finding.",
+        operationId: "session.vulnerability.poster.bundle",
+        responses: {
+          200: {
+            description: "Poster bundle",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({ png: z.string(), tweet: z.string(), markdown: z.string(), slug: z.string() }),
+                ),
+              },
+            },
+          },
+          ...errors(404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string(),
+          ref: z.string(),
+        }),
+      ),
+      async (c) => {
+        const p = c.req.valid("param")
+        const vulns = Vulnerability.get(p.sessionID)
+        const v = vulns.find((x) => x.ref === p.ref)
+        if (!v) return c.json({ error: "vulnerability not found" }, 404)
+        const out = await generatePoster({
+          title: v.title,
+          severity: v.severity,
+          description: v.description ?? "",
+          ref: v.ref,
+          cwe: v.cwe_id,
+          endpoint: v.endpoint,
+          cvss: v.cvss,
+          attack: v.attack_vector,
+          verified: v.status === "confirmed",
+          date: v.time?.created ? new Date(v.time.created).toISOString() : undefined,
+        })
+        const dir = path.join(Instance.worktree, ".cyberstrike", "posters", out.slug)
+        mkdirSync(dir, { recursive: true })
+        await Promise.all([
+          Bun.write(path.join(dir, `${out.slug}.png`), out.png),
+          Bun.write(path.join(dir, `${out.slug}.md`), out.markdown),
+          Bun.write(path.join(dir, "tweet.txt"), out.tweet),
+        ])
+        return c.json({
+          png: out.png.toString("base64"),
+          tweet: out.tweet,
+          markdown: out.markdown,
+          slug: out.slug,
+          path: dir,
+        })
       },
     )
     .get(
@@ -848,13 +1009,660 @@ export const SessionRoutes = lazy(() =>
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
         const body = c.req.valid("json")
-        const cred = WebCredential.add({
+        const existed = !!WebCredential.getByLabel(sessionID, body.label) // reused (any casing) vs new
+        const cred = WebCredential.ensure({
           sessionID,
           label: body.label,
           headers: body.headers,
           containerID: body.container_id,
         })
-        return c.json(cred)
+        return c.json({ ...cred, reused: existed })
+      },
+    )
+    .post(
+      "/:sessionID/web/observations",
+      describeRoute({
+        summary: "Ingest UI observations",
+        description:
+          "Record which credential could see which clickable elements on a page — the Faz B UI-affordance substrate for access-control (BFLA) reasoning. Called by the browser extension per page, per credential.",
+        operationId: "session.addWebObservations",
+        responses: {
+          200: {
+            description: "Count of newly recorded observations",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ observed: z.number() })),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          credential_id: z.string().optional(),
+          page_url: z.string(),
+          elements: z.array(z.object({ role: z.string(), label: z.string() })),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        let observed = 0
+        for (const el of body.elements) {
+          const isNew = UiObservation.observe(sessionID, {
+            credentialID: body.credential_id ?? null,
+            pageUrl: body.page_url,
+            role: el.role,
+            label: el.label,
+          })
+          if (isNew) observed++
+        }
+        return c.json({ observed })
+      },
+    )
+    .post(
+      "/:sessionID/web/spawn-profile",
+      describeRoute({
+        summary: "Spawn a role browser profile",
+        description:
+          "The panel 'Add role' action: open a new Chrome profile (its own cookie jar) with the hackbrowser extension, tagged with a role and attached to this session, so a second/third identity can log in and feed access-control comparison. Local only — CyberStrike spawns the browser on its own host.",
+        operationId: "session.spawnWebProfile",
+        responses: {
+          200: {
+            description: "Profile spawned",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ profileDir: z.string(), pid: z.number() })),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator(
+        "param",
+        z.object({
+          sessionID: z.string().meta({ description: "Session ID" }),
+        }),
+      ),
+      validator(
+        "json",
+        z.object({
+          role: z.string().optional().meta({ description: "Role/credential label; omitted = anonymous" }),
+          roleName: z.string().optional().meta({ description: "Declared role tier name (User/Admin/…); optional" }),
+          roleLevel: z.number().optional().meta({ description: "Declared role privilege level (ordering) for the tier" }),
+          url: z.string().meta({ description: "URL to open the new profile at (usually the app origin)" }),
+          headless: z.boolean().optional(),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        // Declared role tier: seed a web_role and PRE-CREATE the credential linked to it, keyed by
+        // label. When the spawned browser later registers this label, WebCredential.ensure dedups by
+        // label and keeps role_id — so the authz agent has the privilege ordering without waiting on
+        // AI inference. Only when a label + a role name are both given.
+        const roleName = body.roleName && body.roleName.trim()
+        if (body.role && roleName) {
+          await Session.get(sessionID) // 404 on a stale/bogus session before writing role/credential rows (which FK to it)
+          const role = WebRole.add({ sessionID, name: roleName, level: body.roleLevel, discoveredFrom: "user" })
+          WebCredential.ensure({ sessionID, label: body.role, roleID: role.id })
+        }
+        // Dynamic import mirrors the hackbrowser launch route — keeps the spawn code
+        // (and its Chrome-path logic) out of server startup.
+        const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
+        try {
+          const result = spawn.spawnProfile({
+            url: body.url,
+            cred: body.role,
+            session: sessionID,
+            headless: body.headless,
+            csUrl: Server.url().toString(),
+          })
+          // Track the child so it can be closed with the assessment (the proc handle is
+          // not serializable — return only the plain fields).
+          SpawnedProfiles.track(sessionID, result.proc)
+          return c.json({ profileDir: result.profileDir, pid: result.pid })
+        } catch (e) {
+          return c.json({ error: e instanceof Error ? e.message : String(e) }, 500)
+        }
+      },
+    )
+    .get(
+      "/:sessionID/web/spawned-count",
+      describeRoute({
+        summary: "Count spawned role browsers",
+        description: "How many spawned role browsers are still tracked for this session — the branded panel uses it to decide whether to confirm closing them on detach.",
+        operationId: "session.spawnedProfileCount",
+        responses: {
+          200: {
+            description: "Count",
+            content: { "application/json": { schema: resolver(z.object({ count: z.number() })) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => c.json({ count: SpawnedProfiles.count(c.req.valid("param").sessionID) }),
+    )
+    .post(
+      "/:sessionID/web/close-profiles",
+      describeRoute({
+        summary: "Close spawned role browsers",
+        description:
+          "Close every browser profile CyberStrike spawned for this session (the 'Add credential' role browsers). A short delay first lets their last captures flush. Returns how many were closed.",
+        operationId: "session.closeWebProfiles",
+        responses: {
+          200: {
+            description: "Count closed",
+            content: { "application/json": { schema: resolver(z.object({ closed: z.number() })) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        // Flush window: let the spawned browsers' in-flight captures land before we kill.
+        await new Promise((r) => setTimeout(r, 800))
+        return c.json({ closed: SpawnedProfiles.closeAll(sessionID) })
+      },
+    )
+    .post(
+      "/:sessionID/web/role-queue",
+      describeRoute({
+        summary: "Enqueue setup roles",
+        description:
+          "Add roles to this session's sequential setup queue (dedup by label). Fed by the TUI menu (a list) and the panel 'Add credential' (one at a time). Roles spawn one at a time as each prior role's capture starts.",
+        operationId: "session.enqueueRoles",
+        responses: {
+          200: { description: "Queue status", content: { "application/json": { schema: resolver(QueueStatusSchema) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ roles: z.array(z.string()) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        RoleQueue.enqueue(sessionID, c.req.valid("json").roles)
+        return c.json(RoleQueue.status(sessionID))
+      },
+    )
+    .get(
+      "/:sessionID/web/queue-status",
+      describeRoute({
+        summary: "Role setup queue status",
+        description: "The sequential-setup queue for this session — the orchestrator (first) browser polls it to show 'spawning <role>…' / 'please sign in as <role>'.",
+        operationId: "session.queueStatus",
+        responses: {
+          200: { description: "Queue status", content: { "application/json": { schema: resolver(QueueStatusSchema) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => c.json(RoleQueue.status(c.req.valid("param").sessionID)),
+    )
+    .post(
+      "/:sessionID/web/capture-started",
+      describeRoute({
+        summary: "Signal a role's capture started",
+        description:
+          "A browser pressed Start capture for `role`. Advances the queue and, if a next role is pending, spawns its browser on the shared session at `url`. Returns the next role's label (now being set up) or null.",
+        operationId: "session.captureStarted",
+        responses: {
+          200: {
+            description: "Next role spawned (or none)",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ next: z.string().nullable(), spawned: z.boolean() })),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ role: z.string(), url: z.string() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        const next = RoleQueue.captureStarted(sessionID, body.role)
+        if (!next) return c.json({ next: null, spawned: false })
+        // Spawn the next role's browser on the shared session at the same URL.
+        try {
+          const spawn = await import("@cyberstrike-io/hackbrowser/v2-spawn")
+          const result = spawn.spawnProfile({ url: body.url, cred: next.label, session: sessionID, csUrl: Server.url().toString() })
+          SpawnedProfiles.track(sessionID, result.proc)
+          RoleQueue.spawned(sessionID, next.label)
+          return c.json({ next: next.label, spawned: true })
+        } catch (e) {
+          // Queue already advanced (next is "spawning"); report the failure so the panel
+          // can surface it rather than silently stalling.
+          return c.json({ next: next.label, spawned: false, error: e instanceof Error ? e.message : String(e) }, 500)
+        }
+      },
+    )
+    .post(
+      "/:sessionID/web/observe",
+      describeRoute({
+        summary: "Store a page observation",
+        description:
+          "The extension posts the current page's clickables/forms/links. Feeds the get_page_state store (annotated with semantic kind) and, when credential_id is present, the per-credential UI-affordance store (Faz B).",
+        operationId: "session.webObserve",
+        responses: {
+          200: {
+            description: "Kind counts",
+            content: { "application/json": { schema: resolver(z.object({ ok: z.boolean(), kinds: z.record(z.string(), z.number()) })) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator(
+        "json",
+        z.object({
+          url: z.string(),
+          title: z.string().optional(),
+          driver: z.enum(["ai", "human"]).optional(),
+          credential_id: z.string().optional(),
+          clickables: z.array(
+            z.object({
+              id: z.string(),
+              tag: z.string(),
+              role: z.string(),
+              label: z.string(),
+              href: z.string(),
+              // rich observation (extension 2.0) — optional; zod strips unknown keys, so any
+              // field the AI should keep MUST be declared here.
+              why: z.string().optional(),
+              aria: z.record(z.string(), z.string()).optional(),
+              disabled: z.boolean().optional(),
+              in_viewport: z.boolean().optional(),
+              in_modal: z.boolean().optional(),
+              section: z.string().optional(),
+              testid: z.string().optional(),
+              shadow: z.boolean().optional(),
+              frame: z.string().optional(),
+            }),
+          ),
+          forms: z
+            .array(
+              z.object({
+                action: z.string(),
+                method: z.string(),
+                fields: z.array(z.object({ id: z.string().optional(), name: z.string(), type: z.string(), required: z.boolean() })),
+                submit_id: z.string().optional(),
+                in_modal: z.boolean().optional(),
+              }),
+            )
+            .optional(),
+          links: z.array(z.string()).optional(),
+          // rich page context
+          description: z.string().optional(),
+          location: z.array(z.string()).optional(),
+          landmarks: z.array(z.object({ role: z.string(), label: z.string() })).optional(),
+          frames: z.array(z.object({ src: z.string(), same_origin: z.boolean(), title: z.string() })).optional(),
+          canvas: z.number().optional(),
+          dynamic: z.boolean().optional(),
+          // Framework fingerprint signals (P2) — raw markers the extension gathered; the server
+          // runs FrameworkFingerprinter.detect over them into a TechStack.
+          tech: z
+            .object({
+              globals: z.array(z.string()).optional(),
+              dom: z.array(z.string()).optional(),
+              cookies: z.array(z.string()).optional(),
+              meta: z.string().optional(),
+              scripts: z.array(z.string()).optional(),
+              headers: z.record(z.string(), z.string()).optional(),
+            })
+            .optional(),
+          // Absolute <script src> bundle URLs (JS-first discovery) — the miner fetches + parses these.
+          js_bundles: z.array(z.string()).optional(),
+          // Libraries executing at runtime, "name@version" (referenced-vs-loaded, #22) — the strongest
+          // load+execution evidence (a live global) and the real version for CVE matching.
+          runtime_libs: z.array(z.string()).optional(),
+          // What the page actually LOADED (PerformanceResourceTiming) — {url, initiatorType, transferSize}.
+          resources: z.array(z.object({ url: z.string(), type: z.string(), size: z.number() })).optional(),
+          // A modal dialog is trapping interaction — the navigator restricts itself to in_modal controls.
+          modal_open: z.boolean().optional(),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const b = c.req.valid("json")
+        // Skip the expensive per-observe work when this observation is identical to the one already
+        // stored for this url (#18) — the actionable surface (url + clickables + forms + modal) is
+        // unchanged, so PageState already holds it and there is nothing new to process.
+        const sig = observeSignature(b)
+        if (PageState.sigFor(sessionID, b.url) === sig) return c.json({ ok: true, kinds: {} })
+        const kinds = PageState.set(sessionID, {
+          url: b.url,
+          title: b.title ?? "",
+          clickables: b.clickables,
+          forms: b.forms ?? [],
+          links: b.links ?? [],
+          driver: b.driver,
+          credential: b.credential_id,
+          description: b.description,
+          location: b.location,
+          landmarks: b.landmarks,
+          frames: b.frames,
+          canvas: b.canvas,
+          dynamic: b.dynamic,
+          tech: b.tech ? FrameworkFingerprinter.detect(b.tech) : undefined,
+          modal_open: b.modal_open,
+          observed_at: Date.now(),
+          sig,
+        })
+        if (b.credential_id) {
+          for (const el of b.clickables) {
+            if (el.label)
+              UiObservation.observe(sessionID, { credentialID: b.credential_id, pageUrl: b.url, role: el.role, label: el.label })
+          }
+        }
+        // JS-first discovery: the extension enumerates every <script src> (absolute URL) on the page
+        // — including app-shell bundles loaded BEFORE capture started, the biggest source of missed
+        // endpoints. (NOTE: tech.scripts is a fingerprint-keyword list, NOT bundle URLs — js_bundles
+        // is the real source.) Feed the in-scope ones to the miner and wake it: it fetches them
+        // credentialed, follows chunk references recursively, extracts API endpoints, and those flow
+        // to the API-direct fast lane. Deterministic — no longer gated on the LLM navigator.
+        const bundles = (b.js_bundles ?? []).filter((u) => WebScope.allowed(sessionID, u))
+        if (bundles.length > 0 && DataCollector.addJsUrls(sessionID, bundles) > 0) {
+          // Persist to web_js for visibility (the sidebar + DB) — discovered from the DOM, not a
+          // captured network request.
+          for (const u of bundles) {
+            try {
+              WebJs.add({ sessionID, url: u, origin: new URL(u).origin, discoveredFrom: "script-src" })
+              vortexDiscoverJs(sessionID, u, "referenced") // DOM <script src> — referenced, load not yet observed (#22)
+            } catch {}
+          }
+          JsMiner.wake(sessionID)
+        }
+        // Referenced-vs-loaded evidence (#22). NOT scope-filtered: a CDN load is EVIDENCE the app
+        // pulled the asset in, not a probe target — recording it is exactly how we later prove a
+        // vuln-lib finding is real (or down-rank it as "referenced, never loaded"). Never throws.
+        if (Array.isArray(b.resources) && b.resources.length > 0) vortexRecordLoads(sessionID, b.resources)
+        if (Array.isArray(b.runtime_libs) && b.runtime_libs.length > 0) vortexRecordRuntimeLibs(sessionID, b.runtime_libs, b.url)
+        HBLog.record(sessionID, "server", "observe", { url: b.url, clickables: b.clickables.length, forms: (b.forms ?? []).length })
+        return c.json({ ok: true, kinds })
+      },
+    )
+    .get(
+      "/:sessionID/web/page-state",
+      describeRoute({
+        summary: "Get page state (get_page_state substrate)",
+        description:
+          "The current page's clickables (each annotated with semantic kind + action policy), forms and links — what the AI reads to pick its next action. Omit url to list observed urls; view filters clickables to one kind.",
+        operationId: "session.webPageState",
+        responses: {
+          200: { description: "Page state", content: { "application/json": { schema: resolver(z.any()) } } },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator(
+        "query",
+        z.object({
+          url: z.string().optional(),
+          view: z.enum(["destructive", "logout", "auth", "mutating", "query", "nav", "other"]).optional(),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const q = c.req.valid("query")
+        if (!q.url) return c.json({ urls: PageState.urls(sessionID) })
+        const st = PageState.get(sessionID, q.url, q.view)
+        if (!st) return c.json({ error: "no page-state for this url" }, 404)
+        return c.json(st)
+      },
+    )
+    .post(
+      "/:sessionID/web/action",
+      describeRoute({
+        summary: "Perform a guarded browser action",
+        description:
+          "click / type / navigate, relayed to the extension over the control WS. guard.ts is enforced HERE: a logout element is denied (403), a destructive one needs human confirmation (409). The AI's hands.",
+        operationId: "session.webAction",
+        responses: {
+          200: {
+            description: "Action ack",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ ok: z.boolean(), policy: z.string().optional(), error: z.string().optional() })),
+              },
+            },
+          },
+          ...errors(400, 403, 404, 409),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator(
+        "json",
+        z.object({
+          op: z.enum(["click", "type", "navigate"]),
+          url: z.string().optional(),
+          element_id: z.string().optional(),
+          text: z.string().optional(),
+        }),
+      ),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const b = c.req.valid("json")
+        const relay = (ack: { ok: boolean; error?: string }, policy?: string) => {
+          if (ack.ok) return c.json({ ok: true, policy })
+          const status = ack.error === "no-extension" ? 503 : ack.error === "timeout" ? 504 : 502
+          return c.json({ ok: false, error: ack.error ?? "relay failed" }, status)
+        }
+        if (b.op === "navigate") {
+          if (!b.url) return c.json({ ok: false, error: "url required" }, 400)
+          return relay(await WebControl.send(sessionID, { op: "navigate", url: b.url }))
+        }
+        if (!b.url || !b.element_id) return c.json({ ok: false, error: "url and element_id required" }, 400)
+        const pol = PageState.elementPolicy(sessionID, b.url, b.element_id)
+        if (!pol) return c.json({ ok: false, error: "unknown element / no page-state for url" }, 404)
+        if (pol.policy === "deny")
+          return c.json({ ok: false, policy: "deny", kind: pol.kind, label: pol.label, error: "denied by guard (logout)" }, 403)
+        if (pol.policy === "confirm")
+          return c.json({ ok: false, policy: "confirm", kind: pol.kind, label: pol.label, error: "human confirmation required" }, 409)
+        return relay(await WebControl.send(sessionID, { op: b.op, elementId: b.element_id, text: b.text }), pol.policy)
+      },
+    )
+    .get(
+      "/:sessionID/web/control",
+      describeRoute({
+        summary: "Browser control channel (WebSocket)",
+        description:
+          "The extension upgrades here to receive click/type/navigate commands from /web/action and ack them. One socket per session.",
+        operationId: "session.webControl",
+        responses: { ...errors(404) },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      upgradeWebSocket((c) => {
+        const sessionID = c.req.param("sessionID")
+        return {
+          onOpen(_e, ws) {
+            HBLog.record(sessionID, "server", "control-connected") // the extension's control WS is up
+            WebControl.connect(sessionID, { send: (d) => ws.send(d) })
+          },
+          onMessage(event) {
+            WebControl.onAck(String(event.data))
+          },
+          onClose() {
+            HBLog.record(sessionID, "server", "control-closed")
+            WebControl.disconnect(sessionID)
+          },
+        }
+      }),
+    )
+    .post(
+      "/:sessionID/web/driver",
+      describeRoute({
+        summary: "Set the browser driver (AI / Human)",
+        description:
+          "The panel's AI/Human toggle reports here so CyberStrike knows who is driving. Human mode blocks web_action (interlock); AI mode is what will start the co-driving loop. The extension POSTs on toggle and on control-WS connect.",
+        operationId: "session.webSetDriver",
+        responses: {
+          200: {
+            description: "Current driver",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ ok: z.boolean(), driver: z.enum(["ai", "human"]), model: z.string().optional() })),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ driver: z.enum(["ai", "human"]) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const driver = c.req.valid("json").driver
+        HBLog.record(sessionID, "server", "driver", { driver }) // extension reached the server + who drives
+        WebDriver.set(sessionID, driver)
+        // AI mode drives the browser; Human mode stops the loop (the interlock also blocks
+        // any in-flight action). Idempotent — repeated "ai" posts don't stack loops.
+        if (driver === "ai") CoDrive.start(sessionID)
+        else CoDrive.stop(sessionID)
+        // Report the model the co-driving loop will actually plan with, so the panel can confirm the
+        // AI is wired up to the RIGHT model. Must match what LlmNavigator uses — the crawl's model
+        // (SessionPrompt.webModel: the launch-time pick, else the session's last model), NOT
+        // Provider.defaultModel(), or the banner shows a model (e.g. an unconfigured default like
+        // deepseek-v4-pro) the navigator never actually runs.
+        let model: string | undefined
+        try {
+          model = (await SessionPrompt.webModel(sessionID)).modelID
+        } catch {}
+        return c.json({ ok: true, driver, model })
+      },
+    )
+    .get(
+      "/:sessionID/web/driver",
+      describeRoute({
+        summary: "Get the browser driver (AI / Human)",
+        description: "The current driver for the session, or null if the panel has not reported one yet.",
+        operationId: "session.webGetDriver",
+        responses: {
+          200: {
+            description: "Current driver",
+            content: { "application/json": { schema: resolver(z.object({ driver: z.enum(["ai", "human"]).nullable() })) } },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        return c.json({ driver: WebDriver.get(sessionID) ?? null })
+      },
+    )
+    .get(
+      "/:sessionID/web/stats",
+      describeRoute({
+        summary: "Web capture stats for the panel HUD",
+        description:
+          "Live capture-coverage counts for the on-page panel/HUD, read from the durable store (request / endpoint_template tables + confirmed vulnerabilities) so they match the analysis + TUI and read 0 for a fresh session: captured requests, distinct endpoints, distinct pages, confirmed vulnerabilities.",
+        operationId: "session.webStats",
+        responses: {
+          200: {
+            description: "Capture counts",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ captures: z.number(), endpoints: z.number(), pages: z.number(), vulns: z.number() })),
+              },
+            },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => {
+        return c.json(WebStats.summary(c.req.valid("param").sessionID))
+      },
+    )
+    .get(
+      "/:sessionID/web/js",
+      describeRoute({
+        summary: "List captured JS files",
+        description:
+          "The JS files (script URLs) seen during capture for this session, persisted durably — the TUI 'Captures > JS Files' view lists them and a later agent pulls + reviews each body.",
+        operationId: "session.webJs",
+        responses: {
+          200: {
+            description: "JS files",
+            content: { "application/json": { schema: resolver(WebJs.Info.array()) } },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      async (c) => {
+        return c.json(WebJs.get(c.req.valid("param").sessionID))
+      },
+    )
+    .post(
+      "/:sessionID/web/hold",
+      describeRoute({
+        summary: "Pause / resume the AI navigator (transient)",
+        description:
+          "While the user engages the on-page panel, the extension holds the co-driving loop so a full-page navigation doesn't wipe the panel out from under them. Distinct from the AI/Human driver toggle — the driver stays 'ai'; this only pauses navigation until released.",
+        operationId: "session.webSetHold",
+        responses: {
+          200: {
+            description: "Hold state",
+            content: { "application/json": { schema: resolver(z.object({ ok: z.boolean(), held: z.boolean() })) } },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ held: z.boolean() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const held = c.req.valid("json").held
+        WebHold.set(sessionID, held)
+        return c.json({ ok: true, held })
+      },
+    )
+    .post(
+      "/:sessionID/web/log",
+      describeRoute({
+        summary: "Record a HackBrowser diagnostic event",
+        description:
+          "The extension posts its own lifecycle events (content mounted, control WS open, perform relayed, attach) into the per-session diagnostic trail. Absence of extension events is itself diagnostic.",
+        operationId: "session.webLog",
+        responses: { 200: { description: "Recorded", content: { "application/json": { schema: resolver(z.object({ ok: z.boolean() })) } } }, ...errors(400, 404) },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("json", z.object({ source: z.string().optional(), event: z.string(), data: z.unknown().optional() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const b = c.req.valid("json")
+        HBLog.record(sessionID, b.source ?? "extension", b.event, b.data)
+        return c.json({ ok: true })
+      },
+    )
+    .get(
+      "/:sessionID/web/log",
+      describeRoute({
+        summary: "Read the HackBrowser diagnostic trail",
+        description: "The per-session cross-layer event trail (server + extension) plus the on-disk JSONL file path.",
+        operationId: "session.webLogRead",
+        responses: { 200: { description: "Events", content: { "application/json": { schema: resolver(z.any()) } } }, ...errors(404) },
+      }),
+      validator("param", z.object({ sessionID: z.string().meta({ description: "Session ID" }) })),
+      validator("query", z.object({ limit: z.coerce.number().optional() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        return c.json({ file: HBLog.file(sessionID), entries: HBLog.entries(sessionID, c.req.valid("query").limit ?? 1000) })
       },
     )
     .delete(
@@ -929,7 +1737,8 @@ export const SessionRoutes = lazy(() =>
           const updated = WebCredential.update({
             id: params.credentialID,
             sessionID: params.sessionID,
-            headers: body.headers,
+            // Manual API update has no host context → wildcard "*" (applies on every host).
+            headers: body.headers ? { "*": body.headers } : undefined,
             label: body.label,
             containerID: body.container_id,
             roleID: body.role_id,
@@ -1018,23 +1827,115 @@ export const SessionRoutes = lazy(() =>
       },
     )
     .get(
-      "/:sessionID/web/retest-queue",
+      "/:sessionID/vortex",
       describeRoute({
-        summary: "Get web retest queue",
-        description: "Retrieve pending retests triggered by new discoveries.",
-        operationId: "session.webRetestQueue",
+        summary: "Vortex report",
+        description: "Run the Vortex engine over the session's live web corpus and return leads + counts.",
+        operationId: "session.vortexReport",
+        responses: { 200: { description: "Vortex report" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => c.json(vortexReport(c.req.valid("param").sessionID)),
+    )
+    .post(
+      "/:sessionID/vortex/probe",
+      describeRoute({
+        summary: "Vortex active probe",
+        description:
+          "Actively probe the session's enumerated injection points (sends payloads to the target). No-op unless CYBERSTRIKE_VORTEX_ACTIVE_PROBE is set; governed + replay-safe. Returns probed/signal counts.",
+        operationId: "session.vortexProbe",
+        responses: { 200: { description: "Vortex active-probe result" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => c.json(await vortexProbe(c.req.valid("param").sessionID)),
+    )
+    .get(
+      "/:sessionID/vortex/captures",
+      describeRoute({
+        summary: "Vortex captures",
+        description:
+          "The captured surface sourced from the session's Vortex store (the single source of truth the TUI Captures view reads): requests (transactions) + discovered JS files. Pages are derived from each request's pageUrl.",
+        operationId: "session.vortexCaptures",
+        responses: { 200: { description: "Vortex-sourced captures" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => c.json(vortexCaptures(c.req.valid("param").sessionID)),
+    )
+    .get(
+      "/:sessionID/vortex/signals",
+      describeRoute({
+        summary: "Vortex signals",
+        description:
+          "Every deterministic signal Vortex produced for this session (passive rules + active probe), with its owning WSTG class, whether it auto-routed into the retest pipeline, and its endpoint's retest-queue status — the source for the TUI 'Vortex Signals' view (issue #14).",
+        operationId: "session.vortexSignals",
+        responses: { 200: { description: "Vortex-sourced signals + routing status" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => c.json(vortexSignals(c.req.valid("param").sessionID)),
+    )
+    .get(
+      "/:sessionID/vortex/signals/summary",
+      describeRoute({
+        summary: "Vortex signal triage summary",
+        description: "Counts of signals grouped by triage status (new/reviewed/confirmed/dismissed/escalated).",
+        operationId: "session.vortexSignalSummary",
+        responses: { 200: { description: "Signal triage summary counts" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => c.json(vortexSignalSummary(c.req.valid("param").sessionID)),
+    )
+    .patch(
+      "/:sessionID/vortex/signals/triage",
+      describeRoute({
+        summary: "Update signal triage status",
+        description: "Set the triage status of one or more signals by their dedup key. Invalidates the signals cache.",
+        operationId: "session.vortexUpdateTriage",
+        responses: { 200: { description: "Number of signals updated" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      validator("json", z.object({
+        keys: z.array(z.string()).min(1),
+        triage: z.enum(["new", "reviewed", "confirmed", "dismissed", "escalated"]),
+      })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const body = c.req.valid("json")
+        return c.json(vortexUpdateTriage(sessionID, body))
+      },
+    )
+    .post(
+      "/:sessionID/inspection/route-signals",
+      describeRoute({
+        summary: "Force-route surfaced signals",
+        description:
+          "Operator action: flag EVERY owned Vortex signal for a specialist, ignoring the medium+ auto-route gate — so surfaced-but-not-auto-routed leads (e.g. a low-severity cross-identity-access = IDOR/BFLA candidate) get actively tested on demand. Idempotent; wakes the dispatcher.",
+        operationId: "session.routeSignals",
+        responses: { 200: { description: "How many signals were flagged for a specialist" } },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        ensureWebInspection(sessionID) // register dispatcher + lifecycle (idempotent) before flagging
+        return c.json(routeAllSignals(sessionID))
+      },
+    )
+    .get(
+      "/:sessionID/inspection/queue",
+      describeRoute({
+        summary: "Get inspection queue",
+        description: "Retrieve pending inspection targets flagged by new discoveries.",
+        operationId: "session.inspectionQueue",
         responses: {
           200: {
-            description: "Retest queue",
+            description: "Inspection queue",
             content: {
               "application/json": {
                 schema: resolver(
                   z.object({
-                    pending: z.array(WebRetest.Info),
+                    pending: z.array(WebInspect.Info),
                     counts: z.object({
                       pending: z.number(),
-                      processing: z.number(),
-                      completed: z.number(),
+                      examined: z.number(),
                     }),
                   }),
                 ),
@@ -1047,9 +1948,41 @@ export const SessionRoutes = lazy(() =>
       validator("param", z.object({ sessionID: z.string() })),
       async (c) => {
         const sessionID = c.req.valid("param").sessionID
-        const pending = WebRetest.getPending(sessionID)
-        const counts = WebRetest.count(sessionID)
+        const pending = WebInspect.getPending(sessionID)
+        const counts = WebInspect.count(sessionID)
         return c.json({ pending, counts })
+      },
+    )
+    .get(
+      "/:sessionID/inspection/lifecycle",
+      describeRoute({
+        summary: "Get inspection lifecycle",
+        description: "Retrieve the current inspection phase, activity sources, and queue counts.",
+        operationId: "session.inspectionLifecycle",
+        responses: {
+          200: {
+            description: "Lifecycle snapshot",
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    phase: z.enum(["idle", "discovering", "inspecting", "draining", "complete"]),
+                    sources: z.array(z.object({ name: z.string(), active: z.boolean() })),
+                    counts: z.object({ pending: z.number(), examined: z.number(), total: z.number() }),
+                  }),
+                ),
+              },
+            },
+          },
+          ...errors(400, 404),
+        },
+      }),
+      validator("param", z.object({ sessionID: z.string() })),
+      async (c) => {
+        const sessionID = c.req.valid("param").sessionID
+        const inst = getWebInspection(sessionID)
+        if (!inst) return c.json({ phase: "idle" as const, sources: [], counts: { pending: 0, examined: 0, total: 0 } })
+        return c.json(inst.lifecycle.snapshot())
       },
     )
     .post(
@@ -1168,10 +2101,52 @@ export const SessionRoutes = lazy(() =>
           sessionID = session.id
         }
 
+        // Start the inspection stack for this session: the dispatcher drains the queue (spawns the
+        // owning WSTG specialist per flagged endpoint) and the lifecycle tracks phase → complete.
+        // Idempotent; safe on every ingest. (Replaced the old WebRetest/RetestWorker path — #19.)
+        ensureWebInspection(sessionID)
+        ensureAssessmentNotifier() // POST a webhook when a session reaches phase "complete" (#19)
+        ensureWatchdog() // subscribe the idle / phase-complete triggers (idempotent)
+        armWatchdog(sessionID) // GUARANTEE: arm the watch on every ingest so completion is driven even
+        // if no idle / phase event ever fires (engine-driven assessment with no root turn)
+        // Register activity sources so the lifecycle knows the session is still producing work — this
+        // keeps the phase at inspecting/discovering (never a premature "complete", which stops the
+        // lifecycle for good) while traffic is still flowing or the miner/prober is running (#19).
+        // addWebActivitySource is idempotent by name, so re-registering on every ingest is a no-op.
+        addWebActivitySource(sessionID, { name: "ingest", isActive: () => ingestActive(sessionID) })
+        addWebActivitySource(sessionID, { name: "js-miner", isActive: () => JsMiner.isActive(sessionID) })
+        addWebActivitySource(sessionID, { name: "api-probe", isActive: () => ApiProbe.isActive(sessionID) })
+        // COMPLETION GATES (hard rule): the phase must NOT reach "complete" while ANY of these hold. They
+        // are ActivitySources prefixed "gate:" so the lifecycle's derive() already keeps the phase out of
+        // "complete" (it settles only when NO source is active); the watchdog treats gate:* separately
+        // from engine activity. #1 "an agent is running" is already covered by the specialist/triage/
+        // escalation sources above.
+        const gateRoot = Session.root(sessionID)
+        // #2 — a finding still in draft (un-triaged / not human-reviewed).
+        addWebActivitySource(sessionID, {
+          name: "gate:drafts",
+          isActive: () => Vulnerability.get(gateRoot).some((v) => normalizeStatus(v.status ?? VulnStatus.DRAFT) === VulnStatus.DRAFT),
+        })
+        // #3 — a Vortex signal not yet reviewed.
+        addWebActivitySource(sessionID, { name: "gate:signals", isActive: () => vortexSignalSummary(gateRoot).triage.new > 0 })
+        // #4 — the model is unreachable: any session under this assessment actively retrying a provider error.
+        addWebActivitySource(sessionID, {
+          name: "gate:llm",
+          isActive: () => Object.entries(SessionStatus.list()).some(([sid, st]) => st.type === "retry" && Session.root(sid) === gateRoot),
+        })
+        // Re-arm the lifecycle: these sources can flip active AFTER an earlier "complete" stopped the poll
+        // (silent sources emit no queue event), which would freeze the phase at a stale "complete" while
+        // the browser keeps crawling/probing. poke() re-derives now so the phase reflects live activity.
+        getWebInspection(sessionID).lifecycle.poke()
+        // Wake the API-direct fast lane: it debounces a burst of ingests into one sweep that
+        // deterministically probes newly-captured endpoints (safe methods only), so a signal
+        // queues a specialist retest without an LLM sub-agent per endpoint. Idempotent.
+        ApiProbe.wake(sessionID)
+
         // Handle credential registration
         let credentialID = body.credential_id
         if (body.credential && !credentialID) {
-          const cred = WebCredential.add({
+          const cred = WebCredential.ensure({
             sessionID,
             label: body.credential.label,
             headers: body.credential.headers,
@@ -1185,6 +2160,122 @@ export const SessionRoutes = lazy(() =>
         const normalized = await runNormalize(body, sessionID, ingestDryRun)
 
         if (normalized) {
+          // Deterministic scope gate — DROP out-of-scope third-party hosts (analytics,
+          // CDNs, OAuth/SSO providers, map/telemetry and other SaaS APIs the app merely
+          // calls) right here, so sub-agents never see them and never spend a
+          // per-endpoint scope_check on traffic that isn't the target.
+          // The target's registrable domain is a wildcard (*.target), established once
+          // (first-write-wins) from the page the operator is actually on; an explicit
+          // launch scope, if already set, wins. No-op until a target is known, so we
+          // never drop when scope is unresolved.
+          if (body.page_url) WebScope.ensure(sessionID, body.page_url)
+          if (!WebScope.allowed(sessionID, normalized.origin)) {
+            // Auto-expand: if the PAGE is in scope but the request target isn't,
+            // the target is likely the app's own API on a different domain.
+            // Expand scope unless it's a known third-party SaaS service.
+            if (body.page_url && WebScope.allowed(sessionID, body.page_url)) {
+              try {
+                const target = new URL(normalized.origin).hostname
+                if (WebScope.expand(sessionID, target)) {
+                  log.info("scope auto-expanded from in-scope page", { target, pageUrl: body.page_url, sessionID })
+                }
+              } catch {}
+            }
+            if (!WebScope.allowed(sessionID, normalized.origin)) {
+              log.debug("ingest: dropped out-of-scope request", { origin: normalized.origin, sessionID })
+              return c.json({ sessionID, skipped: true })
+            }
+          }
+
+          // Lift this request's own auth (Cookie/Authorization/…) onto the capturing
+          // credential, so a spawn-profile / "Add role" credential (a label-only
+          // placeholder) fills in the replayable auth its profile actually used —
+          // otherwise cross-credential replay as org1/org2 (IDOR/BFLA) has nothing to
+          // inject and the authz/idor agents correctly report they cannot test as that
+          // identity. Runs on every ingest (dedup skips included) and keys off the live
+          // ingest credential_id, not the template-deduped row. Never throws — a
+          // credential-fill failure must not drop the capture.
+          if (credentialID && body.text) {
+            try {
+              const firstAuth = WebCredential.captureAuthFromRaw({ sessionID, credentialID, rawRequest: body.text })
+              if (firstAuth) {
+                log.info("new authenticated identity — queuing cross-credential retests", { sessionID, credentialID })
+                // A new authenticated identity just became replayable. Re-test the endpoints
+                // already captured (by anonymous / other roles) AS this identity, so
+                // cross-credential access-control testing (org1 vs org2 tenant isolation,
+                // BFLA) is queued the moment the role authenticates. TARGETED: only real app
+                // endpoints (skip static assets — a bundle/image has no access-control surface),
+                // so a new credential no longer floods the queue with one retest per JS/CSS/image.
+                WebInspect.flagMatching({
+                  sessionID,
+                  type: "credential",
+                  value: credentialID,
+                  priority: "high",
+                  match: WebInspect.isAccessControlSurface,
+                })
+
+                // Credential→role bridge: extract JWT roles and link deterministically
+                const cred = WebCredential.getById(credentialID)
+                if (cred && !cred.role_id) {
+                  const claims = WebCredential.extractJWTClaims(cred.headers)
+                  if (claims) {
+                    const raw = claims.role ?? (Array.isArray(claims.roles) ? claims.roles[0] : claims.roles) ?? claims.group ?? (Array.isArray(claims.groups) ? claims.groups[0] : claims.groups)
+                    const roleName = typeof raw === "string" ? raw : undefined
+                    if (roleName) {
+                      const role = WebRole.getByName(sessionID, roleName) ?? WebRole.add({ sessionID, name: roleName, discoveredFrom: "jwt" })
+                      WebCredential.link({ id: credentialID, roleID: role.id })
+                    }
+                  }
+                }
+              }
+            } catch (err) {
+              log.warn("failed to capture credential auth from request", { error: (err as Error).message })
+            }
+          }
+
+          // Collect EVERY captured request into the per-session data view (decoupled from what the
+          // AI navigated) — the traffic substrate for the navigator's route context + the
+          // server-side framework fingerprint (P4). Runs before the dedup check so duplicates and
+          // race-losers still count. Never throws.
+          const collectedKind = DataCollector.record(sessionID, {
+            method: normalized.method,
+            origin: normalized.origin,
+            path: normalized.canonicalPath ?? normalized.normalizedPath,
+            status: body.response?.status,
+            contentType: headerValue(body.response?.headers, "content-type"),
+            headers: body.response?.headers,
+          })
+          // Deterministic OpenAPI/Swagger coverage — NOT left to a sub-agent's initiative (a specialist
+          // flags "spec exposed" and stops, so its endpoints were never enumerated). 1) If THIS response
+          // is itself a spec (seen in traffic OR surfaced as a finding), enumerate its routes and queue
+          // them for scanning as the captured identity — authenticated coverage. 2) Once per session,
+          // proactively fetch the well-known spec paths too. Both fire-and-forget; both dedup internally.
+          if (body.response?.body) {
+            const specUrl = normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath)
+            void WellKnown.ingestSpec(sessionID, specUrl, body.response.body).catch(() => {})
+          }
+          void WellKnown.probe(sessionID, normalized.origin).catch(() => {})
+          // JS never becomes a request row, so persist script URLs durably (dedup by url) for the
+          // panel/TUI + a later body-analysis agent.
+          if (collectedKind === "js") {
+            const jsUrl = normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath)
+            WebJs.add({ sessionID, url: jsUrl, origin: normalized.origin, discoveredFrom: "capture" })
+            vortexDiscoverJs(sessionID, jsUrl, "loaded") // captured network response — the app actually loaded it (#22)
+            JsMiner.wake(sessionID) // a captured JS bundle → mine it (debounced, recursive)
+          }
+
+          // Static assets (JS bundles, CSS, images, fonts) are NOT endpoints. They are counted
+          // for coverage above (and JS bundles persisted to web_js for the JS Files panel +
+          // mining); do NOT create a request row / endpoint template / retest prompt for them.
+          // Without this gate a SvelteKit app's /_app/immutable/*.js chunks double-listed under
+          // Endpoints alongside JS Files (#37). The endpoint template speculatively created by
+          // runNormalize above is dropped here since it is never linked to a request row.
+          if (collectedKind === "js" || collectedKind === "static") {
+            if (normalized.templateId) EndpointTemplate.remove(normalized.templateId)
+            c.status(202)
+            return c.json({ sessionID, skipped: true, kind: collectedKind })
+          }
+
           const isDuplicate = Request.exists({
             sessionID,
             method: normalized.method,
@@ -1211,8 +2302,41 @@ export const SessionRoutes = lazy(() =>
               slots: normalized.observedParams,
             })
 
+          // The CS passive signal fabric that used to scan the raw response here is GONE (#15): its
+          // detector/store/canary modules were deleted and Vortex is the single producer. Vortex sees
+          // the full traffic (slice 0), runs the rules + canary at ingest, and routes signals to the
+          // retest pipeline via the #14 bridge — the agent-elicited tool paths (inject_probe, http_replay,
+          // recon_test, api_probe) feed the same Vortex path through vortexScanProbeResponse.
+
+          // Slice 0 (three-surface plan, docs/three-surface-architecture.md): feed EVERY meaningful
+          // hit to Vortex — not only the first of each endpoint shape — so Vortex holds the full
+          // traffic. The same endpoint seen under different identities/values is the cross-identity /
+          // IDOR substrate Vortex's rules need; before this it only ever saw the first hit per shape.
+          // The duplicate branches call this ONLY when the observation was new (a fresh
+          // key_hash × credential × value combo), so literal repeats add no ingest work.
+          const feedVortex = (requestID: string) =>
+            ingestBrowserTransaction({
+              sessionID,
+              requestID,
+              method: normalized.method,
+              url: normalized.origin + (normalized.canonicalPath ?? normalized.normalizedPath),
+              host: normalized.host,
+              identity: credentialID,
+              pageUrl: body.page_url,
+              normalizedPath: normalized.normalizedPath,
+              keyHash: normalized.keyHash,
+              rawRequest: truncateRawRequest(body.text),
+              response: body.response,
+              pageVisitedBy: body.page_visited_by,
+              elementRoles: body.element_roles,
+            })
+
           if (isDuplicate) {
-            recordObservation()
+            const newObs = recordObservation()
+            // A repeat of a known endpoint SHAPE, but a new identity/value combo → still new
+            // cross-identity substrate for Vortex; feed it (fresh tx id, no CS row needed). A truly
+            // identical repeat (newObs === false) is skipped.
+            if (newObs) feedVortex(Identifier.ascending("request"))
             log.info("duplicate request skipped", {
               sessionID,
               method: normalized.method,
@@ -1257,7 +2381,8 @@ export const SessionRoutes = lazy(() =>
           // duplicate — no row was created, so skip the LLM enqueue, but still
           // record the observation (the values are evidence regardless).
           if (!req) {
-            recordObservation()
+            const newObs = recordObservation()
+            if (newObs) feedVortex(Identifier.ascending("request"))
             c.status(202)
             return c.json({ sessionID, skipped: true })
           }
@@ -1265,82 +2390,19 @@ export const SessionRoutes = lazy(() =>
           // New endpoint shape: record the first observation, linked to the row.
           recordObservation(req.id)
 
-          // Build the prompt as a thunk so the `## Observed Values` block reflects the
-          // observation state at SEND time, not at enqueue time. Prompts queue (LLM calls
-          // are slow) and other per-credential requests to the SAME endpoint accrue
-          // observations while a prompt waits — rendering at dequeue captures them (e.g. a
-          // second credential's values land in the prompt instead of being missed).
-          const buildPrompt = () => {
-            // Prepend app-wide coverage already recorded for this origin so the
-            // orchestrator skips re-dispatching deployment-wide testers (JWT/TLS/headers).
-            // Rendered at dequeue, so it reflects coverage that accrued while queued.
-            const coverage = CoverageNote.wideBlock(sessionID, normalized.origin)
-            const visitedBy = resolveVisitedBy({
-              sessionID,
-              keyHash: normalized.keyHash,
-              captureVisitedBy: body.page_visited_by,
-            })
-            const base = buildPromptWithCredentialContext(
-              truncatedRawRequest,
-              credentialID,
-              req.processed_response,
-              {
-                triggerElement: body.trigger_element,
-                elementRoles: body.element_roles,
-                pageUrl: body.page_url,
-                pageVisitedBy: visitedBy,
-                uiContext: body.ui_context as Record<string, unknown> | undefined,
-              },
-              normalized.protocol && normalized.operation
-                ? { protocol: normalized.protocol, operation: normalized.operation }
-                : undefined,
-              Observation.endpointTree(sessionID, normalized.keyHash),
-            )
-            return coverage ? `${coverage}\n\n${base}` : base
-          }
-
-          if (ingestDryRun) {
-            // Log the prompt that would be sent to LLM — skip actual LLM call
-            log.info("ingest dry-run", {
-              sessionID,
-              method: normalized.method,
-              path: normalized.normalizedPath,
-              requestId: req.id,
-            })
-            log.info("prompt preview:\n" + buildPrompt())
-            Request.updateStatus({ id: req.id, status: "processed" })
-          } else {
-            const agentName = body.agent ?? "proxy-agent"
-            const source = `${normalized.method} ${normalized.normalizedPath}`
-            IngestQueue.enqueue(sessionID, async () => {
-              Request.updateStatus({ id: req.id, status: "processing" })
-              const before = IngestSummary.snapshot(sessionID)
-              // Render at dequeue (send time) so `## Observed Values` includes observations
-              // that accrued while this prompt waited in the queue — other credentials and
-              // other values seen on the same endpoint shape in the meantime.
-              const promptText = buildPrompt()
-              try {
-                await SessionPrompt.prompt({
-                  sessionID,
-                  agent: agentName,
-                  model: body.model,
-                  excludeHistory: true,
-                  parts: [{ type: "text", text: promptText }],
-                })
-                const model = body.model ?? (await SessionPrompt.lastModel(sessionID))
-                await IngestSummary.write({
-                  sessionID,
-                  agent: agentName,
-                  model,
-                  source,
-                  before,
-                  after: IngestSummary.snapshot(sessionID),
-                })
-              } finally {
-                Request.updateStatus({ id: req.id, status: "processed" })
-              }
-            })
-          }
+          // Feed Vortex for this new endpoint shape (real CS request id). Duplicate branches feed too
+          // (slice 0), so Vortex holds the full traffic. Never throws. This is the ONLY automatic action
+          // on the ingest path now (#78): Vortex runs the deterministic rules and routes any spawning
+          // signal to its owning specialist through the inspection dispatcher (bridgeSignals →
+          // WebInspect.flag → queue → dispatcher → specialist child-session) — NO LLM in the routing
+          // decision. The root orchestrator is NOT invoked per transaction; it is a holistic/user-driven
+          // layer, reached via the session message routes, never the ingest path. (`ingest.actionable`
+          // is still computed + logged inside ingestBrowserTransaction for observability.)
+          feedVortex(req.id)
+          // Fully ingested; there is no per-transaction LLM brief, so mark the request processed — the
+          // queue-status UI and lifecycle must not treat it as outstanding. The dry-run flag no longer
+          // differs for HTTP ingest (it makes no LLM call either way); it still gates the text path below.
+          Request.updateStatus({ id: req.id, status: "processed" })
         } else {
           // Non-HTTP request (plain text message)
           const promptText = buildPromptWithCredentialContext(body.text, credentialID)
@@ -1348,7 +2410,7 @@ export const SessionRoutes = lazy(() =>
             log.info("ingest dry-run (text)", { sessionID })
             log.info("prompt preview:\n" + promptText)
           } else {
-            const agentName = body.agent ?? "proxy-agent"
+            const agentName = body.agent ?? "wstg-agent"
             IngestQueue.enqueue(sessionID, async () => {
               const before = IngestSummary.snapshot(sessionID)
               await SessionPrompt.prompt({

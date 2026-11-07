@@ -1,0 +1,192 @@
+--- a/build/src/github.js
++++ b/build/src/github.js
+@@ -78,14 +78,20 @@
+                     this.logger.trace('no GraphQL response, retrying');
+                 }
+                 catch (err) {
+-                    if (err.status !== 502) {
++                    // Only commit-history reads opt in to transient HTTP-200 errors.
++                    const retryInternalError = options?.retryInternalErrors &&
++                        err instanceof graphql_1.GraphqlResponseError &&
++                        err.errors.length > 0 &&
++                        err.errors.every(error => typeof error.message === 'string' &&
++                            error.message.startsWith('Something went wrong while executing your query'));
++                    if (err.status !== 502 && !retryInternalError) {
+                         throw err;
+                     }
+                     if (maxRetries === 0) {
+                         this.logger.warn('ran out of retries and response is required');
+                         throw err;
+                     }
+-                    this.logger.info(`received 502 error, ${maxRetries} attempts remaining`);
++                    this.logger.info(`received ${err.status === 502 ? '502' : 'internal GraphQL'} error, ${maxRetries} attempts remaining`);
+                 }
+                 maxRetries -= 1;
+                 if (maxRetries >= 0) {
+@@ -535,8 +541,9 @@
+     async mergeCommitsGraphQL(targetBranch, cursor, options = {}) {
+         var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+         var _k;
++        const includeFiles = options.includeFiles ?? true;
+         this.logger.debug(`Fetching merge commits on branch ${targetBranch} with cursor: ${cursor}`);
+-        const query = `query pullRequestsSince($owner: String!, $repo: String!, $num: Int!, $maxFilesChanged: Int, $targetBranch: String!, $cursor: String) {
++        const query = `query pullRequestsSince($owner: String!, $repo: String!, $num: Int!, $maxFilesChanged: Int, $includeFiles: Boolean!, $targetBranch: String!, $cursor: String) {
+       repository(owner: $owner, name: $repo) {
+         ref(qualifiedName: $targetBranch) {
+           target {
+@@ -558,7 +565,7 @@
+                       mergeCommit {
+                         oid
+                       }
+-                      files(first: $maxFilesChanged) {
++                      files(first: $maxFilesChanged) @include(if: $includeFiles) {
+                         nodes {
+                           path
+                         }
+@@ -589,11 +596,12 @@
+             num: (_a = options.batchSize) !== null && _a !== void 0 ? _a : 10,
+             targetBranch,
+             maxFilesChanged: 100, // max is 100
++            includeFiles,
+         };
+         const response = await this.graphqlRequest({
+             query,
+             ...params,
+-        });
++        }, { retryInternalErrors: true });
+         if (!response) {
+             this.logger.warn(`Did not receive a response for query: ${query}`, params);
+             return null;
+@@ -646,10 +654,12 @@
+                     title: pullRequest.title,
+                     body: pullRequest.body,
+                     labels: pullRequest.labels.nodes.map(node => node.name),
+-                    files: (((_f = pullRequest.files) === null || _f === void 0 ? void 0 : _f.nodes) || []).map(node => node.path),
++                    ...(includeFiles ? {
++                        files: (((_f = pullRequest.files) === null || _f === void 0 ? void 0 : _f.nodes) || []).map(node => node.path),
++                    } : {}),
+                 };
+             }
+-            if (mergePullRequest) {
++            if (includeFiles && mergePullRequest) {
+                 if (((_h = (_g = mergePullRequest.files) === null || _g === void 0 ? void 0 : _g.pageInfo) === null || _h === void 0 ? void 0 : _h.hasNextPage) &&
+                     options.backfillFiles) {
+                     this.logger.info(`PR #${mergePullRequest.number} has many files, backfilling`);
+@@ -661,7 +671,7 @@
+                     commit.files = (((_j = mergePullRequest.files) === null || _j === void 0 ? void 0 : _j.nodes) || []).map(node => node.path);
+                 }
+             }
+-            else if (options.backfillFiles) {
++            else if (includeFiles && options.backfillFiles) {
+                 // In this case, there is no squashed merge commit. This could be a simple
+                 // merge commit, a rebase merge commit, or a direct commit to the branch.
+                 // Fallback to fetching the list of commits from the REST API. In the future
+--- a/build/src/github.d.ts
++++ b/build/src/github.d.ts
+@@ -47,6 +47,8 @@
+ interface CommitIteratorOptions {
+     maxResults?: number;
+     backfillFiles?: boolean;
++    /** Include PR files and permit REST backfill. Defaults to true. */
++    includeFiles?: boolean;
+     batchSize?: number;
+ }
+ interface ReleaseIteratorOptions {
+--- a/build/src/pull-request.d.ts
++++ b/build/src/pull-request.d.ts
+@@ -6,6 +6,7 @@
+     readonly title: string;
+     readonly body: string;
+     readonly labels: string[];
+-    readonly files: string[];
++    /** Unknown when commit-history file collection is explicitly disabled. */
++    readonly files?: string[];
+     readonly sha?: string;
+ }
+--- a/build/src/manifest.js
++++ b/build/src/manifest.js
+@@ -248,6 +248,14 @@
+                 releasesFound++;
+             }
+         }
++        // A recorded version requires its release boundary, even while a
++        // concurrent publisher has not created the matching release/tag yet.
++        for (const path of Object.keys(strategiesByPath)) {
++            const expectedVersion = this.releasedVersions[path];
++            if (expectedVersion && expectedVersion.toString() !== '0.0.0' && !releasesByPath[path]) {
++                throw new Error(`Missing expected release for path ${path} at version ${expectedVersion.toString()}: no matching release or tag found. Refusing to bootstrap an already released package.`);
++            }
++        }
+         const needsBootstrap = releasesFound < expectedReleases;
+         if (releasesFound < expectedReleases) {
+             this.logger.warn(`Expected ${expectedReleases} releases, only found ${releasesFound}`);
+@@ -261,9 +269,20 @@
+         this.logger.info('Collecting commits since all latest releases');
+         const commits = [];
+         this.logger.debug(`commit search depth: ${this.commitSearchDepth}`);
++        // The root receives every commit without path splitting. Node's strategy,
++        // default changelog and extra-file updaters do not inspect commit.files.
++        // Keep the general path for exclusions, plugins and other strategies.
++        const rootConfig = this.repositoryConfig[exports.ROOT_PROJECT_PATH];
++        const rootOnlyNode = Object.keys(this.repositoryConfig).length === 1 &&
++            rootConfig?.releaseType === 'node' &&
++            (!rootConfig.changelogType || rootConfig.changelogType === 'default') &&
++            (!rootConfig.versioning || ['default', 'always-bump-minor'].includes(rootConfig.versioning)) &&
++            !rootConfig.excludePaths?.length &&
++            this.plugins.length === 0;
+         const commitGenerator = this.github.mergeCommitIterator(this.targetBranch, {
+             maxResults: this.commitSearchDepth,
+-            backfillFiles: true,
++            backfillFiles: !rootOnlyNode,
++            includeFiles: !rootOnlyNode,
+             batchSize: this.commitBatchSize,
+         });
+         const releaseShas = new Set(Object.values(releaseShasByPath));
+@@ -272,6 +291,7 @@
+         // sha => release pull request
+         const releasePullRequestsBySha = {};
+         let releaseCommitsFound = 0;
++        let historyBoundaryFound = false;
+         for await (const commit of commitGenerator) {
+             if (releaseShas.has(commit.sha)) {
+                 if (commit.pullRequest) {
+@@ -284,14 +304,17 @@
+             }
+             if (this.lastReleaseSha && this.lastReleaseSha === commit.sha) {
+                 this.logger.info(`Using configured lastReleaseSha ${this.lastReleaseSha} as last commit.`);
++                historyBoundaryFound = true;
+                 break;
+             }
+             else if (needsBootstrap && commit.sha === this.bootstrapSha) {
+                 this.logger.info(`Needed bootstrapping, found configured bootstrapSha ${this.bootstrapSha}`);
++                historyBoundaryFound = true;
+                 break;
+             }
+             else if (!needsBootstrap && releaseCommitsFound >= expectedShas) {
+                 // found enough commits
++                historyBoundaryFound = true;
+                 break;
+             }
+             commits.push({
+@@ -301,16 +324,18 @@
+                 pullRequest: commit.pullRequest,
+             });
+         }
++        if (releaseCommitsFound < expectedShas && !historyBoundaryFound) {
++            throw new Error(`Incomplete release history: expected ${expectedShas} release boundaries, found ${releaseCommitsFound}. Refusing a partial release proposal.`);
++        }
+         if (releaseCommitsFound < expectedShas) {
+             this.logger.warn(`Expected ${expectedShas} commits, only found ${releaseCommitsFound}`);
+         }
+         // split commits by path
+         this.logger.info(`Splitting ${commits.length} commits by path`);
+-        const cs = new commit_split_1.CommitSplit({
++        const splitCommits = rootOnlyNode ? {} : new commit_split_1.CommitSplit({
+             includeEmpty: true,
+             packagePaths: Object.keys(this.repositoryConfig),
+-        });
+-        const splitCommits = cs.split(commits);
++        }).split(commits);
+         // limit paths to ones since the last release
+         let commitsPerPath = {};
+         for (const path in this.repositoryConfig) {

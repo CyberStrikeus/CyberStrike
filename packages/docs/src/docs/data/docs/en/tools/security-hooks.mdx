@@ -1,0 +1,258 @@
+---
+title: Security Hooks
+description: Domain-specific pentest program suites — 412+ programs across 8 target domains
+sidebar:
+  order: 8
+  label: Security Hooks
+---
+
+Hooks are domain-specific pentest program suites. Each hook is a single tool that bundles dozens of programs for a target domain — Linux, Windows, macOS, LLM, containers, Kubernetes, infrastructure-as-code, and web applications.
+
+All hooks share the same interface:
+
+```json
+{
+  "tool": "linux_hook",
+  "input": {
+    "program": "shadow_dump",
+    "args": ""
+  }
+}
+```
+
+The agent selects the right hook and program based on the target environment. You can also call them directly from the TUI or via tool calls.
+
+## Hook Families
+
+| Hook | Programs | Domain |
+|------|----------|--------|
+| `linux_hook` | 122 | Linux post-exploitation |
+| `windows_hook` | 156 | Windows / Active Directory |
+| `mac_hook` | 48 | macOS post-exploitation |
+| `llm_hook` | 25 | LLM / AI application security |
+| `container_hook` | 22 | Docker / container security |
+| `k8s_hook` | 22 | Kubernetes security |
+| `iac_hook` | 17 | Infrastructure as Code |
+
+---
+
+## linux_hook
+
+<Badge text="122 programs" variant="note" />
+
+Linux post-exploitation toolkit covering the full kill chain from initial recon to data exfiltration. Supports configurable stealth modes and execution methods.
+
+| Module | What it does |
+|--------|-------------|
+| **recon** | System info, processes, network, users, services, packages, containers, security frameworks, interesting files, mounts, kernel modules |
+| **credential** | Shadow dump, SSH keys, bash history secrets, GNOME Keyring, KWallet, browser creds, env secrets, proc memory harvest, GPG keys, cloud creds, Docker config, git creds, Wi-Fi (NetworkManager), Kerberos keytabs, DB creds, VNC passwords, mail spool, netrc, LDAP creds, credential file scan |
+| **privesc** | sudo misconfig, SUID/SGID binaries, capability abuse, cron escalation, writable paths, kernel exploits |
+| **persistence** | Cron jobs, systemd services, bashrc/profile, SSH authorized keys, udev rules, at jobs |
+| **lateral** | SSH pivot, credential reuse, internal scanning, proxy chains |
+| **evasion** | Log clearing, history clearing, timestomp, process hiding, file hiding |
+| **exfil** | Data staging, artifact enumeration, cleanup |
+| **network** | Interface enum, ARP, routing, DNS, firewall rules, listening services |
+
+### Example
+
+```json
+{
+  "tool": "linux_hook",
+  "input": {
+    "program": "ssh_key_harvest",
+    "args": ""
+  }
+}
+```
+
+---
+
+## windows_hook
+
+<Badge text="156 programs" variant="note" />
+
+Windows and Active Directory post-exploitation — the largest hook, with deep AD coverage including Kerberos attacks, DPAPI, certificate abuse, and lateral movement.
+
+| Module | What it does |
+|--------|-------------|
+| **recon** | System info, processes, network, users, shares, services, installed software, GPO, DNS |
+| **credential** | LSASS dump, SAM dump, DPAPI extract, credential prompt, NTDS dump, cached creds, MSSQL creds, Wi-Fi dump, vault dump, browser harvest, registry secrets, WDigest, NanoDump, Windows Hello, BitLocker keys, certificate steal, KeePass dump, LSA secrets |
+| **ad-enum** | AD enumeration, BloodHound collect, LAPS dump, GPO enum, AD DNS enum, ADWS recon, LAPSv2 decrypt, primary group abuse |
+| **kerberos** | Kerberoasting, AS-REP roasting, golden ticket, silver ticket, diamond ticket, delegation abuse, constrained/unconstrained delegation |
+| **ad-exploit** | AD CS abuse, shadow credentials, RBCD, DCSync, DCShadow, ADIDNS poisoning |
+| **ad-cert-trust** | Certificate template abuse, CA misconfig, ESC1–ESC8 vectors |
+| **privesc** | Token impersonation, service misconfig, unquoted paths, DLL hijack, AlwaysInstallElevated, potato attacks |
+| **persistence** | Registry run keys, scheduled tasks, WMI event subscriptions, DLL search order, COM hijack, services |
+| **lateral** | PSExec, WMI exec, DCOM exec, WinRM, SMB exec, RDP hijack, pass-the-hash, pass-the-ticket |
+| **evasion** | AMSI bypass, ETW patching, log clearing, Defender exclusions, process hollowing |
+| **injection** | Process injection, DLL injection, shellcode injection, APC injection |
+| **network** | Interface enum, routing, DNS, firewall, port scanning, SMB shares |
+| **exfil** | Data staging, artifact enumeration, cleanup |
+| **hybrid** | Cross-platform techniques, PowerShell/cmd interop |
+
+### Example
+
+```json
+{
+  "tool": "windows_hook",
+  "input": {
+    "program": "kerberoast",
+    "args": "--domain corp.local"
+  }
+}
+```
+
+---
+
+## mac_hook
+
+<Badge text="48 programs" variant="note" />
+
+macOS post-exploitation covering Apple-specific mechanisms — Keychain, TCC, Launch Agents/Daemons, XProtect, DTrace, and AirDrop.
+
+| Module | Programs | What it does |
+|--------|----------|-------------|
+| **recon** | 7 | System info (sw_vers, kernel, CPU), processes, network, users, installed apps (Homebrew/pip/npm), security framework, launchd services |
+| **credential** | 8 | Keychain dump, Chrome creds, SSH keys, Safari creds, cloud creds, GPG keys, iCloud tokens, mail creds |
+| **privesc** | 6 | TCC bypass, dylib hijack, launchd plist abuse, sudo misconfig, authorization DB, pkg abuse |
+| **persistence** | 6 | LaunchAgent, LaunchDaemon, login items, cron, bashrc, periodic scripts |
+| **evasion** | 6 | XProtect check, Gatekeeper bypass, log clearing, history clearing, timestomp, Endpoint Security bypass |
+| **monitoring** | 6 | Keylogging, DTrace exec/net/file monitoring, clipboard monitor, screen capture |
+| **lateral** | 4 | SSH pivot, AirDrop abuse, Bonjour enum, Apple Remote Desktop |
+| **exfil** | ~5 | Data staging, artifact enumeration, cleanup |
+
+### Example
+
+```json
+{
+  "tool": "mac_hook",
+  "input": {
+    "program": "keychain_dump",
+    "args": ""
+  }
+}
+```
+
+---
+
+## llm_hook
+
+<Badge text="25 programs" variant="note" />
+
+LLM and AI application security testing — aligned with the [OWASP LLM Top 10](https://owasp.org/www-project-top-10-for-large-language-model-applications/).
+
+| Category | Programs | Coverage |
+|----------|----------|----------|
+| **Recon** | 3 | Endpoint discovery, model fingerprinting, JS bundle analysis |
+| **Injection** | 3 | Direct prompt injection (LLM01), system prompt extraction (LLM07), output handling XSS/SQLi/cmd (LLM05) |
+| **Abuse** | 6 | Excessive agency (LLM06), terminal roleplay exec, agent hijack (multi-agent), SSRF via tools, data exfiltration (LLM02), rate limiting (LLM10) |
+| **Evasion** | 3 | 12 encoding/bypass techniques, guardrail fingerprinting, token exhaustion (LLM10) |
+| **Multi-turn** | 2 | 4 crescendo attack chains, indirect injection via retrieved content |
+| **Jailbreak** | 1 | Jailbreak test suite |
+| **Safety** | 2 | Toxicity and bias testing (gender, race, age, religion) |
+| **Extraction** | 5 | Training data extraction, hallucination testing, cross-session leakage (LLM02), PII probing, RBAC bypass (LLM06) |
+
+### Example
+
+```json
+{
+  "tool": "llm_hook",
+  "input": {
+    "program": "prompt_inject",
+    "args": "--url https://target.com/api/chat"
+  }
+}
+```
+
+---
+
+## container_hook
+
+<Badge text="22 programs" variant="note" />
+
+Docker and container security — enumeration, escape detection, image scanning, and runtime auditing.
+
+| Program | Description |
+|---------|-------------|
+| `docker_enum` | Enumerate Docker daemon: containers, images, volumes, networks, registries, daemon config |
+| `docker_escape` | Detect and exploit escape vectors: mounted socket, privileged mode, SYS_ADMIN/SYS_PTRACE, cgroup release_agent, host PID/network namespace |
+| `image_scan` | Scan images for vulnerabilities, embedded secrets, and misconfigurations |
+| `registry_dump` | Enumerate registries — anonymous access, repositories, tags, manifest/config credential extraction |
+| `runtime_audit` | Audit runtime security: AppArmor/SELinux, seccomp, capabilities, read-only rootfs, resource limits, user namespaces |
+| `compose_secrets` | Extract secrets from docker-compose files and environment |
+| … | 16 more programs covering network policies, volume inspection, build history analysis, and container breakout techniques |
+
+---
+
+## k8s_hook
+
+<Badge text="22 programs" variant="note" />
+
+Kubernetes cluster security — from reconnaissance to privilege escalation and persistence.
+
+| Program | Description |
+|---------|-------------|
+| `k8s_enum` | Enumerate namespaces, pods, services, secrets (metadata), RBAC roles/bindings, ingress, service accounts |
+| `k8s_secrets` | Extract and base64-decode Secrets from accessible namespaces, filtered by type |
+| `k8s_escape` | Detect container escape vectors: privileged mode, hostPID/hostNetwork, writable hostPath, mounted docker socket |
+| `k8s_privesc` | RBAC privilege escalation: SA token theft, ClusterRoleBinding creation, token request API abuse |
+| `etcd_dump` | Direct etcd access to extract all Kubernetes secrets from `/registry/secrets/` |
+| `k8s_backdoor` | Persistence via Kubernetes resources |
+| … | 16 more programs covering admission controllers, network policies, pod security standards, and cluster-wide auditing |
+
+---
+
+## iac_hook
+
+<Badge text="17 programs" variant="note" />
+
+Infrastructure as Code security — audit Terraform, CloudFormation, and cloud resource configurations.
+
+| Program | Description |
+|---------|-------------|
+| `tf_state_secrets` | Extract secrets from Terraform state: DB passwords, API keys, private keys, access tokens |
+| `tf_plan_audit` | Audit plan output for dangerous changes: SG modifications, IAM changes, encryption removal |
+| `sg_audit` | Audit security groups / firewall rules (AWS SG, Azure NSG, GCP firewall) for overly permissive ingress |
+| `s3_policy_audit` | Audit bucket policies and ACLs for public access, overly permissive principals, missing encryption |
+| `encryption_audit` | Check resources for missing encryption at rest: EBS, RDS, S3, GCS, Azure disks, DynamoDB |
+| `iam_audit` | Audit IAM policies for overprivileged roles, wildcard permissions, and missing MFA |
+| … | 11 more programs covering logging/monitoring, network config, secret management, and compliance checks |
+
+---
+
+## Web Testing Tools
+
+<Badge text="6 tools" variant="note" />
+
+Unlike the hooks above, web testing tools are separate tools — each focused on a specific web attack class. They operate on captured HTTP traffic from [Hacker Browser](/docs/tools/hacker-browser) or the [Chrome Extension](/docs/tools/chrome-extension).
+
+| Tool | Description |
+|------|-------------|
+| `authn_test` | Authentication testing — JWT tampering, session fixation, credential oracles, login bypass |
+| `business_test` | Business logic — race conditions, boundary testing, workflow state abuse |
+| `misconfig_test` | Server misconfiguration — debug endpoints, verbose errors, default credentials, security headers |
+| `recon_test` | Web reconnaissance — directory enumeration, technology fingerprinting, hidden parameter discovery |
+| `ssrf_test` | SSRF — cloud metadata endpoints, internal service access, protocol smuggling |
+| `login_probe` | Login form detection — auto-detect login pages, test credential pairs, enumerate users |
+
+### Example
+
+```json
+{
+  "tool": "authn_test",
+  "input": {
+    "request_id": "req_abc123",
+    "mode": "jwt"
+  }
+}
+```
+
+<Aside variant="tip">
+  Web testing tools work with captured requests. Use [Hacker Browser](/docs/tools/hacker-browser) or the [Chrome Extension](/docs/tools/chrome-extension) to capture traffic first, then test with these tools.
+</Aside>
+
+## Related Documentation
+
+- [Probes](/docs/tools/probes) — Deterministic vulnerability detectors (injection, session, access control, crypto)
+- [Hacker Browser](/docs/tools/hacker-browser) — Autonomous web crawler that captures traffic for testing
+- [Chrome Extension](/docs/tools/chrome-extension) — Manual browser-driven traffic capture

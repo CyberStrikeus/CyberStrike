@@ -1,0 +1,215 @@
+---
+title: キーバインド設定
+description: Cyberstrikeのキーボードショートカットをカスタマイズする
+sidebar:
+  order: 5
+  label: キーバインド
+---
+
+ワークフローに合わせてキーボードショートカットをカスタマイズします。キーバインドは設定ファイルの `keybinds` オブジェクトで定義します。
+
+{/* TODO: Screenshot - Keybindings configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: keybindings-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">キーバインド設定オプション</p>
+</div>
+
+## 設定の場所
+
+キーバインドはグローバルまたはプロジェクトの設定ファイルで設定します：
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "session_new": "<leader>n"
+  }
+}
+```
+
+このページに記載されているキーのみ有効です — `keybinds` オブジェクトは厳密にバリデーションされるため、不明なキーは拒否されます。
+
+## Leaderキー
+
+Leaderキーは多くのショートカットのプレフィックスです（デフォルト `ctrl+x`）：
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## キー構文
+
+### 修飾キー
+
+| 修飾キー | 構文 |
+|----------|--------|
+| Control | `ctrl` |
+| Alt/Option | `alt` |
+| Shift | `shift` |
+| Super/Command | `super` |
+
+### 特殊キー
+
+| キー | 構文 |
+|-----|--------|
+| Enter | `return` |
+| Escape | `escape` |
+| Tab | `tab` |
+| Backspace | `backspace` |
+| Delete | `delete` |
+| 矢印キー | `up` `down` `left` `right` |
+| Page Up / Down | `pageup` `pagedown` |
+| Home / End | `home` `end` |
+| ファンクションキー | `f2`、`shift+f2` |
+
+### 組み合わせ、代替、Leader
+
+```
+ctrl+alt+d          # Ctrl + Alt + D
+<leader>n           # Leaderの後にN
+pageup,ctrl+alt+b   # 1つのアクションに対する2つの代替バインド（カンマ区切り）
+```
+
+カンマは同じアクションに対する**代替**バインドを区切ります。値を `none` に設定するとアクションを無効にできます。
+
+## 利用可能なアクション
+
+以下のすべてのアクションにデフォルトのバインドが表示されています。`keybinds` オブジェクトで任意のサブセットを上書きできます。
+
+### セッション
+
+| アクション | デフォルト | 説明 |
+|--------|---------|-------------|
+| `session_new` | `<leader>n` | 新しいセッションを作成 |
+| `session_list` | `<leader>l` | すべてのセッションを一覧表示 |
+| `session_compact` | `<leader>c` | セッションをコンパクト化 |
+| `session_timeline` | `<leader>g` | セッションタイムラインを表示 |
+| `session_rename` | `ctrl+r` | セッション名を変更 |
+| `session_delete` | `ctrl+d` | セッションを削除 |
+| `session_export` | `<leader>x` | セッションをエディタにエクスポート |
+| `session_interrupt` | `escape` | 現在のセッションを中断 |
+| `session_fork` | `none` | メッセージからセッションをフォーク |
+| `session_share` | `none` | 現在のセッションを共有 |
+| `session_child_cycle` | `<leader>right` | 次の子セッション |
+| `session_parent` | `<leader>up` | 親セッションに移動 |
+
+### メッセージとナビゲーション
+
+| アクション | デフォルト | 説明 |
+|--------|---------|-------------|
+| `messages_page_up` | `pageup,ctrl+alt+b` | 1ページ上にスクロール |
+| `messages_page_down` | `pagedown,ctrl+alt+f` | 1ページ下にスクロール |
+| `messages_half_page_up` | `ctrl+alt+u` | 半ページ上にスクロール |
+| `messages_half_page_down` | `ctrl+alt+d` | 半ページ下にスクロール |
+| `messages_first` | `ctrl+g,home` | 最初のメッセージにジャンプ |
+| `messages_last` | `ctrl+alt+g,end` | 最後のメッセージにジャンプ |
+| `messages_copy` | `<leader>y` | メッセージをコピー |
+| `messages_undo` | `<leader>u` | メッセージを元に戻す |
+| `messages_redo` | `<leader>r` | メッセージをやり直す |
+| `messages_toggle_conceal` | `<leader>h` | コードブロックの表示/非表示を切り替え |
+
+### リストとダイアログ
+
+| アクション | デフォルト | 説明 |
+|--------|---------|-------------|
+| `model_list` | `<leader>m` | 利用可能なモデルを一覧表示 |
+| `agent_list` | `<leader>a` | エージェントを一覧表示 |
+| `agent_cycle` | `tab` | 次のエージェント |
+| `agent_cycle_reverse` | `shift+tab` | 前のエージェント |
+| `theme_list` | `<leader>t` | 利用可能なテーマを一覧表示 |
+| `command_list` | `ctrl+p` | 利用可能なコマンドを一覧表示 |
+
+### インターフェース
+
+| アクション | デフォルト | 説明 |
+|--------|---------|-------------|
+| `sidebar_toggle` | `<leader>b` | サイドバーの表示/非表示 |
+| `status_view` | `<leader>s` | ステータスを表示 |
+| `editor_open` | `<leader>e` | 外部エディタを開く |
+| `tips_toggle` | `<leader>h` | ホーム画面のヒントを切り替え |
+
+### アプリケーションと入力
+
+| アクション | デフォルト | 説明 |
+|--------|---------|-------------|
+| `app_exit` | `ctrl+c,ctrl+d,<leader>q` | アプリケーションを終了 |
+| `terminal_suspend` | `ctrl+z` | ターミナルをサスペンド |
+| `input_submit` | `return` | 入力を送信 |
+| `input_newline` | `shift+return,ctrl+return,alt+return,ctrl+j` | 改行を挿入 |
+| `input_clear` | `ctrl+c` | 入力フィールドをクリア |
+| `input_paste` | `ctrl+v` | クリップボードから貼り付け |
+
+<Aside variant="info">
+  入力フィールドにはカーソル移動や編集のバインド（`input_move_*`、`input_word_*`、`input_delete_*` など）も多数あります。同じ `keybinds` の命名規則に従い、同様に上書きできます。
+</Aside>
+
+## 完全な設定例
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "session_compact": "<leader>c",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r",
+    "session_export": "<leader>x",
+
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "command_list": "ctrl+p",
+
+    "sidebar_toggle": "<leader>b",
+    "status_view": "<leader>s",
+    "editor_open": "<leader>e",
+
+    "messages_half_page_up": "ctrl+alt+u",
+    "messages_half_page_down": "ctrl+alt+d",
+    "messages_undo": "<leader>u",
+
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+## 複数バインド
+
+カンマで1つのアクションに複数のショートカットを割り当てます：
+
+```json
+{
+  "keybinds": {
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "model_list": "<leader>m,ctrl+shift+m"
+  }
+}
+```
+
+カンマは代替バインドを区切ります — コードシーケンスではありません。
+
+## キーバインドのリセット
+
+リセットコマンドはありません。デフォルトに戻すには、`keybinds` オブジェクトからキーを削除してください（すべてのデフォルトを復元するにはオブジェクト全体を削除します）。
+
+## トラブルシューティング
+
+1. ターミナルエミュレーターとの競合を確認
+2. 設定が有効なJSONであり、キー名がこのページと正確に一致していることを確認（不明なキーはバリデーションエラー）
+3. TUIで `command_list`（`ctrl+p`）を使用して登録済みコマンドを閲覧
+
+<Aside variant="tip">
+  Cyberstrike内で `/help` を使用すると、アクティブなキーバインドのクイックリファレンスが表示されます。
+</Aside>
+
+## 関連ドキュメント
+
+- [設定リファレンス](/docs/configuration) - すべての設定オプション
+- [キーボードショートカット](/docs/getting-started/keyboard-shortcuts) - ショートカットリファレンス
+- [グローバル設定](/docs/configuration/global-config) - 設定ガイド

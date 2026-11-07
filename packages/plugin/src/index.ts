@@ -1,6 +1,6 @@
 import type {
   Event,
-  createCyberstrikeClient,
+  createClient,
   Project,
   Model,
   Provider,
@@ -14,8 +14,11 @@ import type {
 
 import type { BunShell } from "./shell"
 import { type ToolDefinition } from "./tool"
+import { type DomainProviderFactory } from "./provider"
 
 export * from "./tool"
+export * from "./provider"
+export * from "./inspection"
 
 export type ProviderContext = {
   source: "env" | "config" | "custom" | "api"
@@ -24,12 +27,21 @@ export type ProviderContext = {
 }
 
 export type PluginInput = {
-  client: ReturnType<typeof createCyberstrikeClient>
+  client: ReturnType<typeof createClient>
   project: Project
   directory: string
   worktree: string
   serverUrl: URL
   $: BunShell
+  /**
+   * Live core runtime the host injects (registry, orchestration, session/vuln
+   * stores, ...). A domain plugin uses these VALUES instead of importing
+   * `cyberstrike/public`, so it works inside the compiled-binary host on every OS
+   * (in-process reference passing, no module resolution). Its concrete shape is
+   * host-defined: a domain plugin narrows it with
+   * `input.core as import("cyberstrike/public").CoreRuntime`.
+   */
+  core?: unknown
 }
 
 export type Plugin = (input: PluginInput) => Promise<Hooks>
@@ -150,6 +162,16 @@ export interface Hooks {
   config?: (input: Config) => Promise<void>
   tool?: {
     [key: string]: ToolDefinition
+  }
+  /**
+   * Contribute one or more security domains (agents + sub-agents). Keyed by a
+   * stable domain key (e.g. "aws"); the value is a factory that yields the
+   * domain's provider. The host registers each into its provider registry, so an
+   * installed package's agents appear automatically. Same shape as `tool`, but
+   * for a whole domain.
+   */
+  provider?: {
+    [domainKey: string]: DomainProviderFactory
   }
   auth?: AuthHook
   /**

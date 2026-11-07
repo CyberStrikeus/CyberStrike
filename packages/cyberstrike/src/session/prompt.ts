@@ -10,6 +10,7 @@ import { Session } from "."
 import { Agent } from "../agent/agent"
 import { Provider } from "../provider/provider"
 import { type Tool as AITool, tool, jsonSchema, type ToolCallOptions, asSchema } from "ai"
+import type { JSONSchema7 } from "@ai-sdk/provider"
 import { SessionCompaction } from "./compaction"
 import { Instance } from "../project/instance"
 import { Bus } from "../bus"
@@ -20,7 +21,7 @@ import { Plugin } from "../plugin"
 import BUILD_SWITCH from "../session/prompt/build-switch.txt"
 import MAX_STEPS from "../session/prompt/max-steps.txt"
 import { defer } from "../util/defer"
-import { clone } from "remeda"
+import { safeStringify } from "../util/safe-stringify"
 import { ToolRegistry } from "../tool/registry"
 import { LazyToolRegistry } from "../tool/lazy-registry"
 import { MCP } from "../mcp"
@@ -645,6 +646,9 @@ export namespace SessionPrompt {
 
       // normal processing
       const agent = await Agent.get(lastUser.agent)
+      if (step === 1 && agent.name.startsWith("cloud-analyst-")) {
+        stuckDetector.configure({ enabled: true, maxMonologue: 8 })
+      }
       const maxSteps = agent.steps ?? Infinity
       const isLastStep = step >= maxSteps
       // Hard backstop (loop-termination Layer 1): the forced wrap-up turn strips
@@ -743,7 +747,7 @@ export namespace SessionPrompt {
         })
       }
 
-      const sessionMessages = clone(msgs)
+      const sessionMessages = structuredClone(msgs)
 
       // Ephemerally wrap queued user messages with a reminder to stay on track
       if (step > 1 && lastFinished) {
@@ -774,9 +778,11 @@ export namespace SessionPrompt {
       }
 
       // Inject methodology context if the session has intel data. Scope it to the
-      // running agent's lane when it's a proxy-tester (Phase 2.3) — orchestrator
-      // (non-tester) gets the full routing view.
-      const methodologyCtx = MethodologyContext.generate(Session.root(sessionID), testerClass(lastUser.agent))
+      // running agent's lane when it's a wstg-tester (Phase 2.3) — orchestrator
+      // (non-tester) gets the full routing view. Cloud agents get cloud-specific
+      // intel context instead of web-proxy methodology.
+      const isCloudAgent = lastUser.agent?.startsWith("cloud-") ?? false
+      const methodologyCtx = MethodologyContext.generate(Session.root(sessionID), testerClass(lastUser.agent), { cloud: isCloudAgent })
       if (methodologyCtx) system.push(methodologyCtx)
 
       // Inject MCP tool availability info so the LLM knows to use tool_search
@@ -856,13 +862,13 @@ export namespace SessionPrompt {
       }
 
       // Pre-flight token check — trigger compaction before wasting an API call
-      const modelMessages = MessageV2.toModelMessages(
+      const modelMessages = await MessageV2.toModelMessages(
         lastUser.excludeHistory
           ? MessageV2.filterToOnly(sessionMessages, lastUser.id)
           : MessageV2.filterExcluded(sessionMessages, lastUser.id),
         model,
       )
-      const preflightEstimate = Token.estimate(JSON.stringify(modelMessages) + system.join(""))
+      const preflightEstimate = Token.estimate(safeStringify(modelMessages) + system.join(""))
       const preflightLimit = model.limit.input
         ? model.limit.input
         : model.limit.context - ProviderTransform.maxOutputTokens(model)
@@ -919,11 +925,21 @@ export namespace SessionPrompt {
         utilization: contextLimit > 0 ? Math.round((totalTokens / contextLimit) * 100) : 0,
       })
 
+      // Some providers (e.g. DeepSeek via @ai-sdk/openai-compatible) omit finishReason
+      // in the finish-step event. Without a finish reason the early-exit check at the
+      // top of the loop never fires and the model re-enters indefinitely. But if the
+      // model emitted tool calls, the loop MUST continue so results are fed back — a
+      // blind "stop" default kills inspection sub-sessions after one turn (#51).
+      if (!processor.message.finish) {
+        const stepParts = await MessageV2.parts(processor.message.id)
+        const hasToolCalls = stepParts.some((p) => p.type === "tool")
+        processor.message.finish = hasToolCalls ? "tool-calls" : "stop"
+      }
+
       // If structured output was captured, save it and exit immediately
       // This takes priority because the StructuredOutput tool was called successfully
       if (structuredOutput !== undefined) {
         processor.message.structured = structuredOutput
-        processor.message.finish = processor.message.finish ?? "stop"
         await Session.updateMessage(processor.message)
         break
       }
@@ -950,6 +966,8 @@ export namespace SessionPrompt {
           await Session.updateMessage(processor.message)
           break
         }
+        await Session.updateMessage(processor.message)
+        break
       }
 
       // Loop-termination Layer 2: feed the stuck-detector this step's tool calls, but
@@ -1035,6 +1053,31 @@ export namespace SessionPrompt {
     return Provider.defaultModel()
   }
 
+  // Model for an active hackbrowser/web crawl, set at launch from the UI's selected model. A crawl is
+  // kicked off out-of-band (the launch dialog / slash / CLI — NOT a chat message), so lastModel() has
+  // no user turn to read and falls through to Provider.defaultModel() = the provider's catalog default
+  // (e.g. the expensive deepseek-v4-pro), ignoring whatever model the user actually selected. Launch
+  // records the pick here so the navigator and the driver banner plan with it.
+  const runModel = new Map<string, { providerID: string; modelID: string }>()
+  export function setRunModel(sessionID: string, model?: { providerID: string; modelID: string }) {
+    if (model) return void runModel.set(sessionID, model)
+    runModel.delete(sessionID)
+  }
+  export async function webModel(sessionID: string) {
+    const run = runModel.get(sessionID)
+    if (run) return run
+    return lastModel(sessionID)
+  }
+
+  // The agent of the most recent user turn — so a programmatic re-prompt (idle watchdog) continues under
+  // the SAME agent the session was driven with, not a default. Undefined when the session has no agent.
+  export async function lastAgent(sessionID: string): Promise<string | undefined> {
+    for await (const item of MessageV2.stream(sessionID)) {
+      if (item.info.role === "user" && item.info.agent) return item.info.agent
+    }
+    return undefined
+  }
+
   /** @internal Exported for testing */
   export async function resolveTools(input: {
     agent: Agent.Info
@@ -1097,7 +1140,21 @@ export namespace SessionPrompt {
       { modelID: input.model.api.id, providerID: input.model.providerID },
       input.agent,
     )) {
-      const schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
+      // A tool's parameter schema must be a valid zod (v4) schema so it can be
+      // rendered to JSON Schema for the model. A plugin/domain tool built against a
+      // mismatched zod copy (version skew) has no `._zod` and would throw here —
+      // that must not take down the whole agent's prompt, so skip the offending
+      // tool with a clear log rather than crashing. Its domain still loads.
+      let schema: unknown
+      try {
+        schema = ProviderTransform.schema(input.model, z.toJSONSchema(item.parameters))
+      } catch (err) {
+        log.error("skipping tool with an unrenderable parameter schema", {
+          tool: item.id,
+          error: err instanceof Error ? err.message : String(err),
+        })
+        continue
+      }
       tools[item.id] = tool({
         id: item.id as any,
         description: item.description,
@@ -1159,7 +1216,7 @@ export namespace SessionPrompt {
       const execute = item.execute
       if (!execute) continue
 
-      const transformed = ProviderTransform.schema(input.model, asSchema(item.inputSchema).jsonSchema)
+      const transformed = ProviderTransform.schema(input.model, asSchema(item.inputSchema).jsonSchema as JSONSchema7)
       item.inputSchema = jsonSchema(transformed)
       // Wrap execute to add plugin hooks and format output
       item.execute = async (args: any, opts: any) => {
@@ -2269,16 +2326,21 @@ NOTE: At any point in time through this workflow you should feel free to ask the
         },
         ...(hasOnlySubtaskParts
           ? [{ role: "user" as const, content: subtaskParts.map((p) => p.prompt).join("\n") }]
-          : MessageV2.toModelMessages(contextMessages, model)),
+          : await MessageV2.toModelMessages(contextMessages, model)),
       ],
     })
-    const text = await result.text.catch((err) => log.error("failed to generate title", { error: err }))
+    let text: string | undefined
+    try {
+      text = await result.text
+    } catch (err: any) {
+      log.error("failed to generate title", { error: err })
+    }
     if (text) {
       const cleaned = text
         .replace(/<think>[\s\S]*?<\/think>\s*/g, "")
         .split("\n")
-        .map((line) => line.trim())
-        .find((line) => line.length > 0)
+        .map((line: string) => line.trim())
+        .find((line: string) => line.length > 0)
       if (!cleaned) return
 
       const title = cleaned.length > 100 ? cleaned.substring(0, 97) + "..." : cleaned

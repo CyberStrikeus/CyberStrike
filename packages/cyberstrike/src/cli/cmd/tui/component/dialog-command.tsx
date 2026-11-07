@@ -12,6 +12,7 @@ import {
 import { useKeyboard } from "@opentui/solid"
 import { useKeybind } from "@tui/context/keybind"
 import type { KeybindsConfig } from "@cyberstrike-io/sdk/v2"
+import { command as commandSpec } from "@cyberstrike-io/sdk/v2/commands"
 
 type Context = ReturnType<typeof init>
 const ctx = createContext<Context>()
@@ -37,10 +38,20 @@ function init() {
 
   const entries = createMemo(() => {
     const all = registrations().flatMap((x) => x())
-    return all.map((x) => ({
-      ...x,
-      footer: x.keybind ? keybind.print(x.keybind) : undefined,
-    }))
+    return all.map((x) => {
+      // slash + category come from the shared command catalog (@cyberstrike-io/sdk/v2) when this
+      // command's value is listed there — one source of truth shared with the web/desktop app, so
+      // slash triggers and grouping can't drift. keybind stays TUI-native (a typed KeybindsConfig
+      // key, which is a different system from the app's chord strings). Commands not in the catalog
+      // keep their inline values.
+      const spec = commandSpec(x.value)
+      return {
+        ...x,
+        slash: spec?.slash ?? x.slash,
+        category: spec?.category ?? x.category,
+        footer: x.keybind ? keybind.print(x.keybind) : undefined,
+      }
+    })
   })
 
   const isEnabled = (option: CommandOption) => option.enabled !== false

@@ -1,0 +1,120 @@
+---
+title: Cyberstrike 에이전트
+description: 전체 도구 접근 권한을 가진 AI 기반 공격적 보안 테스트의 기본 에이전트
+sidebar:
+  order: 2
+  label: Cyberstrike
+---
+
+`cyberstrike` 에이전트는 기본 기본 에이전트입니다. 전체 도구 접근 권한으로 AI 기반 공격적 보안 테스트를 제공하며, 도메인별 작업을 위해 전문 서브에이전트에 위임할 수 있습니다.
+
+## 개요
+
+에이전트를 지정하지 않고 `cyberstrike`를 실행하면 `cyberstrike` 에이전트가 자동으로 시작됩니다. 정찰 및 취약점 평가부터 익스플로잇 및 보고까지 광범위한 작업을 처리하도록 설계된 범용 공격적 보안 에이전트입니다.
+
+### 에이전트 구성
+
+| 속성 | 값 |
+|------|-----|
+| **에이전트 ID** | `cyberstrike` |
+| **모드** | `primary` |
+| **도구 접근** | 전체 (모든 도구 허용) |
+| **질문 가능** | 예 |
+
+## 에이전트 실행
+
+`cyberstrike` 에이전트는 기본값이며 실행 시 자동으로 시작됩니다:
+
+```bash
+cyberstrike
+```
+
+TUI에서 `/agents` 또는 `<leader>a`로 언제든지 에이전트를 전환할 수 있습니다.
+
+## 기능
+
+`cyberstrike` 에이전트는 모든 사용 가능한 도구에 접근할 수 있으며 특정 보안 도메인에 제한되지 않습니다. 다음을 수행할 수 있습니다:
+
+- 웹 애플리케이션 보안 테스트 수행
+- 클라우드 인프라 감사 실시
+- 네트워크 침투 테스트 실행
+- Nuclei, Nmap, SQLMap 등의 도구로 자동 스캔 실행
+- 웹 애플리케이션 탐색 및 상호작용
+- 파일 읽기, 쓰기, 분석
+- 작업이 모호한 경우 명확한 질문 요청
+
+## 전문 에이전트로 위임
+
+작업에 깊은 도메인 전문성이 필요한 경우 `cyberstrike` 에이전트가 전문 서브에이전트에 위임합니다:
+
+| 서브에이전트 | 사용 시기 |
+|-------------|-----------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | OWASP WSTG 웹 보안 파이프라인 — 13개 전문 에이전트 배치 |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | 교차 분석 상관관계 — 발견 사항 연결, 영향도 에스컬레이션 |
+| [`triage`](/docs/agents/triage) | 초안 취약점 발견 사항의 독립적 검증 |
+| [`general`](/docs/agents/general) | 조사, 다단계 병렬 작업 |
+| [`explore`](/docs/agents/explore) | 읽기 전용 코드베이스 및 파일 시스템 검색 |
+
+위임은 작업에 따라 자동으로 발생합니다. 웹 보안 파이프라인(WSTG 에이전트)은 [HackBrowser](/docs/features/hackbrowser) 또는 [Chrome 확장 기능](/docs/tools/chrome-extension)을 통해 HTTP 트래픽이 캡처될 때 트리거됩니다.
+
+## 권한 모델
+
+`cyberstrike` 에이전트는 가장 넓은 권한 세트를 사용합니다:
+
+- 기본적으로 모든 도구가 허용됩니다
+- 명확한 질문을 할 수 있습니다 (`question: allow`)
+- `.env` 파일은 읽기 전 확인이 필요합니다
+- 프로젝트 외부 디렉토리 접근은 확인이 필요합니다
+- `cyberstrike.json`에서 사용자가 구성한 `deny` 규칙은 항상 준수됩니다
+
+## 세션 예시
+
+```
+You: Test the web application at https://app.example.com for common vulnerabilities
+
+Agent: I'll start with reconnaissance and then launch HackBrowser to crawl the app.
+
+[Launching /hackbrowser against https://app.example.com...]
+[Crawling 23 pages, capturing HTTP traffic...]
+[Dispatching wstg-config-deploy for server misconfiguration checks...]
+[Dispatching wstg-input-validation for injection testing...]
+
+Found 3 medium-severity findings:
+- Missing Content-Security-Policy header
+- Server version disclosure in headers
+- X-Frame-Options not set
+
+[wstg-authentication testing login endpoint...]
+⚠ FINDING: JWT Algorithm Confusion
+Location: Authorization header
+Severity: Critical (CVSS 9.8)
+```
+
+## 구성
+
+### 기본 에이전트로 설정
+
+`cyberstrike` 에이전트는 기본값이며 구성이 필요하지 않습니다. 명시적으로 설정하려면:
+
+```json title="cyberstrike.json"
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+### 커스텀 지침
+
+`instructions`는 시스템 프롬프트에 내용이 추가되는 파일(또는 글로브) 목록입니다 — 프로젝트 컨텍스트를 파일에 넣고 참조합니다:
+
+```json title="cyberstrike.json"
+{
+  "instructions": ["AGENTS.md", "docs/security-context.md"]
+}
+```
+
+## 관련 문서
+
+- [WSTG 에이전트](/docs/agents/wstg-agent) — 웹 보안 테스트 파이프라인 오케스트레이터
+- [Escalation Hunter](/docs/agents/escalation-hunter) — 교차 분석 상관관계 에이전트
+- [Triage 에이전트](/docs/agents/triage) — 발견 사항 검증
+- [커스텀 에이전트](/docs/agents/custom-agents) — 자체 에이전트 만들기

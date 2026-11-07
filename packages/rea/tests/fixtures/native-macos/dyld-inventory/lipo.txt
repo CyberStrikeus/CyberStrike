@@ -1,0 +1,2 @@
+input file fixture is not a fat file
+Non-fat file: fixture is architecture: arm64

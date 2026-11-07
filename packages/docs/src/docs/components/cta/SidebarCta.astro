@@ -1,0 +1,89 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props as Props;
+---
+
+<div
+  class:list={[
+    className,
+    "gradient-border z-10 overflow-hidden rounded-xl p-[2px] text-center",
+    "shadow-lg transition-all duration-300",
+  ]}
+>
+  <a href="https://github.com/CyberStrikeus/CyberStrike" target="_blank" rel="noopener">
+    <div class="bg-background dark:bg-muted h-full rounded-[11px] p-4">
+      <h3 class="text-foreground mb-2 text-lg leading-tight font-semibold">
+        Star on GitHub
+      </h3>
+      <p class="text-muted-foreground mb-4 text-xs text-pretty">
+        Support the project by starring on GitHub. Contributions welcome - help us build the future of AI-powered security testing.
+      </p>
+      <div
+        class:list={[
+          "inline-flex items-center justify-center rounded-full",
+          "bg-gradient-to-br from-red-600 to-orange-600 px-4 py-2",
+          "text-sm font-medium text-white",
+          "transition hover:opacity-90",
+        ]}
+      >
+        View on GitHub
+      </div>
+    </div>
+  </a>
+</div>
+
+<style define:vars={{ rotation: "-25deg" }}>
+  .gradient-border {
+    position: relative;
+    --rotation: -25deg;
+
+    &::before {
+      position: absolute;
+      z-index: -1;
+      content: "";
+      inset: calc(var(--spacing) * -12);
+      border-radius: 9999px;
+      transform: rotate(var(--rotation));
+      background: conic-gradient(
+        from var(--rotation),
+        var(--color-blue-600) 0%,
+        var(--color-purple-600) 25%,
+        var(--color-pink-800) 50%,
+        var(--color-purple-600) 75%,
+        var(--color-blue-600) 100%
+      );
+    }
+  }
+</style>
+
+<script>
+  import { animate } from "motion";
+
+  document.querySelectorAll(".gradient-border").forEach((element) => {
+    const animation = animate(
+      element,
+      {
+        // @ts-ignore - Motion animate CSS variables type issue
+        "--rotation": ["-25deg", "335deg"],
+      },
+      {
+        duration: 10,
+        repeat: Infinity,
+        easing: "linear",
+      },
+    );
+
+    animation.pause();
+
+    element.addEventListener("mouseenter", () => {
+      animation?.play();
+    });
+
+    element.addEventListener("mouseleave", () => {
+      animation?.pause();
+    });
+  });
+</script>

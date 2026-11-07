@@ -1,0 +1,310 @@
+---
+title: Web
+description: CyberStrikeセキュリティ評価のためのブラウザベースWebインターフェース
+sidebar:
+  order: 3
+  label: Web
+---
+
+CyberStrikeはブラウザ内のWebアプリケーションとして実行でき、ターミナル不要で完全なAI搭載セキュリティ評価エクスペリエンスを提供します。
+
+{/* TODO: Screenshot — Web UI overview showing session list, chat, and side panel */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: web-ui-overview.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">セッションサイドバー、チャットパネル、ファイルレビュー付きWebインターフェース</p>
+</div>
+
+## はじめに
+
+Webインターフェースを起動するには：
+
+```bash
+cyberstrike web
+```
+
+これにより `127.0.0.1`（デフォルトでポート `4096`）にローカルサーバーが起動し、デフォルトブラウザでCyberStrikeが開きます。
+
+<Aside variant="caution">
+  **セキュリティ：** `CYBERSTRIKE_SERVER_PASSWORD` が設定されていない場合、サーバーは保護されません。ローカル使用では問題ありませんが、ネットワークアクセスでは**必ず設定してください**。
+</Aside>
+
+<Aside variant="info">
+  **Windows：** 適切なファイルシステムとターミナル統合のため、PowerShellではなくWSLからこのコマンドを実行してください。
+</Aside>
+
+## 設定
+
+### ポート
+
+```bash
+cyberstrike web --port 4096
+```
+
+デフォルトでは、システムが利用可能なポートを自動的に選択します。
+
+### ホスト名
+
+```bash
+# localhostのみ（デフォルト）
+cyberstrike web --hostname 127.0.0.1
+
+# ネットワーク全体からアクセス可能
+cyberstrike web --hostname 0.0.0.0
+```
+
+### mDNSディスカバリ
+
+ローカルネットワーク検出を有効化。自動的にホスト名を `0.0.0.0` に設定します。
+
+```bash
+cyberstrike web --mdns
+```
+
+カスタムドメインの場合：
+
+```bash
+cyberstrike web --mdns --mdns-domain myproject.local
+```
+
+### CORS
+
+特定のドメインからのクロスオリジンリクエストを許可：
+
+```bash
+cyberstrike web --cors https://example.com
+```
+
+### 認証
+
+```bash
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike web
+```
+
+デフォルトのユーザー名は `cyberstrike` で、`CYBERSTRIKE_SERVER_USERNAME` で変更可能です。
+
+{/* TODO: Video — Launching cyberstrike web and browser opening with live session */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: web-launch-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">cyberstrike webを実行してブラウザがライブセッションで自動オープン（約12秒）</p>
+</div>
+
+## 機能
+
+Webインターフェースには以下が含まれます：
+
+- **セッション管理** -- セッションの作成、切り替え、アーカイブ、削除
+- **サイドパネルタブ** -- MCP、Bolt、脆弱性、Webコンテキスト、Todo追跡
+- **ファイルブラウザ** -- diff強調表示付きのプロジェクトファイル表示とナビゲーション
+- **レビューパネル** -- AIが生成したコード変更を承認前にレビュー
+- **ターミナル** -- ブラウザ内の統合ターミナルタブ
+- **リアルタイム更新** -- ライブエージェント出力のSSEストリーミング
+- **更新通知** -- 新しいCyberStrikeリリースの自動ポーリング
+
+{/* TODO: Screenshot — Side panel showing MCP, Bolt, Vulns, Web, Todo tabs */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: web-side-panel-tabs.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">MCP、Bolt、脆弱性、Webコンテキスト、Todoタブ付きサイドパネル</p>
+</div>
+
+### Webコンテキストパネル
+
+[Chromeキャプチャ拡張機能](https://github.com/CyberStrikeus/cyberstrike-chrome-ext)と組み合わせると、サイドパネルのWebタブに以下が表示されます：
+
+- **エンドポイント** -- メソッドとパス付きのキャプチャされたHTTPリクエスト
+- **ロール** -- 検出されたユーザーロールと権限レベル
+- **クレデンシャル** -- 認証トークンとセッション識別子
+- **オブジェクト** -- APIレスポンスで発見されたデータオブジェクト
+- **ファンクション** -- トラフィックパターンからマッピングされたCRUD操作
+
+{/* TODO: Screenshot — Web Context panel showing captured endpoints and credentials */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: web-context-panel.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">エンドポイント、ロール、クレデンシャル、オブジェクト、ファンクションセクション付きWebコンテキストパネル</p>
+</div>
+
+## ターミナルアタッチメント
+
+Webサーバーとtを同時に実行し、同じセッションを共有します：
+
+```bash
+# ターミナル1：Webサーバーを起動
+cyberstrike web --port 4096
+
+# ターミナル2：同じサーバーにTUIをアタッチ
+cyberstrike attach http://localhost:4096
+```
+
+両方のインターフェースが同じセッション、メッセージ、エージェントアクティビティをリアルタイムで表示します。
+
+## リモートアクセス
+
+CyberStrikeはセキュアなリモートアクセスをサポートしており、1台のマシンでサーバーを実行しながらどこからでも接続できます。用途：
+
+- 強力なワークステーションで評価を実行しながらラップトップから制御
+- 共有サーバーを通じたチームコラボレーション
+- ローカルインストールなしで `app.cyberstrike.io` からCyberStrikeにアクセス
+- GPUサーバー上のローカルLLM（Ollama、vLLM）を軽量なマシンから操作
+
+### Cloudflareトンネル（推奨）
+
+[Cloudflareトンネル](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/)は、ポートを公開することなく、CyberStrikeサーバーとインターネット間にセキュアな暗号化接続を作成します。
+
+#### クイックトンネル
+
+最速の開始方法 -- Cloudflareアカウント不要：
+
+```bash
+# ターミナル1：パスワード付きでCyberStrikeを起動
+CYBERSTRIKE_SERVER_PASSWORD=your-secret cyberstrike web --port 4096
+
+# ターミナル2：クイックトンネルを作成
+cloudflared tunnel --url http://localhost:4096
+```
+
+`cloudflared` は `https://random-words.trycloudflare.com` のような公開URLを出力します。このURLとクレデンシャルを共有して、任意のブラウザからCyberStrikeにアクセスできます。
+
+<Aside variant="caution">
+  **パスワードが必要です。** CyberStrikeは `CYBERSTRIKE_SERVER_PASSWORD` なしでサーバーモードの起動を拒否します。これは設計上の強制です -- パスワードなしではサーバーは実行されません。
+</Aside>
+
+#### カスタムドメインによる名前付きトンネル
+
+永続的なアクセスのために、ドメインにリンクされた名前付きトンネルを作成します：
+
+```bash
+# ターミナル1：パスワード付きでCyberStrikeを起動
+CYBERSTRIKE_SERVER_PASSWORD=your-secret cyberstrike web --port 4096
+
+# ターミナル2：初回セットアップ
+cloudflared tunnel login
+cloudflared tunnel create cyberstrike
+cloudflared tunnel route dns cyberstrike pentest.your-domain.com
+
+# トンネルを実行
+cloudflared tunnel run --url http://localhost:4096 cyberstrike
+```
+
+<Aside variant="caution">
+  **`pentest.your-domain.com`** をCloudflareに追加したドメインのサブドメインに置き換えてください。例：`pentest.example.com` → `pentest.mydomain.com`。Cloudflareで管理されていないドメインを使用するとDNS解決に失敗します。
+</Aside>
+
+<Aside variant="info">
+  **新しいドメイン？** 最近ドメインをCloudflareに追加した場合、ネームサーバーの伝播にはレジストラによって1〜24時間かかることがあります。伝播が完了するまでDNSルートは解決されません。Cloudflareダッシュボードの**概要**でステータスを確認してください。
+</Aside>
+
+これにより、再起動後も持続する `https://pentest.your-domain.com` の安定したURLが得られます。
+
+セットアップが機能していることを確認するには：
+
+```bash
+# トンネル接続ステータスを確認
+cloudflared tunnel info cyberstrike
+
+# DNSが解決されていることを確認
+dig pentest.your-domain.com CNAME
+```
+
+<Aside variant="info">
+  **cloudflaredのインストール：** `brew install cloudflared`（macOS）、`apt install cloudflared`（Debian/Ubuntu）、または[Cloudflareのリリース](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/)からダウンロード。
+</Aside>
+
+#### トンネルでの認証の仕組み
+
+CyberStrikeの認証ミドルウェアはトンネル対応です。`cloudflared` は `127.0.0.1` から接続しますが、サーバーはプロキシヘッダーを検出して認証を強制します：
+
+1. `cloudflared` がインターネットからのリクエストを `localhost:4096` に転送
+2. すべてのリクエストに `CF-Connecting-IP` と `X-Forwarded-For` ヘッダーを追加
+3. CyberStrikeはこれらのヘッダーを検出し、リクエストを**リモート**として扱う
+4. HTTP Basic認証が強制される -- Web UIがユーザー名とパスワードの入力を求める
+5. 直接のローカルリクエスト（プロキシヘッダーなし）は利便性のため認証をバイパス
+
+つまり、ローカルの `cyberstrike attach` 接続はパスワード不要で動作し、すべてのトンネルトラフィックにはクレデンシャルが必要です。
+
+{/* TODO: Video — Setting up Cloudflare Tunnel and connecting from remote browser */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: remote-tunnel-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">CyberStrikeの起動、CFトンネルの作成、app.cyberstrike.ioからの接続（約20秒）</p>
+</div>
+
+### app.cyberstrike.ioからの接続
+
+`app.cyberstrike.io` はCyberStrikeのホステッドWeb UIです。Webインターフェースをローカルで実行する代わりに、任意のリモートCyberStrikeサーバーに接続するために使用できます。
+
+1. ブラウザで[app.cyberstrike.io](https://app.cyberstrike.io)を開く
+2. サーバーセレクター（左上隅）をクリック
+3. トンネルURLを入力（例：`https://pentest.example.com`）
+4. ユーザー名（デフォルトは `cyberstrike`）とパスワードを入力
+5. 緑色のヘルスインジケーターが接続を確認
+
+接続すると、完全なCyberStrikeエクスペリエンス（セッション、エージェント、MCPツール、サイドパネル、リアルタイムストリーミング）がすべてトンネル経由で利用可能です。
+
+<Aside variant="info">
+  **ローカルAIプロバイダー：** サーバーがOllamaや他のローカルLLMを実行している場合、`app.cyberstrike.io` はそれらを透過的に使用します。AI推論はサーバー側で行われ、Web UIは表示と入力のみを処理します。
+</Aside>
+
+{/* TODO: Screenshot — Server selector dialog showing a remote server with green health indicator */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: remote-server-selector.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">リモートトンネルURL、クレデンシャル、緑色のヘルスチェック付きサーバーセレクター</p>
+</div>
+
+### セルフホストWeb UI
+
+CyberStrike WebインターフェースのインスタンスをビルドしてデプロイCyberStrikeサーバーに接続できます。
+
+```bash
+# Web UIをクローンしてビルド
+git clone https://github.com/CyberStrikeus/CyberStrike.git
+cd CyberStrike/packages/app
+bun install && bun run build
+```
+
+`dist/` フォルダを任意の静的ホスティング（Vercel、Netlify、Cloudflare Pagesなど）にデプロイします。次に、CyberStrikeサーバーでCORSを設定してドメインを許可します：
+
+```bash
+cyberstrike web --cors https://my-pentest-ui.example.com
+```
+
+または `cyberstrike.json` で：
+
+```json
+{
+  "server": {
+    "cors": ["https://my-pentest-ui.example.com"]
+  }
+}
+```
+
+### セキュリティアーキテクチャ
+
+CyberStrikeはリモートアクセスに対して複数のセキュリティレイヤーを実装しています：
+
+| レイヤー | 保護 |
+|-------|------------|
+| **TLS暗号化** | Cloudflareトンネルがすべてのトラフィックをエンドツーエンドで暗号化。平文データがインターネットを横断しない。 |
+| **HTTP Basic認証** | すべてのリモートリクエストに有効なユーザー名とパスワードが必要。クレデンシャルは `Authorization` ヘッダーで送信。 |
+| **プロキシ検出** | サーバーが `CF-Connecting-IP` と `X-Forwarded-For` ヘッダーを検査。ループバックからのプロキシリクエストも認証される。 |
+| **パスワード必須** | `cyberstrike serve` と `cyberstrike web` は `CYBERSTRIKE_SERVER_PASSWORD` なしでは起動を拒否。 |
+| **ポート公開なし** | Cloudflareトンネルは受信ポート不要。サーバーはCloudflareのエッジへの発信接続のみ。 |
+| **SPA認証フロー** | ブラウザの認証ダイアログを防ぐために `WWW-Authenticate` ヘッダーを意図的に省略。Web UIが独自のログインフォームで認証を処理。 |
+
+<Aside variant="danger">
+  **トンネルまたはVPNなしでCyberStrikeをインターネットに直接公開しないでください。** 常にCloudflareトンネル、TLS付きリバースプロキシ、またはプライベートネットワークを使用してください。常に強力でユニークなパスワードを設定してください。
+</Aside>
+
+## 設定ファイル
+
+すべてのWebオプションはコマンドラインフラグの代わりに `cyberstrike.json` で設定できます：
+
+```json
+{
+  "server": {
+    "port": 4096,
+    "hostname": "0.0.0.0",
+    "mdns": true,
+    "cors": ["https://example.com"]
+  }
+}
+```
+
+コマンドラインフラグは設定ファイルの設定を上書きします。

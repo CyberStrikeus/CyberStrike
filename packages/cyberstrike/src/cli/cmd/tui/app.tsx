@@ -396,7 +396,8 @@ function App() {
       suggested: true,
       category: "Agent",
       slash: {
-        name: "models",
+        name: "model",
+        aliases: ["models"],
       },
       onSelect: () => {
         dialog.replace(() => <DialogModel />)
@@ -448,7 +449,8 @@ function App() {
       keybind: "agent_list",
       category: "Agent",
       slash: {
-        name: "agents",
+        name: "agent",
+        aliases: ["agents"],
       },
       onSelect: () => {
         dialog.replace(() => <DialogAgent />)
@@ -456,10 +458,11 @@ function App() {
     },
     {
       title: "Toggle MCPs",
-      value: "mcp.list",
+      value: "mcp.toggle",
       category: "Agent",
       slash: {
-        name: "mcps",
+        name: "mcp",
+        aliases: ["mcps"],
       },
       onSelect: () => {
         dialog.replace(() => <DialogMcp />)
@@ -467,7 +470,7 @@ function App() {
     },
     {
       title: "Bolt",
-      value: "bolt",
+      value: "session.bolt.select",
       category: "Agent",
       slash: {
         name: "bolt",

@@ -40,7 +40,7 @@ import { Config } from "@/config/config"
 import { Todo } from "@/session/todo"
 import { z } from "zod"
 import { LoadAPIKeyError } from "ai"
-import type { AssistantMessage, Event, CyberstrikeClient, SessionMessageResponse } from "@cyberstrike-io/sdk/v2"
+import type { AssistantMessage, Event, CyberStrikeClient, SessionMessageResponse } from "@cyberstrike-io/sdk/v2"
 import { applyPatch } from "diff"
 
 type ModeOption = { id: string; name: string; description?: string }
@@ -52,7 +52,7 @@ export namespace ACP {
   const log = Log.create({ service: "acp-agent" })
 
   async function getContextLimit(
-    sdk: CyberstrikeClient,
+    sdk: CyberStrikeClient,
     providerID: string,
     modelID: string,
     directory: string,
@@ -72,7 +72,7 @@ export namespace ACP {
 
   async function sendUsageUpdate(
     connection: AgentSideConnection,
-    sdk: CyberstrikeClient,
+    sdk: CyberStrikeClient,
     sessionID: string,
     directory: string,
   ): Promise<void> {
@@ -119,7 +119,7 @@ export namespace ACP {
       })
   }
 
-  export async function init({ sdk: _sdk }: { sdk: CyberstrikeClient }) {
+  export async function init({ sdk: _sdk }: { sdk: CyberStrikeClient }) {
     return {
       create: (connection: AgentSideConnection, fullConfig: ACPConfig) => {
         return new Agent(connection, fullConfig)
@@ -130,7 +130,7 @@ export namespace ACP {
   export class Agent implements ACPAgent {
     private connection: AgentSideConnection
     private config: ACPConfig
-    private sdk: CyberstrikeClient
+    private sdk: CyberStrikeClient
     private sessionManager: ACPSessionManager
     private eventAbort = new AbortController()
     private eventStarted = false
@@ -1524,7 +1524,7 @@ export namespace ACP {
       if (cyberstrikeProvider.models["big-pickle"]) {
         return { providerID: "cyberstrike", modelID: "big-pickle" }
       }
-      const [best] = Provider.sort(Object.values(cyberstrikeProvider.models))
+      const [best] = Provider.sort(Object.values(cyberstrikeProvider.models) as any)
       if (best) {
         return {
           providerID: best.providerID,
@@ -1534,7 +1534,7 @@ export namespace ACP {
     }
 
     const models = providers.flatMap((p) => Object.values(p.models))
-    const [best] = Provider.sort(models)
+    const [best] = Provider.sort(models as any)
     if (best) {
       return {
         providerID: best.providerID,

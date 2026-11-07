@@ -1,7 +1,7 @@
 import z from "zod"
 import { Tool } from "./tool"
 import { WebObject } from "../session/web/web-object"
-import { WebRetest } from "../session/web/web-retest"
+import { WebInspect } from "../session/web/web-inspect"
 import { Session } from "../session"
 
 const description = `Record a specific object ID value discovered during web application analysis.
@@ -51,13 +51,17 @@ export const WebWriteObjectValueTool = Tool.define("web_write_object_value", {
 
     let retestsQueued = 0
     if (result.isNew) {
-      const retests = WebRetest.checkTriggers({
+      // A newly-discovered object value is IDOR fuel — but TARGETED: only flag object-referencing
+      // endpoints (a path param, a numeric/uuid segment, query/body params, or an /api/ path). A
+      // parameter-less static page can't have IDOR, so it is never flagged. Endpoint-dedup means
+      // each endpoint holds ONE entry whose `object_value` flag accumulates the values.
+      retestsQueued = WebInspect.flagMatching({
         sessionID,
-        triggerType: "new_object_value",
-        triggerSource: result.value.id,
-        relatedObjectIDs: [object.id],
+        type: "object_value",
+        value: params.value,
+        priority: "medium",
+        match: WebInspect.isObjectReferencing,
       })
-      retestsQueued = retests.length
     }
 
     const output = {

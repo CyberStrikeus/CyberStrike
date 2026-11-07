@@ -1,0 +1,106 @@
+import { describe, expect, test } from "bun:test"
+import { buildProfileArgs, defaultExtensionPath, stageExtension } from "../src/v2/spawn.ts"
+import { mkdtempSync, writeFileSync, readFileSync, utimesSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+
+// Real extension dir (has manifest.json); a fake browser path so we never depend on an
+// installed browser and never actually spawn.
+const EXT = defaultExtensionPath()
+const BROWSER = "/fake/Chrome"
+const base = (over: Partial<Parameters<typeof buildProfileArgs>[0]> = {}) =>
+  buildProfileArgs({ url: "https://target.example.com", extPath: EXT, browser: BROWSER, ...over })
+
+describe("buildProfileArgs", () => {
+  test("injects cred + session into the URL hash", () => {
+    const b = base({ cred: "admin", session: "ses_1" })
+    expect(b.args[b.args.length - 1]).toBe("https://target.example.com#__cs_cred=admin&__cs_sess=ses_1")
+  })
+  test("anonymous (no cred) with session → session-only hash", () => {
+    const b = base({ session: "ses_1" })
+    expect(b.args[b.args.length - 1]).toBe("https://target.example.com#__cs_sess=ses_1")
+  })
+  test("csUrl is injected so the extension calls back to THIS server", () => {
+    const b = base({ session: "ses_1", csUrl: "http://localhost:5173" })
+    expect(b.args[b.args.length - 1]).toBe(
+      "https://target.example.com#__cs_sess=ses_1&__cs_url=http%3A%2F%2Flocalhost%3A5173",
+    )
+  })
+  test("no cred, no session → bare url", () => {
+    const b = base()
+    expect(b.args[b.args.length - 1]).toBe("https://target.example.com")
+  })
+  test("profileDir derives from cred, default otherwise", () => {
+    expect(base({ cred: "admin" }).profileDir).toEndWith("hb2-profile-admin")
+    expect(base().profileDir).toEndWith("hb2-profile-default")
+  })
+  test("profileDir is scoped to the session (fresh profile per run → fresh service worker)", () => {
+    expect(base({ cred: "admin", session: "ses_1" }).profileDir).toEndWith("hb2-profile-ses_1-admin")
+    expect(base({ session: "ses_1" }).profileDir).toEndWith("hb2-profile-ses_1-default")
+    // a different session ⇒ a different profile dir
+    expect(base({ session: "ses_1" }).profileDir).not.toBe(base({ session: "ses_2" }).profileDir)
+    // special chars in the label are sanitized for the filesystem
+    expect(base({ cred: "role with space", session: "s" }).profileDir).toEndWith("hb2-profile-s-role_with_space")
+  })
+  test("distinct creds → distinct profile dirs (separate cookie jars)", () => {
+    expect(base({ cred: "admin" }).profileDir).not.toBe(base({ cred: "user" }).profileDir)
+  })
+  test("carries the managed-mode flags + extension", () => {
+    const b = base({ cred: "x" })
+    expect(b.args).toContain("--silent-debugger-extension-api")
+    expect(b.args).toContain("--new-window")
+    expect(b.args.some((a) => a.startsWith("--load-extension="))).toBe(true)
+    expect(b.args.some((a) => a.startsWith("--user-data-dir="))).toBe(true)
+  })
+  test("disables Local/Private Network Access so the extension can reach localhost CS", () => {
+    const f = base({ cred: "x" }).args.find((a) => a.startsWith("--disable-features="))
+    expect(f).toBeDefined()
+    expect(f).toContain("LocalNetworkAccessChecks")
+  })
+  test("target url is still the last arg (flags precede it)", () => {
+    const b = base({ cred: "x", session: "s1" })
+    expect(b.args[b.args.length - 1]).toBe("https://target.example.com#__cs_cred=x&__cs_sess=s1")
+  })
+  test("headless adds --headless=new", () => {
+    expect(base({ headless: true }).args).toContain("--headless=new")
+    expect(base().args).not.toContain("--headless=new")
+  })
+  test("encodes special chars in the role label", () => {
+    const b = base({ cred: "role with space" })
+    expect(b.args[b.args.length - 1]).toContain("__cs_cred=role%20with%20space")
+  })
+  test("throws when the extension dir has no manifest", () => {
+    expect(() => buildProfileArgs({ url: "https://x", extPath: "/no/such/dir", browser: BROWSER })).toThrow(
+      /extension not found/,
+    )
+  })
+  test("throws when no browser is available", () => {
+    expect(() => buildProfileArgs({ url: "https://x", extPath: EXT, browser: "" })).toThrow(
+      /no extension-capable browser/,
+    )
+  })
+})
+
+describe("stageExtension (MV3 SW-cache fix)", () => {
+  test("stages a copy with a monotonic version derived from file mtime", () => {
+    const src = mkdtempSync(join(tmpdir(), "hb2-src-"))
+    const out = join(mkdtempSync(join(tmpdir(), "hb2-out-")), "e")
+    writeFileSync(join(src, "manifest.json"), JSON.stringify({ version: "0.1.0", name: "x" }))
+    writeFileSync(join(src, "background.js"), "// v1")
+
+    const dir1 = stageExtension(src, out)
+    const v1 = JSON.parse(readFileSync(join(dir1, "manifest.json"), "utf8")).version
+    expect(v1).toMatch(/^0\.1\.\d+\.\d+$/) // 4 numeric parts, ≤65535 each
+    expect(readFileSync(join(dir1, "background.js"), "utf8")).toBe("// v1") // files copied
+
+    // A newer background.js must bump the version so Chrome refreshes the cached service worker.
+    const later = Date.now() / 1000 + 300
+    utimesSync(join(src, "background.js"), later, later)
+    const v2 = JSON.parse(readFileSync(join(stageExtension(src, out), "manifest.json"), "utf8")).version
+    expect(v2).not.toBe(v1)
+  })
+
+  test("falls back to the source dir when staging can't run", () => {
+    expect(stageExtension("/no/such/extension/dir", "/no/such/out")).toBe("/no/such/extension/dir")
+  })
+})

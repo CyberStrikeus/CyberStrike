@@ -2,8 +2,8 @@ import z from "zod"
 import { Tool } from "./tool"
 import { Request } from "../session/request"
 import { Observation } from "../session/observation"
+import { UiObservation } from "../session/web/ui-observation"
 import { Session } from "../session"
-import { resolveVisitedBy } from "../server/routes/session"
 
 const description = `Get detailed information for a specific HTTP request by ID.
 
@@ -55,18 +55,21 @@ export const WebGetRequestDetailTool = Tool.define("web_get_request_detail", {
     }
 
     // Access context — always include if available (small, useful for all agents)
-    // Derive visited_by from observed values so Firefox traffic gains legitimacy signal.
-    const visitedBy = request.key_hash
-      ? resolveVisitedBy({
-          sessionID,
-          keyHash: request.key_hash,
-          captureVisitedBy: request.page_visited_by,
-        })
-      : request.page_visited_by
     if (request.trigger_element) detail.trigger_element = request.trigger_element
-    if (request.element_roles) detail.element_roles = request.element_roles
     if (request.page_url) detail.page_url = request.page_url
-    if (visitedBy?.length) detail.page_visited_by = visitedBy
+
+    // element_roles (who can SEE this element) / page_visited_by (who reached this
+    // page). Faz B: derived at READ time from per-credential UI observations, so it is
+    // always correct as of the query — no "all contexts finished this page" barrier.
+    // Falls back to the stored column when the UI-observation store is empty (the 1.x
+    // worker path, and before the extension /observe re-home lands). Credentials are
+    // expressed as credential_ids, matching observed_values below.
+    const uiRows = request.page_url ? UiObservation.forPage(sessionID, request.page_url) : []
+    const derived = UiObservation.deriveAccessContext(request.page_url, request.trigger_element, uiRows)
+    const elementRoles = derived.elementRoles ?? request.element_roles
+    const pageVisitedBy = derived.pageVisitedBy ?? request.page_visited_by
+    if (elementRoles) detail.element_roles = elementRoles
+    if (pageVisitedBy) detail.page_visited_by = pageVisitedBy
 
     // Protocol/operation — present only for body-dispatched endpoints (GraphQL/JSON-RPC).
     if (request.protocol) detail.protocol = request.protocol

@@ -1,0 +1,117 @@
+---
+title: HackBrowser
+description: "Crawler web autonome pilote par IA qui capture les requetes HTTP avec le contexte UI"
+sidebar:
+  order: 3
+  label: HackBrowser
+---
+
+HackBrowser est le crawler web autonome de Cyberstrike. Il ouvre un navigateur Chromium, laisse un LLM naviguer dans l'application cible en lisant l'arbre d'accessibilite, et transmet chaque requete HTTP capturee — enrichie du contexte UI — au pipeline d'analyse. Le [proxy-agent](/docs/agents/proxy-agent) analyse et teste ensuite chaque requete.
+
+## Quand utiliser HackBrowser
+
+| Cas d'usage | Choix |
+|-------------|-------|
+| Exploration manuelle avec plusieurs roles | [Extension Chrome](/docs/tools/chrome-extension) |
+| Crawl automatise sans surveillance | **HackBrowser** |
+| Besoin du contexte UI des formulaires (`readonly`, `hidden`, `disabled`) sur les captures | **HackBrowser** |
+| Session de navigateur pre-authentifiee existante | L'un ou l'autre — l'extension Chrome est plus simple |
+
+Les deux chemins alimentent le meme endpoint `/session/ingest` et le meme pipeline proxy-agent. Vous pouvez les combiner au sein d'une meme session.
+
+## Comment ca fonctionne
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  Chromium (Playwright)                                             │
+│  ├── Scanner    — DOM → arbre d'accessibilite (RawElement[])       │
+│  ├── Navigator  — Appel LLM → plan de page (taches form/clic)     │
+│  ├── Executor   — Plan → actions Playwright                        │
+│  ├── Capture    — Requetes HTTP + snapshot ui_context               │
+│  └── Panneau    — Overlay de telemetrie Shadow-DOM (mode visible)  │
+└────────────────────────┬───────────────────────────────────────────┘
+                         │ POST /session/ingest
+                         ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  API Cyberstrike                                                   │
+│  ├── Normaliser → dedupliquer → Request.add                        │
+│  └── IngestQueue → SessionPrompt(agent="proxy-agent")              │
+└────────────────────────┬───────────────────────────────────────────┘
+                         ▼
+                proxy-agent → proxy-analyzer + testeurs de vulnerabilites
+```
+
+Le LLM voit la page comme un arbre d'accessibilite et decide quels formulaires remplir et quels boutons cliquer. Chaque requete capturee inclut un snapshot `ui_context` — les champs de formulaire, leurs indicateurs, et tous les parametres caches — que le proxy-analyzer utilise pour identifier les formes de requete suspectes.
+
+## Lancer un crawl
+
+### `/hackbrowser`
+
+Lancez `/hackbrowser` dans le TUI pour ouvrir le dialogue de lancement avec des champs pour l'URL cible, les identifiants, la portee, les libelles a exclure, le nombre d'etapes et le mode headless.
+
+| Option | Description |
+|--------|-------------|
+| **URL cible** | L'URL a partir de laquelle commencer le crawl |
+| **Portee** | Motifs de noms d'hote pour limiter la capture (ex. `*.example.com`) |
+| **Exclure** | Libelles UI que le planificateur doit eviter (correspondance semantique) |
+| **Etapes** | Nombre maximum de pages a crawler (defaut : 50) |
+| **Identifiants** | Identifiant(s) avec lesquels crawler. Force le navigateur visible. |
+| **Headless** | Executer sans fenetre de navigateur visible |
+
+### Annuler un crawl
+
+```
+/hackbrowser-stop
+```
+
+### Lance par l'agent
+
+L'agent peut aussi lancer HackBrowser de maniere autonome lorsque la conversation le demande (ex. "tester cette application"). L'outil retourne immediatement — les captures arrivent dans la session au fur et a mesure de la progression du crawl.
+
+## Crawls multi-identifiants
+
+Selectionnez deux identifiants ou plus dans le dialogue de lancement `/hackbrowser` pour executer un crawl sequentiel par role.
+
+Pour chaque identifiant, HackBrowser ouvre une fenetre Chromium visible, attend que vous vous connectiez, puis execute le crawl complet etiquete avec cet ID d'identifiant. Le pipeline WSTG peut ensuite comparer ce que chaque role peut acceder.
+
+## Charge utile du contexte UI
+
+Le differentiel par rapport a l'extension Chrome est le bloc `ui_context` attache a chaque capture :
+
+```json
+{
+  "ui_context": {
+    "pageUrl": "https://shop.example.com/settings/profile",
+    "formName": "Update Profile",
+    "fields": [
+      { "name": "email", "type": "text", "isReadOnly": true },
+      { "name": "role", "type": "hidden", "isHidden": true, "value": "user" }
+    ],
+    "hiddenParams": ["account_id", "_csrf"]
+  }
+}
+```
+
+Le proxy-analyzer utilise ces signaux pour signaler :
+
+- Champ `readonly` envoye dans la requete → tester si le serveur l'applique
+- Champ `hidden` → candidat d'assignation en masse
+- Parametre dans `hiddenParams` (aucun element UI) → parametre cache a plus haut risque
+- Element visible par un seul role → tester avec d'autres identifiants
+
+## Portee reseau
+
+Par defaut, HackBrowser capture les requetes correspondant a `*.{eTLD+1}` de l'URL cible. Remplacez la portee dans le dialogue de lancement `/hackbrowser` en ajoutant des motifs de noms d'hote personnalises (ex. `app.example.com`, `api.example.com`).
+
+## Depannage
+
+| Erreur | Solution |
+|--------|----------|
+| Chromium non installe | `bunx playwright install chromium` |
+| Playwright non installe | `npm install --prefix ~/.local/share/cyberstrike playwright` |
+| Worker introuvable | Reinstaller : `npm install -g @cyberstrike-io/cyberstrike` |
+| Deja en cours d'execution | Attendre la fin ou lancer `/hackbrowser-stop` |
+
+<Aside variant="danger">
+  N'utilisez HackBrowser que contre des cibles autorisees. Les tests de penetration non autorises sont illegaux.
+</Aside>

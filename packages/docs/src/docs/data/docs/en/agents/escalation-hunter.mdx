@@ -1,0 +1,55 @@
+---
+title: Escalation Hunter
+description: Cross-cutting correlation agent that chains findings and escalates vulnerability impact
+sidebar:
+  order: 7
+  label: Escalation Hunter
+---
+
+The `escalation-hunter` is a cross-cutting analyst agent that runs after WSTG specialists complete their testing. It examines all findings across the session to identify chained vulnerabilities, escalate impact, and construct new attack paths that individual specialists would miss.
+
+## Overview
+
+| Property | Value |
+|----------|-------|
+| **Agent ID** | `escalation-hunter` |
+| **Role** | `analyst` |
+| **Domain** | `@cyberstrike-io/web` |
+| **Runs After** | WSTG specialist testing completes |
+
+## What It Does
+
+Individual WSTG specialists test endpoints in isolation — each focuses on its own category. The `escalation-hunter` crosses all lanes to find:
+
+- **Chained vulnerabilities** — combining a low-severity IDOR with a session fixation to achieve account takeover
+- **Impact escalation** — a medium-severity finding that becomes critical when combined with another
+- **New attack paths** — sequences of requests that, when replayed in order, produce a higher-impact result
+- **Cross-role escalation** — privilege boundaries that break when findings from different specialists are combined
+
+## How It Works
+
+1. Reads all findings from the session (across all WSTG specialists)
+2. Reads accumulated Vortex data (traffic patterns, rule matches, objects, functions)
+3. Identifies correlation opportunities between findings
+4. Constructs and **replays** proposed attack chains to verify them
+5. Reports verified escalations as new findings with composite evidence
+
+The `escalation-hunter` never takes a specialist's word for it — it verifies proposed chains by replaying the actual HTTP sequence.
+
+## Example
+
+```
+Specialist A: IDOR in GET /api/users/{id} (medium)
+Specialist B: Missing rate limit on /api/auth/reset (low)
+Specialist C: Email parameter in reset response body (info)
+
+Escalation Hunter:
+  Chain: enumerate user IDs via IDOR → trigger password reset for each →
+         extract reset tokens from response → account takeover
+  Verified: replayed 3-step chain → confirmed ATO
+  Escalated: Critical (was medium + low + info individually)
+```
+
+<Aside variant="info">
+  The escalation-hunter is dispatched automatically — you don't invoke it directly. It runs as a final analysis pass after the WSTG pipeline completes.
+</Aside>

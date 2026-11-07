@@ -1,0 +1,43 @@
+import type { DocsSidebarNavData } from "../types/configDataTypes";
+
+/**
+ * Cyberstrike Documentation Sidebar Navigation
+ */
+const sidebarNavData: DocsSidebarNavData = {
+  tabs: [
+    {
+      id: "main",
+      title: "文档",
+      description: "主要文档",
+      icon: "tabler/file-text",
+      sections: [
+        {
+          id: "getting-started",
+          title: "入门指南",
+        },
+        {
+          id: "usage",
+          title: "使用方法",
+        },
+        {
+          id: "features",
+          title: "Features",
+        },
+        {
+          id: "agents",
+          title: "智能体",
+        },
+        {
+          id: "tools",
+          title: "工具",
+        },
+        {
+          id: "configuration",
+          title: "配置",
+        },
+      ],
+    },
+  ],
+};
+
+export default sidebarNavData;

@@ -5,6 +5,10 @@ import { Dialog } from "@cyberstrike-io/ui/dialog"
 import { List } from "@cyberstrike-io/ui/list"
 import { useLanguage } from "@/context/language"
 import { useSDK } from "@/context/sdk"
+import { useServer } from "@/context/server"
+import { useTabs } from "@/context/tabs"
+import { useSettings } from "@/context/settings"
+import { sessionHref } from "@/utils/session-route"
 import { getRelativeTime } from "@/utils/time"
 
 type SessionEntry = {
@@ -20,22 +24,27 @@ export const DialogSelectSession: Component = () => {
   const dialog = useDialog()
   const params = useParams()
   const navigate = useNavigate()
+  const server = useServer()
+  const tabs = useTabs()
+  const settings = useSettings()
 
   const [sessions] = createResource(async () => {
-    const result = await sdk.client.session.list()
+    const s = sdk()
+    if (!s) return []
+    const result = await s.client.session.list()
     return result.data ?? []
   })
 
   const items = createMemo<SessionEntry[]>(() => {
     const list = sessions() ?? []
     return list
-      .map((s) => ({
+      .map((s: { id: string; title: string; time: { updated: number } }) => ({
         id: s.id,
         title: s.title || s.id.slice(0, 8),
         updated: s.time.updated,
         current: s.id === params.id,
       }))
-      .sort((a, b) => b.updated - a.updated)
+      .sort((a: SessionEntry, b: SessionEntry) => b.updated - a.updated)
   })
 
   const total = createMemo(() => items().length)
@@ -55,6 +64,11 @@ export const DialogSelectSession: Component = () => {
         onSelect={(x) => {
           if (!x) return
           dialog.close()
+          if (settings.general.newLayoutDesigns()) {
+            tabs.addSessionTab({ server: server.key, sessionId: x.id })
+            navigate(sessionHref(server.key, x.id))
+            return
+          }
           navigate(`/${params.dir}/session/${x.id}`)
         }}
       >
@@ -67,7 +81,7 @@ export const DialogSelectSession: Component = () => {
               )}
             </div>
             <span class="text-11-regular text-text-weaker shrink-0">
-              {getRelativeTime(new Date(s.updated).toISOString())}
+              {getRelativeTime(new Date(s.updated).toISOString(), language.t)}
             </span>
           </div>
         )}

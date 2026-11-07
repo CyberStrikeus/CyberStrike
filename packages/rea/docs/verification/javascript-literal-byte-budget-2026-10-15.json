@@ -1,0 +1,547 @@
+{
+  "base_revision": "e9a71efa31d6c3675b67938b8a79fa4ddf01604c",
+  "scope": "Semantic per-value string-byte normalization; real static shipped-application control, no hosted-model performance claim",
+  "runtime": {
+    "platform": "Linux x64",
+    "node": "24.18.0",
+    "npm": "11.16.0",
+    "tiktoken": "0.12.0"
+  },
+  "baseline_source_sha256": {
+    "src/domain/javascript/javascriptSemanticValues.ts": "df3fc30b5ba91901a85fe56f200355930da32d054bb026a747e3414af233b6b5",
+    "src/domain/javascript/javascriptSemanticPrimitives.ts": "c12b29f0faf4b6511777cba7ed8ac007c6d6170d657f01e43e194feacb3e0601",
+    "src/domain/javascript/javascriptSemanticResourceLimits.ts": "0203d207e0d6bb8aaa17746090f008876a11653afd660fce3dc44f3fda646a6c",
+    "scripts/verify/javascript/module-references.mjs": "9d5f0b8b35ed2ebb4591f9dc3baea0fc116a0c3fd7d8e5ce30ec476c84671ed1"
+  },
+  "final_source_sha256": {
+    "scripts/verify/javascript/module-references.mjs": "9d5f0b8b35ed2ebb4591f9dc3baea0fc116a0c3fd7d8e5ce30ec476c84671ed1",
+    "src/application/javascript/JavaScriptSemanticGraphDataProjection.ts": "844d4639401a9f050ce42c80192572a6d0d74fe4f81b37e93a2c20aaca9fb9a6",
+    "src/domain/javascript/javascriptSemanticAnalysis.ts": "a3f802ca3446c2b5376cc58b19d818eff318e6775bd47752793c3f649994f8a2",
+    "src/domain/javascript/javascriptSemanticAnalysis.unions.test.ts": "2e78717d30e637b5fc5bab6d0eff063f7a62e0199d33697c1cdfaf8317baa698",
+    "src/domain/javascript/javascriptSemanticDataEffectHelpers.ts": "8f9cf1a36f05b03dd816eaf9a6cdba0160d34ad7d17a961206e1bc32444d2ccc",
+    "src/domain/javascript/javascriptSemanticDataEffects.ts": "e69408f2f5910a0107fd5d0cae0ff60ed706448857bc8e535c37cac1a0cd4d37",
+    "src/domain/javascript/javascriptSemanticIr.ts": "68dad360d0a9e6bd72108b2717cae756b84ca1efb48455248ded2ff699d2c113",
+    "src/domain/javascript/javascriptSemanticPrimitives.ts": "899eeb6ccdf666f504f8b722327599997c924c8e4fb13a1cbd13edaf08c96640",
+    "src/domain/javascript/javascriptSemanticResourceLimits.ts": "0993a397f2a2a48c2b6c35494e940b3fce5c2c9032cfe33c7cf0401128c79dde",
+    "src/domain/javascript/javascriptSemanticState.ts": "bfcface5dcda22594f47ed390efa15f9140fe41cb2d5995896e52dd0ee31b978",
+    "src/domain/javascript/javascriptSemanticValues.ts": "a4ba51cc60fff38ef11fd5af35a2e1ad753cdb2dea9d44895f91d89320c5ddeb",
+    "tests/acceptance/applications/javascriptEndpointPayload.test.ts": "b3cfcde1c5b5e0698f84afd51f4b53e42e56101267707c20c0d038320f5cfbd2",
+    "tests/boundary/mcp/javascriptLiteralBudget.test.ts": "070106115b482269794799e448bd20b8e02df1f511f4ceb2b8fa75612c7f78e4",
+    "tests/boundary/mcp/javascriptLiteralPayload.test.ts": "03618272c605f8877ed171ab39e037e4d80eac72b7478421640076f739adfb50"
+  },
+  "artifact": {
+    "path": "/tmp/rea-codemode-experiment-20261015/artifacts/obsidian-1.14.4.asar",
+    "sha256": "146ef8470d8cbb4a6db209bdc19bf2bad13350444186c0fd93c31087b142b92f"
+  },
+  "selected_source_paths": ["package.json", "main.js"],
+  "where": {
+    "path": "main.js",
+    "kind": "javascript-module"
+  },
+  "identical_parent_evidence_id": "ev_73ef06e3b9b944f54c5257f7960279127d8518d2a73cd8618bd045dbe44e6b5a",
+  "cli_parity": {
+    "evidence_id": "ev_b3586dfdf7d4f01157f8f2978326aaa7103987110f2df4fa5bf3331ff2898749",
+    "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+    "exact_cli_mcp_view_parity": true
+  },
+  "unchanged_query_shapes": {
+    "legacy": {
+      "calls": 24,
+      "structured_reply_bytes": 325201,
+      "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+      "matching_modules": 23,
+      "coverage": {
+        "status": "page",
+        "examined": 55,
+        "total": 55,
+        "next_offset": null,
+        "exhausted": true
+      }
+    },
+    "references": {
+      "calls": 1,
+      "structured_reply_bytes": 22158,
+      "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+      "matching_modules": 23,
+      "coverage": {
+        "status": "page",
+        "examined": 23,
+        "total": 23,
+        "next_offset": null,
+        "exhausted": true
+      }
+    }
+  },
+  "unchanged_token_costs": {
+    "tokenizer": "cl100k_base",
+    "tiktoken_version": "0.12.0",
+    "costs": {
+      "legacy": {
+        "selected_catalog": 7977,
+        "full_catalog": 195522,
+        "common_request": 53,
+        "common_summary": 2675,
+        "requests": 2836,
+        "structured_replies": 71761,
+        "selected_catalog_task_total": 85302,
+        "full_catalog_task_total": 272847
+      },
+      "references": {
+        "selected_catalog": 7977,
+        "full_catalog": 195522,
+        "common_request": 53,
+        "common_summary": 2675,
+        "requests": 102,
+        "structured_replies": 5741,
+        "selected_catalog_task_total": 16548,
+        "full_catalog_task_total": 204093
+      }
+    }
+  },
+  "cohorts": {
+    "baseline": {
+      "preparation_ms": 19089.119622,
+      "query_samples": [
+        {
+          "round": 0,
+          "mode": "legacy",
+          "elapsed_ms": 383.8260569999984
+        },
+        {
+          "round": 0,
+          "mode": "references",
+          "elapsed_ms": 15.778886999996757
+        },
+        {
+          "round": 1,
+          "mode": "references",
+          "elapsed_ms": 13.15173700000014
+        },
+        {
+          "round": 1,
+          "mode": "legacy",
+          "elapsed_ms": 240.44363500000327
+        },
+        {
+          "round": 2,
+          "mode": "legacy",
+          "elapsed_ms": 346.04796499999793
+        },
+        {
+          "round": 2,
+          "mode": "references",
+          "elapsed_ms": 13.727306999997381
+        }
+      ],
+      "resources": {
+        "elapsed_seconds": 33.394,
+        "cpu_seconds": 33.016802,
+        "peak_cgroup_bytes": 1979863040,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    "final": {
+      "preparation_ms": 19061.292544,
+      "query_samples": [
+        {
+          "round": 0,
+          "mode": "legacy",
+          "elapsed_ms": 344.6316079999997
+        },
+        {
+          "round": 0,
+          "mode": "references",
+          "elapsed_ms": 14.438351000000694
+        },
+        {
+          "round": 1,
+          "mode": "references",
+          "elapsed_ms": 11.38763100000142
+        },
+        {
+          "round": 1,
+          "mode": "legacy",
+          "elapsed_ms": 298.41579600000114
+        },
+        {
+          "round": 2,
+          "mode": "legacy",
+          "elapsed_ms": 211.45682099999976
+        },
+        {
+          "round": 2,
+          "mode": "references",
+          "elapsed_ms": 10.275370999999723
+        }
+      ],
+      "resources": {
+        "elapsed_seconds": 32.949,
+        "cpu_seconds": 32.559187,
+        "peak_cgroup_bytes": 1880096768,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    }
+  },
+  "conditions": "First query is after shared artifact analysis; subsequent queries share one MCP session. Legacy item reads are serial; a concurrent legacy baseline is unmeasured. Filesystem/build warmness uncontrolled. Token costs count one post-change catalog, preparation request/summary and each request/structured reply once; client rendering, replay, reasoning, final answer and model latency are unmeasured. Preparation and parity/tokenization overhead are outside per-query elapsed times; external family-resource receipts include the complete verifier and children. Before/after used separate fresh MCP sessions. CPU/memory includes analysis, query arms, export, CLI parity and tokenization; cgroup memory includes file cache, not summed RSS. Counters are at payload exit while observer lives, not final scope counters. One before/after control establishes no speedup or equivalence bound. Catalog BPE projection excludes annotations/output schemas.",
+  "resource_policy": {
+    "memory_max_bytes": 8589934592,
+    "early_stop_bytes": 6442450944,
+    "cpu_quota_percent": 100,
+    "swap": false
+  },
+  "observer_sources_sha256": {
+    "resource-run.py": "7728862171415e7dee2c11af2ead2b9a54265fccaf82a7113956d36b29065e33",
+    "resource_payload.py": "6f089e645459eba80c5d73e39c21606c78173a44daf49fabc3b88c4631ce51c6"
+  },
+  "regressions": {
+    "original_main": "Quoted/template oversized literals failed through public CLI/MCP; addition/small controls passed. Corrected domain boundary reproduced 2 failures/16 passes.",
+    "review_head": "8 failed/25 passed before fixes for projection tags, encountered-but-discarded limits and bare quoted/template defaults; includes exact null default control.",
+    "interim_review_fix": "65/66 focused passed; old doubling-chain expectation omitted a genuine expression-depth limit now observed. Adjusted that assertion to preserve the byte-limit requirement while allowing other observed classes.",
+    "final_focused": "66 passed across five files on the restored 38d263a runtime. Final corrected public selection passed 7/7 in two files: the six literal/default/member cases plus the augmented original large-endpoint acceptance. 67 distinct focused cases across invocations; not a single 67-case invocation.",
+    "final_semantic_suite": "932 passed in 36 files on 38d263a. Final production src tree (including these domain tests) verified byte-identical to that revision; no repeated semantic run claimed.",
+    "arithmetic": "Computed 174762*6+2=1048574 and 174763*6+2=1048580. Corrected the erroneous published 1048578 total.",
+    "final_grouped_domain": "27 passed after grouping observations/defaults/allocation within function-size rules; no scenarios removed.",
+    "endpoint_contract_correction": "Restored exact endpoint lookup identities rather than shrinking the existing large-endpoint fixture. Added the identical oversized string as an exported primitive in that acceptance workflow: literal normalization must report its bound while full endpoint lookup/feature trace/semantic trace/version comparison continue to work. Production src tree restored byte-identical to 38d263a; 932 semantic tests from that state remain applicable. Final corrected public tests/gates recorded after execution.",
+    "final_corrected_gates": "Full static gate and docs gate (5 consistency tests) passed after endpoint identity restoration and strengthened unchanged-large-input acceptance. Production src remains byte-identical to 38d263a; final public 7/7 and fresh real control passed."
+  },
+  "prior_attempts": [
+    {
+      "stage": "Initial literal normalization, incomplete for member/default paths identified in review",
+      "revision": "40b9d3c5b9cbeae7661d8e351e1b5ef6e5338931",
+      "source_sha256": {
+        "src/domain/javascript/javascriptSemanticValues.ts": "2debbb4f32d7d189819f2413f0f7d05b9bdcf497451a1c578475e3f2ec6c8554",
+        "src/domain/javascript/javascriptSemanticPrimitives.ts": "899eeb6ccdf666f504f8b722327599997c924c8e4fb13a1cbd13edaf08c96640",
+        "src/domain/javascript/javascriptSemanticResourceLimits.ts": "0203d207e0d6bb8aaa17746090f008876a11653afd660fce3dc44f3fda646a6c",
+        "src/domain/javascript/javascriptSemanticAnalysis.unions.test.ts": "747d893d6ddd91cf24d3b62b7eb50e0af9b1715ab355bbfc2e10ed0dc171ec17",
+        "tests/boundary/mcp/javascriptLiteralBudget.test.ts": "46ceb5a169de3eec3a335b05ef4aa7b1b341a5ac06ad325bd191e862c5b6be70",
+        "tests/boundary/mcp/javascriptLiteralPayload.test.ts": "03618272c605f8877ed171ab39e037e4d80eac72b7478421640076f739adfb50",
+        "scripts/verify/javascript/module-references.mjs": "9d5f0b8b35ed2ebb4591f9dc3baea0fc116a0c3fd7d8e5ce30ec476c84671ed1"
+      },
+      "real_control_cohort": {
+        "preparation_ms": 18876.764036,
+        "query_samples": [
+          {
+            "round": 0,
+            "mode": "legacy",
+            "elapsed_ms": 346.7870870000006
+          },
+          {
+            "round": 0,
+            "mode": "references",
+            "elapsed_ms": 18.34765800000241
+          },
+          {
+            "round": 1,
+            "mode": "references",
+            "elapsed_ms": 11.56626999999935
+          },
+          {
+            "round": 1,
+            "mode": "legacy",
+            "elapsed_ms": 227.17703500000061
+          },
+          {
+            "round": 2,
+            "mode": "legacy",
+            "elapsed_ms": 251.5148330000011
+          },
+          {
+            "round": 2,
+            "mode": "references",
+            "elapsed_ms": 10.888227999999799
+          }
+        ],
+        "resources": {
+          "elapsed_seconds": 31.347,
+          "cpu_seconds": 31.05517,
+          "peak_cgroup_bytes": 1589915648,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      },
+      "validation": {
+        "baseline_public": "Quoted and cooked-template cases retained 200000-unit normalized literals and failed; addition and small exact controls passed. Aggregate-capacity test passed.",
+        "baseline_domain_corrected": "2 over-bound failures, 16 passed. Initial combined-run domain assertions had incorrectly required an empty optional resourceLimits array; corrected before using the domain reproduction as evidence.",
+        "fixed_focused": "55 passed across five files.",
+        "semantic_suite": "923 passed across 36 files.",
+        "capacity_after_fixture_cleanup": "1 passed; all 16 bounded values, aggregate size >= original, typed identities and retained tracing preserved.",
+        "interim_static_failure": "Typecheck rejected resume() on the new test SDK stderr Stream declaration. Switched to its declared data event, matching existing typed tests; analyzer source unchanged.",
+        "public_boundary_after_stream_type_fix": "4 passed across actual CLI and stdio MCP; analyzer source unchanged."
+      }
+    },
+    {
+      "stage": "Projection/default correction; final review subsequently found unnormalized request endpoints",
+      "revision": "38d263a369e7853ccfae1c8e0a3bd387f920c7cf",
+      "source_sha256": {
+        "scripts/verify/javascript/module-references.mjs": "9d5f0b8b35ed2ebb4591f9dc3baea0fc116a0c3fd7d8e5ce30ec476c84671ed1",
+        "src/application/javascript/JavaScriptSemanticGraphDataProjection.ts": "844d4639401a9f050ce42c80192572a6d0d74fe4f81b37e93a2c20aaca9fb9a6",
+        "src/domain/javascript/javascriptSemanticAnalysis.ts": "a3f802ca3446c2b5376cc58b19d818eff318e6775bd47752793c3f649994f8a2",
+        "src/domain/javascript/javascriptSemanticAnalysis.unions.test.ts": "2e78717d30e637b5fc5bab6d0eff063f7a62e0199d33697c1cdfaf8317baa698",
+        "src/domain/javascript/javascriptSemanticDataEffectHelpers.ts": "8f9cf1a36f05b03dd816eaf9a6cdba0160d34ad7d17a961206e1bc32444d2ccc",
+        "src/domain/javascript/javascriptSemanticDataEffects.ts": "e69408f2f5910a0107fd5d0cae0ff60ed706448857bc8e535c37cac1a0cd4d37",
+        "src/domain/javascript/javascriptSemanticIr.ts": "68dad360d0a9e6bd72108b2717cae756b84ca1efb48455248ded2ff699d2c113",
+        "src/domain/javascript/javascriptSemanticPrimitives.ts": "899eeb6ccdf666f504f8b722327599997c924c8e4fb13a1cbd13edaf08c96640",
+        "src/domain/javascript/javascriptSemanticResourceLimits.ts": "0993a397f2a2a48c2b6c35494e940b3fce5c2c9032cfe33c7cf0401128c79dde",
+        "src/domain/javascript/javascriptSemanticState.ts": "bfcface5dcda22594f47ed390efa15f9140fe41cb2d5995896e52dd0ee31b978",
+        "src/domain/javascript/javascriptSemanticValues.ts": "a4ba51cc60fff38ef11fd5af35a2e1ad753cdb2dea9d44895f91d89320c5ddeb",
+        "tests/boundary/mcp/javascriptLiteralBudget.test.ts": "070106115b482269794799e448bd20b8e02df1f511f4ceb2b8fa75612c7f78e4",
+        "tests/boundary/mcp/javascriptLiteralPayload.test.ts": "03618272c605f8877ed171ab39e037e4d80eac72b7478421640076f739adfb50"
+      },
+      "real_control_cohort": {
+        "preparation_ms": 19599.643274,
+        "query_samples": [
+          {
+            "round": 0,
+            "mode": "legacy",
+            "elapsed_ms": 396.9265450000021
+          },
+          {
+            "round": 0,
+            "mode": "references",
+            "elapsed_ms": 15.658120000000054
+          },
+          {
+            "round": 1,
+            "mode": "references",
+            "elapsed_ms": 12.24905100000251
+          },
+          {
+            "round": 1,
+            "mode": "legacy",
+            "elapsed_ms": 237.03392900000108
+          },
+          {
+            "round": 2,
+            "mode": "legacy",
+            "elapsed_ms": 357.78818299999693
+          },
+          {
+            "round": 2,
+            "mode": "references",
+            "elapsed_ms": 14.37622100000226
+          }
+        ],
+        "resources": {
+          "elapsed_seconds": 33.969,
+          "cpu_seconds": 33.499223,
+          "peak_cgroup_bytes": 1893015552,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      },
+      "validation": {
+        "original_main": "Quoted/template oversized literals failed through public CLI/MCP; addition/small controls passed. Corrected domain boundary reproduced 2 failures/16 passes.",
+        "review_head": "8 failed/25 passed before fixes for projection tags, encountered-but-discarded limits and bare quoted/template defaults; includes exact null default control.",
+        "interim_review_fix": "65/66 focused passed; old doubling-chain expectation omitted a genuine expression-depth limit now observed. Adjusted that assertion to preserve the byte-limit requirement while allowing other observed classes.",
+        "final_focused": "66 passed in five files.",
+        "final_semantic_suite": "932 passed in 36 files.",
+        "arithmetic": "Computed 174762*6+2=1048574 and 174763*6+2=1048580. Corrected the erroneous published 1048578 total.",
+        "final_grouped_domain": "27 passed after grouping observations/defaults/allocation within function-size rules; no scenarios removed.",
+        "endpoint_review_baseline": "Production at 38d263a: 7 failed/14 passed across 13 new domain and 8 CLI/MCP cases before endpoint normalization. The later public linked-response case was not in this baseline run. Regression tests were uncommitted; final formatted test hashes are preserved, not claimed as the baseline test bytes.",
+        "endpoint_selection_attempt": "First six-file selection exited before execution because a signed-zero test filename was mistyped; corrected the exact path. No test result claimed for that attempt."
+      }
+    },
+    {
+      "stage": "Rejected endpoint normalization: violated existing full-endpoint lookup/trace contract; reverted after CI acceptance failure",
+      "revision": "580887209c4fceda432eac4083fac82a0dd78f15",
+      "source_sha256": {
+        "scripts/verify/javascript/module-references.mjs": "9d5f0b8b35ed2ebb4591f9dc3baea0fc116a0c3fd7d8e5ce30ec476c84671ed1",
+        "src/application/javascript/JavaScriptSemanticGraphDataProjection.ts": "a648f97e631985edcb5259ff4f1fdf0332dca18b8c10b57e050e36a785c1c524",
+        "src/domain/javascript/javascriptSemanticAnalysis.requestBudget.test.ts": "8e84ffa70d834f5589d04118f0aaf33b0383b15ea97545ff69c66a74473aca73",
+        "src/domain/javascript/javascriptSemanticAnalysis.ts": "a3f802ca3446c2b5376cc58b19d818eff318e6775bd47752793c3f649994f8a2",
+        "src/domain/javascript/javascriptSemanticAnalysis.unions.test.ts": "2e78717d30e637b5fc5bab6d0eff063f7a62e0199d33697c1cdfaf8317baa698",
+        "src/domain/javascript/javascriptSemanticDataEffectHelpers.ts": "8f9cf1a36f05b03dd816eaf9a6cdba0160d34ad7d17a961206e1bc32444d2ccc",
+        "src/domain/javascript/javascriptSemanticDataEffects.ts": "eed961e0b1d8a320e76bbba933408e950b4a4a446110401e8cf470f1e74d8315",
+        "src/domain/javascript/javascriptSemanticIr.ts": "3b2ede73dbcfc74c4014e4d1affcbf00ecccc29a422ed495a7a3f2f517056c9b",
+        "src/domain/javascript/javascriptSemanticPrimitives.ts": "899eeb6ccdf666f504f8b722327599997c924c8e4fb13a1cbd13edaf08c96640",
+        "src/domain/javascript/javascriptSemanticResourceLimits.ts": "0993a397f2a2a48c2b6c35494e940b3fce5c2c9032cfe33c7cf0401128c79dde",
+        "src/domain/javascript/javascriptSemanticState.ts": "bfcface5dcda22594f47ed390efa15f9140fe41cb2d5995896e52dd0ee31b978",
+        "src/domain/javascript/javascriptSemanticValues.ts": "a4ba51cc60fff38ef11fd5af35a2e1ad753cdb2dea9d44895f91d89320c5ddeb",
+        "tests/boundary/mcp/javascriptLiteralBudget.test.ts": "61319ea954de7f256841f43ca9355a1706ce8e93d30f2a8ba851d5e717bd19e7",
+        "tests/boundary/mcp/javascriptLiteralPayload.test.ts": "03618272c605f8877ed171ab39e037e4d80eac72b7478421640076f739adfb50"
+      },
+      "real_control_cohort": {
+        "preparation_ms": 19939.160272,
+        "query_samples": [
+          {
+            "round": 0,
+            "mode": "legacy",
+            "elapsed_ms": 348.3974309999976
+          },
+          {
+            "round": 0,
+            "mode": "references",
+            "elapsed_ms": 13.97052899999835
+          },
+          {
+            "round": 1,
+            "mode": "references",
+            "elapsed_ms": 12.060379000002285
+          },
+          {
+            "round": 1,
+            "mode": "legacy",
+            "elapsed_ms": 212.01217800000086
+          },
+          {
+            "round": 2,
+            "mode": "legacy",
+            "elapsed_ms": 223.73954800000138
+          },
+          {
+            "round": 2,
+            "mode": "references",
+            "elapsed_ms": 10.450989999997546
+          }
+        ],
+        "resources": {
+          "elapsed_seconds": 33.062,
+          "cpu_seconds": 32.71624,
+          "peak_cgroup_bytes": 1897406464,
+          "payload_cleanup_verified": true,
+          "events_at_payload_exit": {
+            "memory.events": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "pids.events": {
+              "max": 0
+            }
+          }
+        }
+      },
+      "validation": {
+        "original_main": "Quoted/template oversized literals failed through public CLI/MCP; addition/small controls passed. Corrected domain boundary reproduced 2 failures/16 passes.",
+        "review_head": "8 failed/25 passed before fixes for projection tags, encountered-but-discarded limits and bare quoted/template defaults; includes exact null default control.",
+        "interim_review_fix": "65/66 focused passed; old doubling-chain expectation omitted a genuine expression-depth limit now observed. Adjusted that assertion to preserve the byte-limit requirement while allowing other observed classes.",
+        "final_focused": "81 passed in six files; the same CLI/MCP file then passed 9/9 after adding a linked-response case. That follow-up replaces its earlier 8-case coverage; 82 distinct cases across the final six-file selection, not one 82-case invocation.",
+        "final_semantic_suite": "945 passed in 37 files, overlapping focused domain coverage.",
+        "arithmetic": "Computed 174762*6+2=1048574 and 174763*6+2=1048580. Corrected the erroneous published 1048578 total.",
+        "final_grouped_domain": "27 passed after grouping observations/defaults/allocation within function-size rules; no scenarios removed.",
+        "endpoint_review_baseline": "Production at 38d263a: 7 failed/14 passed across 13 new domain and 8 CLI/MCP cases before endpoint normalization. The later public linked-response case was not in this baseline run. Regression tests were uncommitted; final formatted test hashes are preserved, not claimed as the baseline test bytes.",
+        "endpoint_selection_attempt": "First six-file selection exited before execution because a signed-zero test filename was mistyped; corrected the exact path. No test result claimed for that attempt.",
+        "endpoint_typecheck_attempt": "Full static gate found the inferred optional dataField in the public test computed key. Replaced the in-property check with an explicit bare === true discriminant; scenario inputs and runtime implementation unchanged. Corrected static/public checks recorded separately.",
+        "final_gates": "Full static gate passed after the explicit test discriminant; final public file passed 9/9 again, then docs gate passed including 5 consistency tests. Runtime implementation unchanged after the 945-test semantic suite and real control."
+      },
+      "ci_failure": {
+        "run_id": 38758262643,
+        "job_id": 116503076738,
+        "test": "tests/acceptance/applications/javascriptEndpointPayload.test.ts",
+        "result": "1 failed/1573 passed/19 skipped; request endpoint no longer matched its complete source value. Other local tests and real Obsidian control passed but did not establish this compatibility contract.",
+        "aggregate_result": "Merged source/built report: 1 failed/15625 passed/138 skipped. Portable tests and CI required failed as aggregates of the same endpoint assertion; no separate additional failed test."
+      }
+    }
+  ],
+  "review_baseline_revision": "40b9d3c5b9cbeae7661d8e351e1b5ef6e5338931",
+  "review_baseline_source_sha256": {
+    "scripts/verify/javascript/module-references.mjs": "9d5f0b8b35ed2ebb4591f9dc3baea0fc116a0c3fd7d8e5ce30ec476c84671ed1",
+    "src/application/javascript/JavaScriptSemanticGraphDataProjection.ts": "ee541e634264363822bf4ce05c42c72272029c7e8da72bbeed643ad1341d0756",
+    "src/domain/javascript/javascriptSemanticAnalysis.ts": "a1cf791a61ee4742c351c006b69b64eba6bef3068f7a8450ed8f9366bfe4ff88",
+    "src/domain/javascript/javascriptSemanticAnalysis.unions.test.ts": "747d893d6ddd91cf24d3b62b7eb50e0af9b1715ab355bbfc2e10ed0dc171ec17",
+    "src/domain/javascript/javascriptSemanticDataEffectHelpers.ts": "5ee7af18dd847726d8fe1828ea25f386ff9ef317d996a3f7969253bf73973cfa",
+    "src/domain/javascript/javascriptSemanticDataEffects.ts": "4c62462016246bc7198294a74a60e87598fc009c53f1601abc2d4662d41b5bd1",
+    "src/domain/javascript/javascriptSemanticIr.ts": "14955cb4b7912ed6a4f26f804a2480f841dcb6084dbddd15856375fa62cdcfa1",
+    "src/domain/javascript/javascriptSemanticPrimitives.ts": "899eeb6ccdf666f504f8b722327599997c924c8e4fb13a1cbd13edaf08c96640",
+    "src/domain/javascript/javascriptSemanticResourceLimits.ts": "0203d207e0d6bb8aaa17746090f008876a11653afd660fce3dc44f3fda646a6c",
+    "src/domain/javascript/javascriptSemanticState.ts": "d94c5a88bb105284fab192406a8c88860d59f80c93394ed3ee7264969df254a6",
+    "src/domain/javascript/javascriptSemanticValues.ts": "2debbb4f32d7d189819f2413f0f7d05b9bdcf497451a1c578475e3f2ec6c8554",
+    "tests/boundary/mcp/javascriptLiteralBudget.test.ts": "46ceb5a169de3eec3a335b05ef4aa7b1b341a5ac06ad325bd191e862c5b6be70",
+    "tests/boundary/mcp/javascriptLiteralPayload.test.ts": "03618272c605f8877ed171ab39e037e4d80eac72b7478421640076f739adfb50"
+  },
+  "implementation": "Per-analysis state records encountered resource classifications at expression/default normalization; final coverage consumes those facts. Slot projection preserves tagged unknown values. Removed retained-value recursive coverage scan and duplicate raw default reader. Defaults retain optional valueResourceLimit and graph value_resource_limit plus an anchored resource-limit unknown; known null/false/0/empty remain exact. Endpoint identities intentionally remain exact lookup values, outside the normalized primitive lattice; rejected endpoint normalization and its CI failure are preserved separately.",
+  "restored_production_revision": "38d263a369e7853ccfae1c8e0a3bd387f920c7cf",
+  "final_corrected_resource_receipts": {
+    "public_7": {
+      "elapsed_seconds": 43.621,
+      "cpu_seconds": 43.097453,
+      "peak_cgroup_bytes": 1520324608,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    },
+    "static_and_docs": {
+      "elapsed_seconds": 111.403,
+      "cpu_seconds": 110.830839,
+      "peak_cgroup_bytes": 4268244992,
+      "payload_cleanup_verified": true,
+      "events_at_payload_exit": {
+        "memory.events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "pids.events": {
+          "max": 0
+        }
+      }
+    }
+  }
+}

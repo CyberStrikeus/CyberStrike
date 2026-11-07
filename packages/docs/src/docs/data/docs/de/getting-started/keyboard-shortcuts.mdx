@@ -1,0 +1,169 @@
+---
+title: Tastaturkuerzel
+description: Cyberstrike mit Leader-basierten Tastaturkuerzeln meistern
+sidebar:
+  order: 5
+  label: Tastaturkuerzel
+---
+
+Die TUI von Cyberstrike wird durch Leader-basierte Tastaturkuerzel fuer effiziente Navigation gesteuert. Diese Seite listet die gaengigen Standardbelegungen auf. Fuer die vollstaendige Liste der Aktionen und deren Anpassung siehe [Tastenkombinationen](/docs/configuration/keybindings).
+
+## Leader-Taste
+
+Die Leader-Taste ist standardmaessig `Ctrl+X`. Viele Kuerzel bestehen aus `<leader>` gefolgt von einer weiteren Taste.
+
+Um die Leader-Taste zu aendern:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## Sitzungskuerzel
+
+| Kuerzel | Aktion |
+|---------|--------|
+| `<leader>n` | Neue Sitzung |
+| `<leader>l` | Sitzungen auflisten |
+| `<leader>c` | Sitzung komprimieren/zusammenfassen |
+| `<leader>g` | Sitzungszeitachse |
+| `<leader>x` | Sitzung exportieren |
+| `Ctrl+R` | Sitzung umbenennen |
+| `Ctrl+D` | Sitzung loeschen |
+| `Escape` | Laufende Sitzung unterbrechen |
+
+## Navigation
+
+| Kuerzel | Aktion |
+|---------|--------|
+| `PageUp` / `PageDown` | Eine Seite scrollen |
+| `Ctrl+Alt+U` | Eine halbe Seite nach oben scrollen |
+| `Ctrl+Alt+D` | Eine halbe Seite nach unten scrollen |
+| `Ctrl+G` / `Home` | Zur ersten Nachricht springen |
+| `Ctrl+Alt+G` / `End` | Zur letzten Nachricht springen |
+| `<leader>y` | Nachricht kopieren |
+| `<leader>u` | Nachricht rueckgaengig machen (zuruecksetzen) |
+| `<leader>r` | Nachricht wiederherstellen |
+
+## Eingabe
+
+| Kuerzel | Aktion |
+|---------|--------|
+| `Enter` | Nachricht senden |
+| `Shift+Enter` | Neue Zeile |
+| `Ctrl+V` | Einfuegen |
+| `Ctrl+C` | Eingabe loeschen |
+| `Escape` | Laufende Sitzung unterbrechen |
+
+## Modell & Agent
+
+| Kuerzel | Aktion |
+|---------|--------|
+| `<leader>m` | Modellauswahl |
+| `<leader>a` | Agentenauswahl |
+| `Tab` | Naechster Agent |
+| `Shift+Tab` | Vorheriger Agent |
+
+## Oberflaeche
+
+| Kuerzel | Aktion |
+|---------|--------|
+| `<leader>t` | Theme-Auswahl |
+| `<leader>s` | Statusansicht |
+| `<leader>b` | Seitenleiste umschalten |
+| `<leader>e` | In externem Editor oeffnen |
+| `Ctrl+P` | Befehlsliste |
+
+## Dialoge
+
+Wenn ein Dialog geoeffnet ist (Modellauswahl, Sitzungsliste usw.), navigieren Sie mit den Pfeiltasten, druecken Sie `Enter` zur Auswahl und `Escape` zum Schliessen. Einige dialogspezifische Tastenbelegungen:
+
+| Kuerzel | Aktion |
+|---------|--------|
+| `Ctrl+F` | Modellfavorit umschalten (im Modell-Dialog) |
+| `F2` / `Shift+F2` | Zum naechsten / vorherigen kuerzlich verwendeten Modell wechseln |
+
+## Berechtigungsabfragen
+
+Wenn ein Werkzeug eine Genehmigung benoetigt, erscheint eine Inline-Abfrage mit drei Optionen — **Einmal erlauben**, **Immer erlauben** und **Ablehnen**. Verwenden Sie die Pfeiltasten und `Enter` zur Auswahl; `Escape` lehnt ab.
+
+## Tastenkombinationen anpassen
+
+Ueberschreiben Sie Standards unter `keybinds` in Ihrer Konfiguration. Nur gueltige Aktionsnamen werden akzeptiert (das Objekt wird streng validiert):
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "status_view": "<leader>s",
+    "sidebar_toggle": "<leader>b",
+    "editor_open": "<leader>e",
+    "session_export": "<leader>x",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r"
+  }
+}
+```
+
+Siehe [Tastenkombinationen](/docs/configuration/keybindings) fuer jede konfigurierbare Aktion und ihre Standardbelegung.
+
+## Format der Tastenkombinationen
+
+- **Modifikatoren**: `ctrl`, `alt`, `shift`, `super`
+- **Sondertasten**: `return`, `escape`, `tab`, `space`, `backspace`, `pageup`, `pagedown`, `home`, `end`
+- **Leader**: `<leader>` (wird durch die konfigurierte Leader-Taste ersetzt)
+- **Alternativen**: `ctrl+c,ctrl+d` (Komma trennt alternative Belegungen fuer eine Aktion)
+- **Deaktivieren**: `none`
+
+### Beispiele
+
+```
+ctrl+alt+u          # Ctrl + Alt + U
+alt+shift+f         # Alt + Shift + F
+<leader>n           # Leader-Taste dann N
+ctrl+c,ctrl+d       # jede Belegung loest die Aktion aus
+```
+
+## Kurzreferenzkarte
+
+```
+┌─────────────────────────────────────────┐
+│  Cyberstrike Tastaturkuerzel            │
+├─────────────────────────────────────────┤
+│  Sitzung                                │
+│    <leader>n   Neue Sitzung             │
+│    <leader>l   Sitzungen auflisten      │
+│    <leader>c   Sitzung komprimieren     │
+│    Ctrl+R      Sitzung umbenennen       │
+├─────────────────────────────────────────┤
+│  Navigation                             │
+│    Ctrl+Alt+U/D  Halbe Seite scrollen   │
+│    <leader>u     Nachricht rueckgaengig │
+│    <leader>r     Nachricht wiederholen  │
+├─────────────────────────────────────────┤
+│  Modell/Agent                           │
+│    <leader>m   Modelle                  │
+│    <leader>a   Agenten                  │
+│    Tab         Naechster Agent          │
+├─────────────────────────────────────────┤
+│  Oberflaeche                            │
+│    <leader>s   Status                   │
+│    <leader>t   Themes                   │
+│    <leader>b   Seitenleiste             │
+│    Ctrl+P      Befehlsliste             │
+└─────────────────────────────────────────┘
+```
+
+## Verwandte Dokumentation
+
+- [Tastenkombinationen](/docs/configuration/keybindings) - Vollstaendige Aktionsliste und Anpassung
+- [Erste Schritte](/docs/getting-started) - Installation und erste Schritte

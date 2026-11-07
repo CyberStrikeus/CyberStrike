@@ -1,0 +1,14 @@
+{
+  "name": "Appium ApiDemos",
+  "version": "6.0.18",
+  "source": "https://github.com/appium/android-apidemos",
+  "source_revision": "3e716ee04ef3390284bfab761e28da8c15c08143",
+  "license": "Apache-2.0",
+  "license_url": "https://github.com/appium/android-apidemos/blob/3e716ee04ef3390284bfab761e28da8c15c08143/LICENSE",
+  "url": "https://github.com/appium/android-apidemos/releases/download/v6.0.18/ApiDemos-debug.apk",
+  "filename": "ApiDemos-debug.apk",
+  "sha256": "a9eecf37b26cd084855c530db81c2bb1b91f4c1b095a04f47aa7c20e2791f686",
+  "package": "io.appium.android.apis",
+  "class_name": "io.appium.android.apis.ApiDemos",
+  "method_name": "onCreate"
+}

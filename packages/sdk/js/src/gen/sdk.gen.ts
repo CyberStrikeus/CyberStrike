@@ -1154,7 +1154,7 @@ class Event extends _HeyApiClient {
   }
 }
 
-export class CyberstrikeClient extends _HeyApiClient {
+export class CyberStrikeClient extends _HeyApiClient {
   /**
    * Respond to a permission request
    */

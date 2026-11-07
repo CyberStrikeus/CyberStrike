@@ -1,0 +1,215 @@
+---
+title: Keybindings Configuration
+description: Customize keyboard shortcuts for Cyberstrike
+sidebar:
+  order: 5
+  label: Keybindings
+---
+
+Customize keyboard shortcuts to match your workflow. Keybinds are defined under the `keybinds` object in your config file.
+
+{/* TODO: Screenshot - Keybindings configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: keybindings-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Keybindings configuration options</p>
+</div>
+
+## Configuration Location
+
+Keybindings are configured in your global or project config file:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "session_new": "<leader>n"
+  }
+}
+```
+
+Only the keys listed on this page are valid — the `keybinds` object is validated strictly, so unknown keys are rejected.
+
+## Leader Key
+
+The leader key is a prefix for many shortcuts (default `ctrl+x`):
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## Key Syntax
+
+### Modifiers
+
+| Modifier | Syntax |
+|----------|--------|
+| Control | `ctrl` |
+| Alt/Option | `alt` |
+| Shift | `shift` |
+| Super/Command | `super` |
+
+### Special Keys
+
+| Key | Syntax |
+|-----|--------|
+| Enter | `return` |
+| Escape | `escape` |
+| Tab | `tab` |
+| Backspace | `backspace` |
+| Delete | `delete` |
+| Arrows | `up` `down` `left` `right` |
+| Page Up / Down | `pageup` `pagedown` |
+| Home / End | `home` `end` |
+| Function keys | `f2`, `shift+f2` |
+
+### Combinations, Alternatives & Leader
+
+```
+ctrl+alt+d          # Ctrl + Alt + D
+<leader>n           # Leader then N
+pageup,ctrl+alt+b   # two alternative bindings for one action (comma-separated)
+```
+
+A comma separates **alternative** bindings for the same action. Set a value to `none` to disable an action.
+
+## Available Actions
+
+Every action below shows its default binding. Override any subset in your `keybinds` object.
+
+### Sessions
+
+| Action | Default | Description |
+|--------|---------|-------------|
+| `session_new` | `<leader>n` | Create a new session |
+| `session_list` | `<leader>l` | List all sessions |
+| `session_compact` | `<leader>c` | Compact the session |
+| `session_timeline` | `<leader>g` | Show session timeline |
+| `session_rename` | `ctrl+r` | Rename session |
+| `session_delete` | `ctrl+d` | Delete session |
+| `session_export` | `<leader>x` | Export session to editor |
+| `session_interrupt` | `escape` | Interrupt current session |
+| `session_fork` | `none` | Fork session from message |
+| `session_share` | `none` | Share current session |
+| `session_child_cycle` | `<leader>right` | Next child session |
+| `session_parent` | `<leader>up` | Go to parent session |
+
+### Messages & Navigation
+
+| Action | Default | Description |
+|--------|---------|-------------|
+| `messages_page_up` | `pageup,ctrl+alt+b` | Scroll up one page |
+| `messages_page_down` | `pagedown,ctrl+alt+f` | Scroll down one page |
+| `messages_half_page_up` | `ctrl+alt+u` | Scroll up half a page |
+| `messages_half_page_down` | `ctrl+alt+d` | Scroll down half a page |
+| `messages_first` | `ctrl+g,home` | Jump to first message |
+| `messages_last` | `ctrl+alt+g,end` | Jump to last message |
+| `messages_copy` | `<leader>y` | Copy message |
+| `messages_undo` | `<leader>u` | Undo message |
+| `messages_redo` | `<leader>r` | Redo message |
+| `messages_toggle_conceal` | `<leader>h` | Toggle code-block concealment |
+
+### Lists & Dialogs
+
+| Action | Default | Description |
+|--------|---------|-------------|
+| `model_list` | `<leader>m` | List available models |
+| `agent_list` | `<leader>a` | List agents |
+| `agent_cycle` | `tab` | Next agent |
+| `agent_cycle_reverse` | `shift+tab` | Previous agent |
+| `theme_list` | `<leader>t` | List available themes |
+| `command_list` | `ctrl+p` | List available commands |
+
+### Interface
+
+| Action | Default | Description |
+|--------|---------|-------------|
+| `sidebar_toggle` | `<leader>b` | Toggle sidebar |
+| `status_view` | `<leader>s` | View status |
+| `editor_open` | `<leader>e` | Open external editor |
+| `tips_toggle` | `<leader>h` | Toggle home-screen tips |
+
+### Application & Input
+
+| Action | Default | Description |
+|--------|---------|-------------|
+| `app_exit` | `ctrl+c,ctrl+d,<leader>q` | Exit the application |
+| `terminal_suspend` | `ctrl+z` | Suspend the terminal |
+| `input_submit` | `return` | Submit input |
+| `input_newline` | `shift+return,ctrl+return,alt+return,ctrl+j` | Insert a newline |
+| `input_clear` | `ctrl+c` | Clear the input field |
+| `input_paste` | `ctrl+v` | Paste from clipboard |
+
+<Aside variant="info">
+  The input field also has a large set of cursor-movement and editing binds (`input_move_*`, `input_word_*`, `input_delete_*`, etc.). They follow the same `keybinds` naming and can be overridden the same way.
+</Aside>
+
+## Full Configuration Example
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "session_compact": "<leader>c",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r",
+    "session_export": "<leader>x",
+
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "command_list": "ctrl+p",
+
+    "sidebar_toggle": "<leader>b",
+    "status_view": "<leader>s",
+    "editor_open": "<leader>e",
+
+    "messages_half_page_up": "ctrl+alt+u",
+    "messages_half_page_down": "ctrl+alt+d",
+    "messages_undo": "<leader>u",
+
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+## Multiple Bindings
+
+Assign multiple shortcuts to one action with a comma:
+
+```json
+{
+  "keybinds": {
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "model_list": "<leader>m,ctrl+shift+m"
+  }
+}
+```
+
+The comma separates alternative bindings — it is not a chord sequence.
+
+## Resetting Keybindings
+
+There is no reset command. To restore a default, remove the key from your `keybinds` object (or delete the whole object to restore all defaults).
+
+## Troubleshooting
+
+1. Check for conflicts with your terminal emulator
+2. Verify the config is valid JSON and the key name matches this page exactly (unknown keys fail validation)
+3. Browse registered commands in the TUI with `command_list` (`ctrl+p`)
+
+<Aside variant="tip">
+  Use `/help` in Cyberstrike to see a quick reference of active keybindings.
+</Aside>
+
+## Related Documentation
+
+- [Configuration Reference](/docs/configuration) - All configuration options
+- [Keyboard Shortcuts](/docs/getting-started/keyboard-shortcuts) - Shortcut reference
+- [Global Config](/docs/configuration/global-config) - Configuration guide

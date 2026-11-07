@@ -35,8 +35,8 @@ describe("loadRootSessionsWithFallback", () => {
     const result = await loadRootSessionsWithFallback({
       directory: "dir",
       limit: 10,
-      list: async (query) => {
-        calls.push(query)
+      list: async (query: { directory: string; roots?: boolean; limit?: number }) => {
+        calls.push(query as any)
         return { data: [] }
       },
       onFallback: () => {
@@ -57,8 +57,8 @@ describe("loadRootSessionsWithFallback", () => {
     const result = await loadRootSessionsWithFallback({
       directory: "dir",
       limit: 25,
-      list: async (query) => {
-        calls.push(query)
+      list: async (query: { directory: string; roots?: boolean; limit?: number }) => {
+        calls.push(query as { directory: string; roots: true; limit?: number })
         if (query.limit) throw new Error("unsupported")
         return { data: [] }
       },

@@ -1,0 +1,38 @@
+{
+  "target_sha256": "659b5fc6a4319dfe4f117d00ad4e7ec004915ebcadcb96628797fb3544040e29",
+  "snapshot_hash": "65817c30a78bb44c3dc3771876b6010a",
+  "engines": {
+    "x86_64": {
+      "dart_version": null,
+      "toolchain_lines": [
+        "Android (5900059 based on r365631c) clang version 9.0.8 (https://android.googlesource.com/toolchain/llvm-project 207d7abc1a2abf3ef8d4301736d6a7ebc224a290) (based on LLVM 9.0.8svn)"
+      ]
+    },
+    "armeabi-v7a": {
+      "dart_version": null,
+      "toolchain_lines": [
+        "Android (5900059 based on r365631c) clang version 9.0.8 (https://android.googlesource.com/toolchain/llvm-project 207d7abc1a2abf3ef8d4301736d6a7ebc224a290) (based on LLVM 9.0.8svn)"
+      ]
+    },
+    "arm64-v8a": {
+      "dart_version": null,
+      "toolchain_lines": [
+        "Android (5900059 based on r365631c) clang version 9.0.8 (https://android.googlesource.com/toolchain/llvm-project 207d7abc1a2abf3ef8d4301736d6a7ebc224a290) (based on LLVM 9.0.8svn)"
+      ]
+    }
+  },
+  "string_pools": {
+    "x86_64": {
+      "package_uri_count_at_least": 756,
+      "dart_uri_count_at_least": 201
+    },
+    "armeabi-v7a": {
+      "package_uri_count_at_least": 212,
+      "dart_uri_count_at_least": 48
+    },
+    "arm64-v8a": {
+      "package_uri_count_at_least": 756,
+      "dart_uri_count_at_least": 201
+    }
+  }
+}

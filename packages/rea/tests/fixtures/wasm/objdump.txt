@@ -1,0 +1,30 @@
+
+module.wasm:	file format wasm 0x1
+
+Sections:
+
+     Type start=0x0000000a end=0x0000000e (size=0x00000004) count: 1
+   Import start=0x00000010 end=0x0000001b (size=0x0000000b) count: 1
+ Function start=0x0000001d end=0x0000001f (size=0x00000002) count: 1
+   Memory start=0x00000021 end=0x00000024 (size=0x00000003) count: 1
+   Export start=0x00000026 end=0x00000036 (size=0x00000010) count: 2
+     Code start=0x00000038 end=0x0000003e (size=0x00000006) count: 1
+   Custom start=0x00000040 end=0x0000004c (size=0x0000000c) "test"
+
+Section Details:
+
+Type[1]:
+ - type[0] () -> nil
+Import[1]:
+ - func[0] sig=0 <env.foo> <- env.foo
+Function[1]:
+ - func[1] sig=0 <run>
+Memory[1]:
+ - memory[0] pages: initial=1
+Export[2]:
+ - memory[0] -> "memory"
+ - func[1] <run> -> "run"
+Code[1]:
+ - func[1] size=4 <run>
+Custom:
+ - name: "test"

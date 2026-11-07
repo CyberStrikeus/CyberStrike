@@ -1,0 +1,288 @@
+// A durable TrafficStore backed by bun:sqlite — so a body of traffic survives a restart and the
+// "DB-kayıtlı" requirement is real, not just an in-memory map. Same interface as MemoryStore, so
+// nothing above the store changes. An instance is SESSION-SCOPED: every op is bounded to one
+// assessment, so a shared database file can hold many sessions without them bleeding together.
+//
+// The full Transaction is stored as JSON in `data`; the columns that get queried a lot (session,
+// host, method, status) are lifted out and indexed. When the host embeds Vortex on its own DB
+// (Drizzle), it provides an adapter implementing TrafficStore instead of using this.
+import { Database } from "bun:sqlite"
+import type { Transaction } from "./transaction"
+import { signalKey, type TrafficStore } from "./store"
+import type { Discovered } from "./discovery"
+import type { Signal, SignalTriage } from "./rule"
+import type { Canary } from "./canary"
+import type { InjectPoint, Coverage } from "./injectpoint"
+import { injectPointKey, coverageKey } from "./injectpoint"
+
+interface Row {
+  data: string
+}
+
+export class SqliteStore implements TrafficStore {
+  private readonly db: Database
+  private readonly session: string
+
+  // `db` is a bun:sqlite Database (a path string opens/creates a file, ":memory:" for ephemeral).
+  // `session` scopes every operation to one assessment.
+  constructor(db: Database | string, session: string) {
+    this.db = typeof db === "string" ? new Database(db) : db
+    this.session = session
+    this.db.run(
+      `CREATE TABLE IF NOT EXISTS vortex_transaction (
+         id TEXT PRIMARY KEY,
+         session TEXT NOT NULL,
+         host TEXT,
+         method TEXT,
+         status INTEGER,
+         data TEXT NOT NULL
+       )`,
+    )
+    this.db.run(`CREATE INDEX IF NOT EXISTS vortex_transaction_session ON vortex_transaction(session)`)
+    this.db.run(
+      `CREATE TABLE IF NOT EXISTS vortex_discovered (
+         session TEXT NOT NULL,
+         id TEXT NOT NULL,
+         kind TEXT NOT NULL,
+         data TEXT NOT NULL,
+         PRIMARY KEY (session, id)
+       )`,
+    )
+    this.db.run(
+      `CREATE TABLE IF NOT EXISTS vortex_signal (
+         session TEXT NOT NULL,
+         key TEXT NOT NULL,
+         rule_id TEXT,
+         severity TEXT,
+         category TEXT,
+         transaction_id TEXT,
+         data TEXT NOT NULL,
+         PRIMARY KEY (session, key)
+       )`,
+    )
+    // Additive migration: triage column for signal lifecycle tracking (issue #67).
+    try { this.db.run(`ALTER TABLE vortex_signal ADD COLUMN triage TEXT DEFAULT 'new'`) } catch { /* column already exists */ }
+    this.db.run(`CREATE TABLE IF NOT EXISTS vortex_canary (session TEXT NOT NULL, token TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY (session, token))`)
+    this.db.run(
+      `CREATE TABLE IF NOT EXISTS vortex_param (
+         session TEXT NOT NULL,
+         key TEXT NOT NULL,
+         transaction_id TEXT,
+         location TEXT,
+         dotpath TEXT,
+         probed INTEGER DEFAULT 0,
+         data TEXT NOT NULL,
+         PRIMARY KEY (session, key)
+       )`,
+    )
+    this.db.run(`CREATE INDEX IF NOT EXISTS vortex_param_tx ON vortex_param(session, transaction_id)`)
+    this.db.run(
+      `CREATE TABLE IF NOT EXISTS vortex_param_coverage (
+         session TEXT NOT NULL,
+         key TEXT NOT NULL,
+         param_id TEXT,
+         transaction_id TEXT,
+         payload_class TEXT,
+         result TEXT,
+         data TEXT NOT NULL,
+         PRIMARY KEY (session, key)
+       )`,
+    )
+    this.db.run(`CREATE INDEX IF NOT EXISTS vortex_param_coverage_tx ON vortex_param_coverage(session, transaction_id)`)
+  }
+
+  add(tx: Transaction): Transaction {
+    const row: Transaction = { ...tx, session: this.session }
+    this.db.run(`INSERT OR REPLACE INTO vortex_transaction (id, session, host, method, status, data) VALUES (?, ?, ?, ?, ?, ?)`, [
+      row.id,
+      this.session,
+      row.host,
+      row.request.method,
+      row.response?.status ?? null,
+      JSON.stringify(row),
+    ])
+    return row
+  }
+
+  get(id: string): Transaction | undefined {
+    const row = this.db
+      .query<Row, [string, string]>(`SELECT data FROM vortex_transaction WHERE id = ? AND session = ?`)
+      .get(id, this.session)
+    return row ? (JSON.parse(row.data) as Transaction) : undefined
+  }
+
+  all(): Transaction[] {
+    const rows = this.db.query<Row, [string]>(`SELECT data FROM vortex_transaction WHERE session = ?`).all(this.session)
+    return rows.map((r) => JSON.parse(r.data) as Transaction)
+  }
+
+  where(predicate: (tx: Transaction) => boolean): Transaction[] {
+    return this.all().filter(predicate)
+  }
+
+  size(): number {
+    const row = this.db
+      .query<{ n: number }, [string]>(`SELECT COUNT(*) AS n FROM vortex_transaction WHERE session = ?`)
+      .get(this.session)
+    return row?.n ?? 0
+  }
+
+  addDiscovered(items: Discovered[]): number {
+    let added = 0
+    const exists = this.db.query<{ n: number }, [string, string]>(`SELECT COUNT(*) AS n FROM vortex_discovered WHERE session = ? AND id = ?`)
+    for (const it of items) {
+      const had = (exists.get(this.session, it.id)?.n ?? 0) > 0
+      this.db.run(`INSERT OR REPLACE INTO vortex_discovered (session, id, kind, data) VALUES (?, ?, ?, ?)`, [this.session, it.id, it.kind, JSON.stringify(it)])
+      if (!had) added++
+    }
+    return added
+  }
+
+  discovered(kind?: Discovered["kind"]): Discovered[] {
+    const rows = kind
+      ? this.db.query<Row, [string, string]>(`SELECT data FROM vortex_discovered WHERE session = ? AND kind = ?`).all(this.session, kind)
+      : this.db.query<Row, [string]>(`SELECT data FROM vortex_discovered WHERE session = ?`).all(this.session)
+    return rows.map((r) => JSON.parse(r.data) as Discovered)
+  }
+
+  addSignals(signals: Signal[]): number {
+    let added = 0
+    const exists = this.db.query<{ triage: string | null } | null, [string, string]>(`SELECT triage FROM vortex_signal WHERE session = ? AND key = ?`)
+    for (const s of signals) {
+      const key = signalKey(s)
+      const prior = exists.get(this.session, key)
+      const triage = s.triage ?? prior?.triage ?? "new"
+      const stored = { ...s, triage }
+      this.db.run(`INSERT OR REPLACE INTO vortex_signal (session, key, rule_id, severity, category, transaction_id, triage, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, [
+        this.session,
+        key,
+        s.ruleId,
+        s.severity,
+        s.category,
+        s.transactionId,
+        triage,
+        JSON.stringify(stored),
+      ])
+      if (!prior) added++
+    }
+    return added
+  }
+
+  signals(filter?: { ruleId?: string; severity?: Signal["severity"]; transactionId?: string; category?: string; triage?: SignalTriage }): Signal[] {
+    const clauses = ["session = ?"]
+    const args: string[] = [this.session]
+    if (filter?.ruleId) (clauses.push("rule_id = ?"), args.push(filter.ruleId))
+    if (filter?.severity) (clauses.push("severity = ?"), args.push(filter.severity))
+    if (filter?.transactionId) (clauses.push("transaction_id = ?"), args.push(filter.transactionId))
+    if (filter?.category) (clauses.push("category = ?"), args.push(filter.category))
+    if (filter?.triage) (clauses.push("triage = ?"), args.push(filter.triage))
+    const rows = this.db.query<Row, string[]>(`SELECT data FROM vortex_signal WHERE ${clauses.join(" AND ")}`).all(...args)
+    return rows.map((r) => JSON.parse(r.data) as Signal)
+  }
+
+  updateSignalTriage(keys: string[], triage: SignalTriage): number {
+    let updated = 0
+    for (const key of keys) {
+      const row = this.db.query<Row | null, [string, string]>(`SELECT data FROM vortex_signal WHERE session = ? AND key = ?`).get(this.session, key)
+      if (!row) continue
+      const s = { ...JSON.parse(row.data) as Signal, triage }
+      this.db.run(`UPDATE vortex_signal SET triage = ?, data = ? WHERE session = ? AND key = ?`, [triage, JSON.stringify(s), this.session, key])
+      updated++
+    }
+    return updated
+  }
+
+  signalSummary(): Record<SignalTriage, number> {
+    const counts: Record<SignalTriage, number> = { new: 0, reviewed: 0, confirmed: 0, dismissed: 0, escalated: 0 }
+    const rows = this.db.query<{ triage: string | null; n: number }, [string]>(
+      `SELECT COALESCE(triage, 'new') AS triage, COUNT(*) AS n FROM vortex_signal WHERE session = ? GROUP BY triage`
+    ).all(this.session)
+    for (const r of rows) counts[r.triage as SignalTriage ?? "new"] = r.n
+    return counts
+  }
+
+  addCanaries(canaries: Canary[]): number {
+    let added = 0
+    const exists = this.db.query<{ n: number }, [string, string]>(`SELECT COUNT(*) AS n FROM vortex_canary WHERE session = ? AND token = ?`)
+    for (const c of canaries) {
+      const had = (exists.get(this.session, c.token)?.n ?? 0) > 0
+      this.db.run(`INSERT OR REPLACE INTO vortex_canary (session, token, data) VALUES (?, ?, ?)`, [this.session, c.token, JSON.stringify(c)])
+      if (!had) added++
+    }
+    return added
+  }
+  canaries(): Canary[] {
+    return this.db.query<Row, [string]>(`SELECT data FROM vortex_canary WHERE session = ?`).all(this.session).map((r) => JSON.parse(r.data) as Canary)
+  }
+
+  addInjectPoints(points: InjectPoint[]): number {
+    let added = 0
+    const prior = this.db.query<{ probed: number }, [string, string]>(`SELECT probed FROM vortex_param WHERE session = ? AND key = ?`)
+    for (const pt of points) {
+      const k = injectPointKey(pt)
+      const existing = prior.get(this.session, k)
+      const probed = pt.probed !== undefined ? (pt.probed ? 1 : 0) : (existing?.probed ?? 0)
+      const stored: InjectPoint = { ...pt, id: k, session: this.session, probed: probed === 1 }
+      this.db.run(`INSERT OR REPLACE INTO vortex_param (session, key, transaction_id, location, dotpath, probed, data) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
+        this.session,
+        k,
+        pt.transactionId,
+        pt.location,
+        pt.dotpath,
+        probed,
+        JSON.stringify(stored),
+      ])
+      if (!existing) added++
+    }
+    return added
+  }
+
+  injectPoints(filter?: { transactionId?: string; location?: InjectPoint["location"]; probed?: boolean }): InjectPoint[] {
+    const clauses = ["session = ?"]
+    const args: (string | number)[] = [this.session]
+    if (filter?.transactionId) (clauses.push("transaction_id = ?"), args.push(filter.transactionId))
+    if (filter?.location) (clauses.push("location = ?"), args.push(filter.location))
+    if (filter?.probed !== undefined) (clauses.push("probed = ?"), args.push(filter.probed ? 1 : 0))
+    const rows = this.db.query<Row, (string | number)[]>(`SELECT data FROM vortex_param WHERE ${clauses.join(" AND ")}`).all(...args)
+    return rows.map((r) => JSON.parse(r.data) as InjectPoint)
+  }
+
+  recordCoverage(entries: Coverage[]): number {
+    let added = 0
+    const exists = this.db.query<{ n: number }, [string, string]>(`SELECT COUNT(*) AS n FROM vortex_param_coverage WHERE session = ? AND key = ?`)
+    for (const c of entries) {
+      const k = coverageKey(c)
+      const had = (exists.get(this.session, k)?.n ?? 0) > 0
+      this.db.run(`INSERT OR REPLACE INTO vortex_param_coverage (session, key, param_id, transaction_id, payload_class, result, data) VALUES (?, ?, ?, ?, ?, ?, ?)`, [
+        this.session,
+        k,
+        c.paramId,
+        c.transactionId,
+        c.payloadClass,
+        c.result,
+        JSON.stringify(c),
+      ])
+      if (!had) added++
+    }
+    return added
+  }
+
+  coverage(filter?: { transactionId?: string; paramId?: string; result?: Coverage["result"] }): Coverage[] {
+    const clauses = ["session = ?"]
+    const args: string[] = [this.session]
+    if (filter?.transactionId) (clauses.push("transaction_id = ?"), args.push(filter.transactionId))
+    if (filter?.paramId) (clauses.push("param_id = ?"), args.push(filter.paramId))
+    if (filter?.result) (clauses.push("result = ?"), args.push(filter.result))
+    const rows = this.db.query<Row, string[]>(`SELECT data FROM vortex_param_coverage WHERE ${clauses.join(" AND ")}`).all(...args)
+    return rows.map((r) => JSON.parse(r.data) as Coverage)
+  }
+
+  clear(): void {
+    this.db.run(`DELETE FROM vortex_transaction WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_discovered WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_signal WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_canary WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_param WHERE session = ?`, [this.session])
+    this.db.run(`DELETE FROM vortex_param_coverage WHERE session = ?`, [this.session])
+  }
+}

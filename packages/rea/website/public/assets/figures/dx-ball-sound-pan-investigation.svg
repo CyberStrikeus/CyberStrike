@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1774" height="887" viewBox="0 0 1774 887" role="img" aria-labelledby="title desc">
+  <title id="title">DX-Ball sound-pan investigation</title>
+  <desc id="desc">REA provides the instruction, caller and byte-read evidence for one DX-Ball function. A stack input is multiplied by 1.5625, offset by 500, scaled, and converted to an integer. Maintained C is checked in 3,205 original-x86 cases and a separate 63-byte compiler replay.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="14" markerHeight="14" refX="11" refY="7" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L11 7 L1 13 Z" fill="#5b6570"/></marker>
+  </defs>
+<style>
+@media (prefers-color-scheme: dark){
+svg{background-color:#181825}
+[fill="#20252b"]{fill:#cdd6f4}
+[fill="#294f82"]{fill:#89b4fa}
+[fill="#5b6570"]{fill:#a6adc8}
+[stroke="#5b6570"]{stroke:#a6adc8}
+[stroke="#6c7e8b"]{stroke:#7f849c}
+[fill="#ffffff"]{fill:#181825}
+}
+</style>
+  <rect width="1774" height="887" fill="#ffffff"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#20252b">
+    <text x="40" y="166" font-size="63" font-weight="700">DX-Ball sound-pan investigation</text>
+    <g fill="none" stroke="#6c7e8b" stroke-width="3">
+      <rect x="40" y="293" width="237" height="131"/>
+      <rect x="315" y="232" width="1006" height="215"/>
+      <rect x="1353" y="232" width="384" height="215"/>
+      <rect x="338" y="303" width="165" height="102"/>
+      <rect x="538" y="303" width="167" height="102"/>
+      <rect x="740" y="303" width="163" height="102"/>
+      <rect x="938" y="303" width="177" height="102"/>
+      <rect x="1150" y="303" width="153" height="102"/>
+      <rect x="1375" y="298" width="344" height="115"/>
+      <rect x="267" y="514" width="303" height="131"/>
+      <rect x="1229" y="577" width="251" height="169"/>
+      <rect x="1498" y="577" width="255" height="169"/>
+    </g>
+    <g text-anchor="middle" font-weight="700">
+      <text x="158" y="357" font-size="32">DXBALL.EXE</text>
+      <text x="158" y="396" font-size="26" fill="#5b6570">0x00406400</text>
+      <text x="818" y="282" font-size="43" fill="#294f82">REA</text>
+      <text x="420" y="347" font-size="33">Stack</text>
+      <text x="420" y="386" font-size="33">input x</text>
+      <text x="621" y="368" font-size="32">× 1.5625</text>
+      <text x="821" y="368" font-size="35">− 500.0</text>
+      <text x="1026" y="368" font-size="28">× pan_scale</text>
+      <text x="1226" y="347" font-size="32">Integer</text>
+      <text x="1226" y="386" font-size="32">return</text>
+      <text x="1545" y="279" font-size="30" fill="#294f82">Reconstructed function</text>
+      <text x="1547" y="372" font-size="43">Maintained C</text>
+      <text x="418" y="569" font-size="34">Brick-hit caller</text>
+      <text x="418" y="615" font-size="28" fill="#5b6570">20 + 30 × tile_x</text>
+      <text x="1354" y="632" font-size="30">Original code</text>
+      <text x="1354" y="670" font-size="30">comparison</text>
+      <text x="1354" y="717" font-size="31" fill="#5b6570">3,205 cases</text>
+      <text x="1625" y="632" font-size="28">VC4.0 build</text>
+      <text x="1625" y="670" font-size="30">comparison</text>
+      <text x="1625" y="717" font-size="28" fill="#5b6570">63 matching bytes</text>
+    </g>
+  </g>
+  <g fill="none" stroke="#5b6570" stroke-width="4" marker-end="url(#arrow)">
+    <path d="M279 354 H332"/>
+    <path d="M505 354 H532"/>
+    <path d="M707 354 H734"/>
+    <path d="M905 354 H932"/>
+    <path d="M1117 354 H1144"/>
+    <path d="M1305 354 H1369"/>
+    <path d="M420 512 V411"/>
+    <path d="M1547 415 V496 H1354 V571"/>
+    <path d="M1547 496 H1625 V571"/>
+  </g>
+</svg>

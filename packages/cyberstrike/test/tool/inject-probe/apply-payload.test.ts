@@ -1,126 +1,6 @@
 import { describe, test, expect } from "bun:test"
-
-// Standalone copies from inject-probe.ts (not exported)
-const sanitizeHeaderValue = (v: string) => v.replace(/[\r\n ]/g, "")
-
-function setCookie(cookieHeader: string, name: string, value: string): string {
-  const safeVal = value.replace(/[;\r\n ]/g, "")
-  const parts = (cookieHeader ? cookieHeader.split(/;\s*/) : []).filter(
-    (p) => p && p.split("=")[0].trim().toLowerCase() !== name.toLowerCase(),
-  )
-  parts.push(`${name}=${safeVal}`)
-  return parts.join("; ")
-}
-
-function setJsonField(body: string, path: string, value: string): string {
-  try {
-    const root = JSON.parse(body || "{}")
-    const keys = path.split(".")
-    let cur: any = root
-    for (let i = 0; i < keys.length - 1; i++) {
-      if (typeof cur[keys[i]] !== "object" || cur[keys[i]] == null) cur[keys[i]] = {}
-      cur = cur[keys[i]]
-    }
-    cur[keys[keys.length - 1]] = value
-    return JSON.stringify(root)
-  } catch {
-    return body
-  }
-}
-
-function injectPathSegment(pathname: string, indexStr: string, value: string): string {
-  const segs = pathname.split("/")
-  const nonEmpty: number[] = []
-  for (let i = 0; i < segs.length; i++) if (segs[i] !== "") nonEmpty.push(i)
-  const target = nonEmpty[Number(indexStr)]
-  if (target == null) return pathname
-  segs[target] = encodeURIComponent(value.replace(/\.\.(\/|\\)?/g, ""))
-  return segs.join("/")
-}
-
-function multipartBoundary(r: { contentType: string; body: string }): string | null {
-  const m = r.contentType.match(/boundary=("?)([^";]+)\1/i)
-  if (m) return m[2].trim()
-  const b = r.body.match(/^--(.+?)\r?\n/)
-  return b ? b[1].trim() : null
-}
-
-function mpFieldName(seg: string): string | null {
-  if (/filename="/i.test(seg)) return null
-  const m = seg.match(/content-disposition:[^\r\n]*\bname="([^"]+)"/i)
-  return m ? m[1] : null
-}
-
-function setMultipartField(body: string, boundary: string, name: string, value: string): string | null {
-  if (value.includes(`--${boundary}`)) return null
-  const delim = `--${boundary}`
-  const segments = body.split(delim)
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i]
-    if (mpFieldName(seg) !== name) continue
-    const sep = seg.match(/\r?\n\r?\n/)
-    if (!sep || sep.index == null) continue
-    const headEnd = sep.index + sep[0].length
-    const rest = seg.slice(headEnd)
-    const trail = rest.match(/\r?\n$/)?.[0] ?? "\r\n"
-    segments[i] = seg.slice(0, headEnd) + value + trail
-    return segments.join(delim)
-  }
-  return null
-}
-
-type Location = "query" | "form_field" | "json_body" | "header" | "cookie" | "path"
-interface InjPoint {
-  location: Location
-  name: string
-}
-interface ResolvedRequest {
-  method: string
-  url: URL
-  headers: Record<string, string>
-  body: string
-  contentType: string
-}
-
-function applyPayload(
-  r: ResolvedRequest,
-  point: InjPoint,
-  value: string,
-): { url: string; body: string; headers: Record<string, string> } {
-  const headers = { ...r.headers }
-  const u = new URL(r.url.toString())
-  let body = r.body
-  switch (point.location) {
-    case "query":
-      u.searchParams.set(point.name, value)
-      break
-    case "form_field": {
-      if (r.contentType.includes("multipart/form-data")) {
-        const b = multipartBoundary(r)
-        const mp = b ? setMultipartField(r.body, b, point.name, value) : null
-        body = mp ?? r.body
-        break
-      }
-      const f = new URLSearchParams(r.body)
-      f.set(point.name, value)
-      body = f.toString()
-      break
-    }
-    case "json_body":
-      body = setJsonField(r.body, point.name, value)
-      break
-    case "header":
-      headers[point.name.toLowerCase()] = sanitizeHeaderValue(value)
-      break
-    case "cookie":
-      headers["cookie"] = setCookie(headers["cookie"] ?? "", point.name, value)
-      break
-    case "path":
-      u.pathname = injectPathSegment(u.pathname, point.name, value)
-      break
-  }
-  return { url: u.toString(), body, headers }
-}
+import { applyPayload } from "../../../src/tool/inject-probe/mutate"
+import type { ResolvedRequest, InjPoint } from "../../../src/tool/inject-probe/types"
 
 const mkRequest = (urlStr: string, opts: Partial<ResolvedRequest> = {}): ResolvedRequest => ({
   method: opts.method ?? "GET",
@@ -128,6 +8,8 @@ const mkRequest = (urlStr: string, opts: Partial<ResolvedRequest> = {}): Resolve
   headers: opts.headers ?? {},
   body: opts.body ?? "",
   contentType: opts.contentType ?? "",
+  auth: { source: "none" },
+  provenance: { fromRaw: false, reconstructed: false, bodyMaybeTruncated: false },
 })
 
 describe("applyPayload", () => {

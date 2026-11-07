@@ -1,0 +1,36 @@
+---
+import "@/styles/global.css";
+import "@/docs/styles/docs-markdown-content.css";
+
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+
+import BaseHead from "./BaseHead.astro";
+
+// image and authorData are defined on blog posts
+// authorData could also be defined on the about author page
+interface Props {
+  title: string;
+  description: string;
+  image?: ImageMetadata;
+  noindex?: boolean; // you need to opt-in to no indexing, as it hides the page from search engines
+}
+
+const { title, description, image, noindex = false } = Astro.props as Props;
+
+const currLocale = getLocaleFromUrl(Astro.url);
+---
+
+<!doctype html>
+<html id="documentation-layout" lang={currLocale} class="dark" transition:animate="fade">
+  <head>
+    <BaseHead
+      title={title}
+      description={description}
+      image={image ? image : undefined}
+      noindex={noindex}
+    />
+  </head>
+  <body id="body" class="min-h-[100lvh]">
+    <slot />
+  </body>
+</html>

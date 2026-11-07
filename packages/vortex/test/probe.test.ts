@@ -1,0 +1,106 @@
+import { describe, expect, test } from "bun:test"
+import type { Transaction, Sender } from "../src/index"
+import { compileProbes, probeRules, runActiveRules, parseProbes, send, Engine } from "../src/index"
+
+function tx(id: string, url: string, resCT = "text/html"): Transaction {
+  return { id, source: "browser", host: "app.test", request: { method: "GET", url: `https://app.test${url}`, headers: [] }, response: { status: 200, headers: [{ name: "content-type", value: resCT }], body: "<html>ok</html>" } }
+}
+
+const enc = new TextEncoder()
+const res = (status: number, body: string): Engine.ReplayResponse.Result => ({ response: { version: "HTTP/1.1", status, reason: "", headers: [], body: enc.encode(body) }, timing: { totalMs: 1 } })
+
+// Senders wrap the REAL send() (so {canary} substitution + canaryReflected run) with a stub transport.
+const echo: Sender = (input, opts) => send(input, { ...opts, transport: async (req) => res(200, new TextDecoder().decode(Engine.HttpMessage.serialize(req))) })
+// Reflects the URL-DECODED target, so injected markup (<vx>…</vx>) bounces back UNESCAPED → broke out.
+const rawReflect: Sender = (input, opts) => send(input, { ...opts, transport: async (req) => res(200, decodeURIComponent(req.target)) })
+const sqlErr: Sender = (input, opts) => send(input, { ...opts, transport: async () => res(500, "You have an error in your SQL syntax") })
+const clean: Sender = (input, opts) => send(input, { ...opts, transport: async () => res(200, "<html>fine</html>") })
+// A vulnerable SSTI target: EVALUATES an a*b expression in the injected value and returns the product.
+const sstiEval: Sender = (input, opts) =>
+  send(input, {
+    ...opts,
+    transport: async (req) => {
+      const m = decodeURIComponent(req.target).match(/(\d+)\*(\d+)/)
+      return res(200, m ? `result: ${Number(m[1]) * Number(m[2])}` : "no eval")
+    },
+  })
+const passwd: Sender = (input, opts) => send(input, { ...opts, transport: async () => res(200, "root:x:0:0:root:/root:/bin/bash") })
+// Fuller response with headers / timing for the redirect / CRLF / time-based probes.
+const resFull = (status: number, headers: [string, string][], body: string, ms = 1): Engine.ReplayResponse.Result => ({
+  response: { version: "HTTP/1.1", status, reason: "", headers: headers.map(([name, value]) => ({ name, value })), body: enc.encode(body) },
+  timing: { totalMs: ms },
+})
+const redir: Sender = (input, opts) => send(input, { ...opts, transport: async () => resFull(302, [["location", "https://vxredir.example/x"]], "") })
+const crlfEcho: Sender = (input, opts) => send(input, { ...opts, transport: async () => resFull(200, [["vx-injected", "1"]], "ok") }) // server reflected the injected header
+const slow: Sender = (input, opts) => send(input, { ...opts, transport: async () => resFull(200, [], "ok", 5000) }) // sleep landed → slow
+
+describe("ProbeRule → ActiveRule (the active DSL shape)", () => {
+  const [xss, sqli, ssti, pt, openRedir, crlf, cmdi] = compileProbes(probeRules)
+
+  test("reflected-xss fires when the canary bounces back (detect: reflected)", async () => {
+    const sigs = await xss!.probe([tx("a", "/search?q=hi")], echo)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].ruleId).toBe("reflected-xss-lead")
+    expect(sigs[0].title).toContain("/search")
+  })
+  test("reflected-xss does NOT fire when nothing reflects", async () => {
+    expect(await xss!.probe([tx("a", "/search?q=hi")], clean)).toHaveLength(0)
+  })
+  test("reflected-xss elevates to high when the markup reflects UNESCAPED (broke out)", async () => {
+    const sigs = await xss!.probe([tx("a", "/search?q=hi")], rawReflect)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].severity).toBe("high") // rule declares medium; broke-out upgrades it
+    expect(sigs[0].evidence).toContain("UNESCAPED")
+  })
+  test("select filters: no q param / not html → not probed", async () => {
+    expect(await xss!.probe([tx("a", "/search")], echo)).toHaveLength(0) // no q
+    expect(await xss!.probe([tx("a", "/api/x?q=1", "application/json")], echo)).toHaveLength(0) // not html
+  })
+  test("sql-error fires when the probe response carries a SQL error signature (detect: HTTPQL)", async () => {
+    const sigs = await sqli!.probe([tx("a", "/item?id=5")], sqlErr)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].severity).toBe("high")
+  })
+  test("ssti-probe (detect: evaluated) fires when the injected expression's product surfaces", async () => {
+    const sigs = await ssti!.probe([tx("a", "/page?q=hi")], sstiEval)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].ruleId).toBe("ssti-probe")
+    expect(sigs[0].severity).toBe("critical")
+  })
+  test("ssti-probe does NOT fire when the template is echoed literally (no eval)", async () => {
+    // `clean` returns a fixed body that never contains the minted product → no false positive
+    expect(await ssti!.probe([tx("a", "/page?q=hi")], clean)).toHaveLength(0)
+  })
+  test("path-traversal-probe fires on an /etc/passwd signature", async () => {
+    const sigs = await pt!.probe([tx("a", "/download?file=a.txt")], passwd)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].severity).toBe("high")
+  })
+  test("one probe set per endpoint (no fan-out) + runActiveRules aggregates", async () => {
+    const sigs = await runActiveRules([sqli!], [tx("a", "/item?id=1"), tx("b", "/item?id=2")], sqlErr)
+    expect(sigs).toHaveLength(1) // same endpoint /item?id={} → probed once
+  })
+  test("open-redirect-probe fires when Location points to the canary host", async () => {
+    // NOTE: not /login — that's an auth-exchange endpoint the replay-safety guard skips (would burn
+    // the session). A plain redirect endpoint is fair game.
+    const sigs = await openRedir!.probe([tx("a", "/page?next=/home")], redir)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].ruleId).toBe("open-redirect-probe")
+    expect(await openRedir!.probe([tx("a", "/page?next=/home")], clean)).toHaveLength(0) // no Location → no fire
+  })
+  test("crlf-header-injection-probe fires when the injected header surfaces", async () => {
+    expect((await crlf!.probe([tx("a", "/go?next=/x")], crlfEcho)).map((s) => s.ruleId)).toEqual(["crlf-header-injection-probe"])
+    expect(await crlf!.probe([tx("a", "/go?next=/x")], clean)).toHaveLength(0)
+  })
+  test("command-injection-time-probe fires when the probe response is slow (sleep landed)", async () => {
+    const sigs = await cmdi!.probe([tx("a", "/ping?host=127.0.0.1")], slow)
+    expect(sigs).toHaveLength(1)
+    expect(sigs[0].severity).toBe("critical")
+    expect(await cmdi!.probe([tx("a", "/ping?host=127.0.0.1")], clean)).toHaveLength(0) // fast → no fire
+  })
+  test("parseProbes validates an agent's JSON probe rule", () => {
+    // Assert against the catalog's own length so adding a probe doesn't need a magic-number bump.
+    expect(parseProbes(probeRules)).toHaveLength(probeRules.length)
+    expect(() => parseProbes([{ id: "x", category: "c", severity: "high", select: "resp.status == 200", inject: { into: "query", payloads: [] }, detect: "reflected" }])).toThrow() // empty payloads + missing name
+  })
+})

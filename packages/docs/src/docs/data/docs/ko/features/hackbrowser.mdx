@@ -1,0 +1,117 @@
+---
+title: HackBrowser
+description: UI 컨텍스트와 함께 HTTP 요청을 캡처하는 AI 기반 자율 웹 크롤러
+sidebar:
+  order: 3
+  label: HackBrowser
+---
+
+HackBrowser는 Cyberstrike의 자율 웹 크롤러입니다. Chromium 브라우저를 열고, LLM이 접근성 트리를 읽어 대상 애플리케이션을 탐색하며, UI 컨텍스트가 풍부하게 첨부된 모든 캡처된 HTTP 요청을 분석 파이프라인으로 전달합니다. 그 후 [proxy-agent](/docs/agents/proxy-agent)가 각 요청을 분석하고 테스트합니다.
+
+## HackBrowser 사용 시기
+
+| 사용 사례 | 선택 |
+|-----------|------|
+| 여러 역할로 수동 탐색 | [Chrome 확장 기능](/docs/tools/chrome-extension) |
+| 무인 자동 크롤링 | **HackBrowser** |
+| 캡처에 UI 폼 컨텍스트 (`readonly`, `hidden`, `disabled` 플래그) 필요 | **HackBrowser** |
+| 기존 사전 인증된 브라우저 세션 | 둘 다 가능 — Chrome 확장 기능이 더 간단 |
+
+두 경로 모두 동일한 `/session/ingest` 엔드포인트와 동일한 proxy-agent 파이프라인에 연결됩니다. 단일 세션 내에서 혼합 사용이 가능합니다.
+
+## 작동 방식
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  Chromium (Playwright)                                             │
+│  ├── Scanner    — DOM → 접근성 트리 (RawElement[])                 │
+│  ├── Navigator  — LLM 호출 → 페이지 계획 (폼/클릭 태스크)          │
+│  ├── Executor   — 계획 → Playwright 동작                           │
+│  ├── Capture    — HTTP 요청 + ui_context 스냅샷                    │
+│  └── Live panel — Shadow-DOM 텔레메트리 오버레이 (표시 모드)        │
+└────────────────────────┬───────────────────────────────────────────┘
+                         │ POST /session/ingest
+                         ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  Cyberstrike API                                                   │
+│  ├── 정규화 → 중복 제거 → Request.add                              │
+│  └── IngestQueue → SessionPrompt(agent="proxy-agent")              │
+└────────────────────────┬───────────────────────────────────────────┘
+                         ▼
+                proxy-agent → proxy-analyzer + 취약점 테스터
+```
+
+LLM은 페이지를 접근성 트리로 보고 어떤 폼을 채우고 어떤 버튼을 클릭할지 결정합니다. 모든 캡처된 요청에는 `ui_context` 스냅샷(폼 필드, 플래그, 숨겨진 매개변수)이 포함되며, proxy-analyzer가 이를 사용하여 의심스러운 요청 형태를 식별합니다.
+
+## 크롤링 시작
+
+### `/hackbrowser`
+
+TUI에서 `/hackbrowser`를 실행하면 대상 URL, 자격 증명, 범위, 제외 레이블, 단계, 헤드리스 모드 필드가 포함된 실행 대화상자가 열립니다.
+
+| 옵션 | 설명 |
+|------|------|
+| **대상 URL** | 크롤링을 시작할 URL |
+| **범위** | 캡처를 제한할 호스트네임 패턴 (예: `*.example.com`) |
+| **제외** | 플래너가 건너뛸 UI 레이블 (의미적 매칭) |
+| **단계** | 최대 크롤링 페이지 수 (기본값: 50) |
+| **자격 증명** | 크롤링에 사용할 자격 증명. 표시 모드 브라우저를 강제합니다. |
+| **헤드리스** | 표시 브라우저 창 없이 실행 |
+
+### 크롤링 취소
+
+```
+/hackbrowser-stop
+```
+
+### 에이전트 시작
+
+대화에서 필요한 경우(예: "이 앱을 테스트해줘") 에이전트가 HackBrowser를 자율적으로 시작할 수도 있습니다. 도구는 즉시 반환되며, 크롤링이 진행됨에 따라 캡처가 세션으로 스트리밍됩니다.
+
+## 다중 자격 증명 크롤링
+
+`/hackbrowser` 실행 대화상자에서 두 개 이상의 자격 증명을 선택하면 역할별 순차 크롤링이 실행됩니다.
+
+각 자격 증명에 대해 HackBrowser가 표시 모드 Chromium 창을 열고, 로그인을 기다린 후, 해당 자격 증명 ID로 태그된 전체 크롤링을 실행합니다. 그런 다음 WSTG 파이프라인이 각 역할이 접근할 수 있는 항목을 비교할 수 있습니다.
+
+## UI 컨텍스트 페이로드
+
+Chrome 확장 기능과의 차별점은 모든 캡처에 첨부되는 `ui_context` 블록입니다:
+
+```json
+{
+  "ui_context": {
+    "pageUrl": "https://shop.example.com/settings/profile",
+    "formName": "Update Profile",
+    "fields": [
+      { "name": "email", "type": "text", "isReadOnly": true },
+      { "name": "role", "type": "hidden", "isHidden": true, "value": "user" }
+    ],
+    "hiddenParams": ["account_id", "_csrf"]
+  }
+}
+```
+
+proxy-analyzer가 이 신호를 사용하여 다음을 표시합니다:
+
+- `readonly` 필드가 요청에 포함됨 → 서버가 이를 강제하는지 테스트
+- `hidden` 필드 → 대량 할당 후보
+- `hiddenParams`의 매개변수 (UI 요소 없음) → 최고 위험 숨겨진 매개변수
+- 한 역할에만 표시되는 요소 → 다른 자격 증명으로 테스트
+
+## 네트워크 범위
+
+기본적으로 HackBrowser는 대상 URL의 `*.{eTLD+1}`과 일치하는 요청을 캡처합니다. `/hackbrowser` 실행 대화상자에서 커스텀 호스트네임 패턴(예: `app.example.com`, `api.example.com`)을 추가하여 범위를 재정의할 수 있습니다.
+
+## 문제 해결
+
+| 오류 | 해결 방법 |
+|------|-----------|
+| Chromium이 설치되지 않음 | `bunx playwright install chromium` |
+| Playwright가 설치되지 않음 | `npm install --prefix ~/.local/share/cyberstrike playwright` |
+| 워커를 찾을 수 없음 | 재설치: `npm install -g @cyberstrike-io/cyberstrike` |
+| 이미 실행 중 | 완료를 기다리거나 `/hackbrowser-stop` 실행 |
+
+<Aside variant="danger">
+  HackBrowser는 승인된 대상에만 사용하세요. 무단 침투 테스트는 불법입니다.
+</Aside>

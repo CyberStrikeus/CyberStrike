@@ -17,10 +17,14 @@ export namespace Identifier {
     coverage_note: "cov",
     web_credential: "wcr",
     web_role: "wrl",
+    web_js: "wjs",
     web_object: "wob",
     web_object_value: "wov",
+    web_ui_observation: "wuo",
     web_function: "wfn",
-    web_retest: "wrt",
+    inspection: "isp",
+    web_canary: "wcn",
+    web_signal: "wsg",
     endpoint_template: "ept",
     intel_entry: "int",
     vrt_check: "vrc",
@@ -28,6 +32,9 @@ export namespace Identifier {
     chain_candidate: "chn",
     agent_performance: "apf",
     validation_violation: "vvl",
+    cloud_asset: "cas",
+    cloud_edge: "ced",
+    cloud_exposure: "cex",
   } as const
 
   export function schema(prefix: keyof typeof prefixes) {

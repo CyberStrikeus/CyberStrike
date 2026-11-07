@@ -1,0 +1,30 @@
+---
+title: 功能特性
+description: 驱动 Cyberstrike 安全评估的核心能力
+sidebar:
+  order: 1
+  label: 概述
+---
+
+Cyberstrike 附带了专为自动化渗透测试构建的功能。每个功能都与 AI 代理深度集成——代理会根据目标和对话上下文决定何时以及如何使用它们。
+
+## 核心功能
+
+| 功能 | 作用 |
+|------|------|
+| [Vortex](/docs/features/vortex) | HTTP 流量引擎——使用 DSL 拦截、重放和规则匹配请求 |
+| [HackBrowser](/docs/features/hackbrowser) | AI 驱动的自主 Web 爬虫，支持 UI 上下文捕获 |
+| [Bolt](/docs/features/bolt) | 容器化安全工具服务器（nmap、nuclei、sqlmap 及 30 多种其他工具） |
+| [MCP](/docs/features/mcp) | Model Context Protocol——连接任何外部工具服务器 |
+
+## 协同工作方式
+
+典型的 Web 应用评估会协同使用多个功能：
+
+1. **HackBrowser** 爬取目标，捕获带有 UI 上下文的 HTTP 流量
+2. **Vortex** 处理捕获的流量——应用规则、标记异常、关联信号
+3. **proxy-agent** 分析标记的请求并调度漏洞测试器
+4. **Bolt** 在代理需要时提供重型工具（nuclei 模板、模糊测试、子域名枚举）
+5. **MCP** 服务器通过自定义或第三方集成扩展工具集
+
+每个功能也可以独立使用。HackBrowser 无需 Vortex 即可工作，Bolt 无需 HackBrowser 即可工作，MCP 服务器无论其他配置如何都能工作。

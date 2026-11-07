@@ -7,6 +7,7 @@ import { Provider } from "../provider/provider"
 import { MessageV2 } from "./message-v2"
 import z from "zod"
 import { Token } from "../util/token"
+import { safeStringify } from "../util/safe-stringify"
 import { Log } from "../util/log"
 import { SessionProcessor } from "./processor"
 import { fn } from "@/util/fn"
@@ -198,7 +199,7 @@ Rules:
     let tokenCount = 0
     let startIdx = tail.length
     for (let i = tail.length - 1; i >= 0; i--) {
-      const est = Token.estimate(JSON.stringify(tail[i]))
+      const est = Token.estimate(safeStringify(tail[i]))
       if (tokenCount + est > budget) break
       tokenCount += est
       startIdx = i
@@ -219,7 +220,7 @@ Rules:
       tools: {},
       system: [],
       messages: [
-        ...MessageV2.toModelMessages(limitedMessages, model),
+        ...(await MessageV2.toModelMessages(limitedMessages, model)),
         {
           role: "user",
           content: [

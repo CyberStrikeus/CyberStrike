@@ -1,0 +1,55 @@
+---
+title: Escalation Hunter
+description: "Agent de correlation transversale qui chaine les resultats et escalade l'impact des vulnerabilites"
+sidebar:
+  order: 7
+  label: Escalation Hunter
+---
+
+L'`escalation-hunter` est un agent analyste transversal qui s'execute apres que les specialistes WSTG ont termine leurs tests. Il examine tous les resultats de la session pour identifier les vulnerabilites chainees, escalader l'impact et construire de nouveaux chemins d'attaque que les specialistes individuels ne detecteraient pas.
+
+## Vue d'ensemble
+
+| Propriete | Valeur |
+|-----------|--------|
+| **Identifiant de l'agent** | `escalation-hunter` |
+| **Role** | `analyst` |
+| **Domaine** | `@cyberstrike-io/web` |
+| **S'execute apres** | La fin des tests des specialistes WSTG |
+
+## Ce qu'il fait
+
+Les specialistes WSTG individuels testent les endpoints de maniere isolee -- chacun se concentre sur sa propre categorie. L'`escalation-hunter` traverse tous les domaines pour trouver :
+
+- **Vulnerabilites chainees** -- combiner un IDOR de faible severite avec une fixation de session pour realiser une prise de controle de compte
+- **Escalade d'impact** -- un resultat de severite moyenne qui devient critique lorsqu'il est combine avec un autre
+- **Nouveaux chemins d'attaque** -- sequences de requetes qui, rejouees dans l'ordre, produisent un resultat d'impact superieur
+- **Escalade inter-roles** -- frontieres de privileges qui cedent lorsque les resultats de differents specialistes sont combines
+
+## Comment ca fonctionne
+
+1. Lit tous les resultats de la session (a travers tous les specialistes WSTG)
+2. Lit les donnees Vortex accumulees (schemas de trafic, correspondances de regles, objets, fonctions)
+3. Identifie les opportunites de correlation entre les resultats
+4. Construit et **rejoue** les chaines d'attaque proposees pour les verifier
+5. Rapporte les escalades verifiees comme nouveaux resultats avec des preuves composites
+
+L'`escalation-hunter` ne prend jamais la parole d'un specialiste pour acquise -- il verifie les chaines proposees en rejouant la sequence HTTP reelle.
+
+## Exemple
+
+```
+Specialist A: IDOR in GET /api/users/{id} (medium)
+Specialist B: Missing rate limit on /api/auth/reset (low)
+Specialist C: Email parameter in reset response body (info)
+
+Escalation Hunter:
+  Chain: enumerate user IDs via IDOR → trigger password reset for each →
+         extract reset tokens from response → account takeover
+  Verified: replayed 3-step chain → confirmed ATO
+  Escalated: Critical (was medium + low + info individually)
+```
+
+<Aside variant="info">
+  L'escalation-hunter est dispatche automatiquement -- vous ne l'invoquez pas directement. Il s'execute comme une passe d'analyse finale apres la completion du pipeline WSTG.
+</Aside>

@@ -2,149 +2,155 @@ import { describe, test, expect } from "bun:test"
 import { classifyFindingTitle } from "../../../src/tool/vuln-scope"
 
 describe("classifyFindingTitle", () => {
-  describe("injection class", () => {
+  describe("input-validation class", () => {
     test("SQL injection", () => {
-      expect(classifyFindingTitle("SQL Injection in login form")).toBe("injection")
+      expect(classifyFindingTitle("SQL Injection in login form")).toBe("input-validation")
     })
 
     test("SQLi shorthand", () => {
-      expect(classifyFindingTitle("Blind SQLi via search parameter")).toBe("injection")
+      expect(classifyFindingTitle("Blind SQLi via search parameter")).toBe("input-validation")
     })
 
     test("NoSQL injection", () => {
-      expect(classifyFindingTitle("NoSQLi in MongoDB query")).toBe("injection")
+      expect(classifyFindingTitle("NoSQLi in MongoDB query")).toBe("input-validation")
     })
 
     test("XSS", () => {
-      expect(classifyFindingTitle("Reflected XSS in search")).toBe("injection")
+      expect(classifyFindingTitle("Reflected XSS in search")).toBe("input-validation")
     })
 
     test("cross-site scripting full phrase", () => {
-      expect(classifyFindingTitle("Cross-Site Scripting via user input")).toBe("injection")
+      expect(classifyFindingTitle("Cross-Site Scripting via user input")).toBe("input-validation")
     })
 
     test("SSTI", () => {
-      expect(classifyFindingTitle("SSTI in Jinja2 template")).toBe("injection")
+      expect(classifyFindingTitle("SSTI in Jinja2 template")).toBe("input-validation")
     })
 
     test("XXE", () => {
-      expect(classifyFindingTitle("XXE via XML parser")).toBe("injection")
+      expect(classifyFindingTitle("XXE via XML parser")).toBe("input-validation")
     })
 
     test("command injection", () => {
-      expect(classifyFindingTitle("Command Injection in ping utility")).toBe("injection")
+      expect(classifyFindingTitle("Command Injection in ping utility")).toBe("input-validation")
     })
 
     test("LDAP injection", () => {
-      expect(classifyFindingTitle("LDAP Injection in directory lookup")).toBe("injection")
-    })
-  })
-
-  describe("idor class", () => {
-    test("IDOR keyword", () => {
-      expect(classifyFindingTitle("IDOR in user profile endpoint")).toBe("idor")
+      expect(classifyFindingTitle("LDAP Injection in directory lookup")).toBe("input-validation")
     })
 
-    test("BOLA keyword", () => {
-      expect(classifyFindingTitle("BOLA: accessing other user data")).toBe("idor")
-    })
-
-    test("insecure direct object reference", () => {
-      expect(classifyFindingTitle("Insecure Direct Object reference in /api/orders")).toBe("idor")
-    })
-  })
-
-  describe("ssrf class", () => {
-    test("SSRF keyword", () => {
-      expect(classifyFindingTitle("SSRF via URL parameter")).toBe("ssrf")
+    test("SSRF", () => {
+      expect(classifyFindingTitle("SSRF via URL parameter")).toBe("input-validation")
     })
 
     test("server-side request forgery full phrase", () => {
-      expect(classifyFindingTitle("Server-Side Request Forgery in webhook")).toBe("ssrf")
+      expect(classifyFindingTitle("Server-Side Request Forgery in webhook")).toBe("input-validation")
     })
-  })
 
-  describe("file-attacks class", () => {
     test("path traversal", () => {
-      expect(classifyFindingTitle("Path Traversal in file download")).toBe("file-attacks")
+      expect(classifyFindingTitle("Path Traversal in file download")).toBe("input-validation")
     })
 
     test("directory traversal", () => {
-      expect(classifyFindingTitle("Directory Traversal via filename param")).toBe("file-attacks")
+      expect(classifyFindingTitle("Directory Traversal via filename param")).toBe("input-validation")
     })
 
     test("LFI", () => {
-      expect(classifyFindingTitle("LFI via include parameter")).toBe("file-attacks")
+      expect(classifyFindingTitle("LFI via include parameter")).toBe("input-validation")
     })
 
     test("RFI", () => {
-      expect(classifyFindingTitle("RFI through remote URL inclusion")).toBe("file-attacks")
+      expect(classifyFindingTitle("RFI through remote URL inclusion")).toBe("input-validation")
     })
 
     test("arbitrary file read", () => {
-      expect(classifyFindingTitle("Arbitrary File Read via symlink")).toBe("file-attacks")
+      expect(classifyFindingTitle("Arbitrary File Read via symlink")).toBe("input-validation")
     })
 
     test("arbitrary file upload", () => {
-      expect(classifyFindingTitle("Arbitrary File Upload bypassing filter")).toBe("file-attacks")
+      expect(classifyFindingTitle("Arbitrary File Upload bypassing filter")).toBe("input-validation")
     })
 
     test("zip slip", () => {
-      expect(classifyFindingTitle("Zip Slip in archive extraction")).toBe("file-attacks")
+      expect(classifyFindingTitle("Zip Slip in archive extraction")).toBe("input-validation")
     })
-  })
 
-  describe("mass-assignment class", () => {
     test("mass assignment", () => {
-      expect(classifyFindingTitle("Mass Assignment in user registration")).toBe("mass-assignment")
+      expect(classifyFindingTitle("Mass Assignment in user registration")).toBe("input-validation")
     })
 
     test("overposting variant", () => {
-      expect(classifyFindingTitle("Over-Posting to set admin flag")).toBe("mass-assignment")
+      expect(classifyFindingTitle("Over-Posting to set admin flag")).toBe("input-validation")
     })
   })
 
-  describe("authn class", () => {
-    test("default credentials", () => {
-      expect(classifyFindingTitle("Default Credentials on admin panel")).toBe("authn")
+  describe("authorization class", () => {
+    test("IDOR keyword", () => {
+      expect(classifyFindingTitle("IDOR in user profile endpoint")).toBe("authorization")
     })
 
-    test("brute force", () => {
-      expect(classifyFindingTitle("Brute-Force attack on login")).toBe("authn")
+    test("BOLA keyword", () => {
+      expect(classifyFindingTitle("BOLA: accessing other user data")).toBe("authorization")
     })
 
-    test("rate limit", () => {
-      expect(classifyFindingTitle("Rate Limit bypass on OTP endpoint")).toBe("authn")
+    test("insecure direct object reference", () => {
+      expect(classifyFindingTitle("Insecure Direct Object reference in /api/orders")).toBe("authorization")
     })
 
-    test("password policy", () => {
-      expect(classifyFindingTitle("Weak Password Policy allows short passwords")).toBe("authn")
-    })
-
-    test("account lockout", () => {
-      expect(classifyFindingTitle("No Account Lockout after failed attempts")).toBe("authn")
-    })
-
-    test("session fixation", () => {
-      expect(classifyFindingTitle("Session Fixation via cookie injection")).toBe("authn")
-    })
-
-    test("weak password", () => {
-      expect(classifyFindingTitle("Weak Password stored in plaintext")).toBe("authn")
-    })
-  })
-
-  describe("authz class", () => {
     test("broken access control", () => {
-      expect(classifyFindingTitle("Broken Access Control in admin API")).toBe("authz")
+      expect(classifyFindingTitle("Broken Access Control in admin API")).toBe("authorization")
     })
 
     test("privilege escalation", () => {
-      expect(classifyFindingTitle("Privilege Escalation via role param")).toBe("authz")
+      expect(classifyFindingTitle("Privilege Escalation via role param")).toBe("authorization")
     })
 
     test("unauthenticated access to", () => {
-      expect(classifyFindingTitle("Unauthenticated Access to /admin/settings")).toBe("authz")
+      expect(classifyFindingTitle("Unauthenticated Access to /admin/settings")).toBe("authorization")
+    })
+  })
+
+  describe("authentication class", () => {
+    test("default credentials", () => {
+      expect(classifyFindingTitle("Default Credentials on admin panel")).toBe("authentication")
+    })
+
+    test("brute force", () => {
+      expect(classifyFindingTitle("Brute-Force attack on login")).toBe("authentication")
+    })
+
+    test("rate limit", () => {
+      expect(classifyFindingTitle("Rate Limit bypass on OTP endpoint")).toBe("authentication")
+    })
+
+    test("password policy", () => {
+      expect(classifyFindingTitle("Weak Password Policy allows short passwords")).toBe("authentication")
+    })
+
+    test("account lockout", () => {
+      expect(classifyFindingTitle("No Account Lockout after failed attempts")).toBe("authentication")
+    })
+
+    test("session fixation", () => {
+      expect(classifyFindingTitle("Session Fixation via cookie injection")).toBe("authentication")
+    })
+
+    test("weak password", () => {
+      expect(classifyFindingTitle("Weak Password stored in plaintext")).toBe("authentication")
+    })
+  })
+
+  describe("session-mgmt class", () => {
+    test("CSRF", () => {
+      expect(classifyFindingTitle("CSRF on password change form")).toBe("session-mgmt")
+    })
+
+    test("cross-site request forgery", () => {
+      expect(classifyFindingTitle("Cross-Site Request Forgery in settings")).toBe("session-mgmt")
+    })
+
+    test("cookie flag", () => {
+      expect(classifyFindingTitle("Cookie Flag missing HttpOnly")).toBe("session-mgmt")
     })
   })
 
@@ -162,9 +168,37 @@ describe("classifyFindingTitle", () => {
     })
   })
 
+  describe("config-deploy class", () => {
+    test("misconfiguration", () => {
+      expect(classifyFindingTitle("Security Misconfiguration in server headers")).toBe("config-deploy")
+    })
+
+    test("information disclosure", () => {
+      expect(classifyFindingTitle("Information Disclosure via error page")).toBe("config-deploy")
+    })
+
+    test("stack trace", () => {
+      expect(classifyFindingTitle("Stack Trace exposed in 500 response")).toBe("config-deploy")
+    })
+  })
+
+  describe("llm class", () => {
+    test("prompt injection", () => {
+      expect(classifyFindingTitle("Prompt Injection via chat input")).toBe("llm")
+    })
+
+    test("jailbreak", () => {
+      expect(classifyFindingTitle("Jailbreak bypasses system prompt")).toBe("llm")
+    })
+
+    test("system prompt leak", () => {
+      expect(classifyFindingTitle("System Prompt Leak via role-play")).toBe("llm")
+    })
+  })
+
   describe("returns null for unclassifiable", () => {
     test("generic security finding", () => {
-      expect(classifyFindingTitle("Security misconfiguration in headers")).toBeNull()
+      expect(classifyFindingTitle("Potential issue in endpoint")).toBeNull()
     })
 
     test("empty string", () => {
@@ -175,18 +209,18 @@ describe("classifyFindingTitle", () => {
       expect(classifyFindingTitle(undefined as unknown as string)).toBeNull()
     })
 
-    test("information disclosure (not in any class)", () => {
-      expect(classifyFindingTitle("Sensitive Information in response headers")).toBeNull()
+    test("ambiguous short text", () => {
+      expect(classifyFindingTitle("Suspicious response from API")).toBeNull()
     })
   })
 
   describe("priority ordering", () => {
-    test("injection wins over authz when both match", () => {
-      expect(classifyFindingTitle("SQL Injection leading to privilege escalation")).toBe("injection")
+    test("input-validation wins over authorization when both match", () => {
+      expect(classifyFindingTitle("SQL Injection leading to privilege escalation")).toBe("input-validation")
     })
 
-    test("injection wins over idor when both keywords present (injection is first in scan order)", () => {
-      expect(classifyFindingTitle("IDOR with SQL injection chain")).toBe("injection")
+    test("input-validation wins over authorization when both keywords present (input-validation is first in scan order)", () => {
+      expect(classifyFindingTitle("IDOR with SQL injection chain")).toBe("input-validation")
     })
   })
 })

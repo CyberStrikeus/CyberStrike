@@ -6,10 +6,10 @@ import { usePrompt } from "@/context/prompt"
 import { useDialog } from "@cyberstrike-io/ui/context/dialog"
 import { Dialog } from "@cyberstrike-io/ui/dialog"
 import { List } from "@cyberstrike-io/ui/list"
-import { showToast } from "@cyberstrike-io/ui/toast"
+import { showToast } from "@/utils/toast"
 import { extractPromptFromParts } from "@/utils/prompt"
 import type { TextPart as SDKTextPart } from "@cyberstrike-io/sdk/v2/client"
-import { base64Encode } from "@cyberstrike-io/util/encode"
+import { base64Encode } from "@cyberstrike-io/core/util/encode"
 import { useLanguage } from "@/context/language"
 
 interface ForkableMessage {
@@ -35,13 +35,13 @@ export const DialogFork: Component = () => {
     const sessionID = params.id
     if (!sessionID) return []
 
-    const msgs = sync.data.message[sessionID] ?? []
+    const msgs = sync()?.data.message[sessionID] ?? []
     const result: ForkableMessage[] = []
 
     for (const message of msgs) {
       if (message.role !== "user") continue
 
-      const parts = sync.data.part[message.id] ?? []
+      const parts = sync()?.data.part[message.id] ?? []
       const textPart = parts.find((x): x is SDKTextPart => x.type === "text" && !x.synthetic && !x.ignored)
       if (!textPart) continue
 
@@ -60,25 +60,22 @@ export const DialogFork: Component = () => {
 
     const sessionID = params.id
     if (!sessionID) return
+    const s = sdk()
+    if (!s) return
 
-    const parts = sync.data.part[item.id] ?? []
+    const parts = sync()?.data.part[item.id] ?? []
     const restored = extractPromptFromParts(parts, {
-      directory: sdk.directory,
+      directory: s.directory,
       attachmentName: language.t("common.attachment"),
     })
+    const dir = base64Encode(s.directory)
 
-    sdk.client.session
+    s.api.session
       .fork({ sessionID, messageID: item.id })
       .then((forked) => {
-        if (!forked.data) {
-          showToast({ title: language.t("common.requestFailed") })
-          return
-        }
         dialog.close()
-        navigate(`/${base64Encode(sdk.directory)}/session/${forked.data.id}`)
-        requestAnimationFrame(() => {
-          prompt.set(restored)
-        })
+        prompt.set(restored, undefined, { dir, id: forked.id })
+        navigate(`/${dir}/session/${forked.id}`)
       })
       .catch((err: unknown) => {
         const message = err instanceof Error ? err.message : String(err)
@@ -89,7 +86,7 @@ export const DialogFork: Component = () => {
   return (
     <Dialog title={language.t("command.session.fork")}>
       <List
-        class="flex-1 min-h-0 [&_[data-slot=list-scroll]]:flex-1 [&_[data-slot=list-scroll]]:min-h-0"
+        class="flex-1 px-3 min-h-0 [&_[data-slot=list-scroll]]:flex-1 [&_[data-slot=list-scroll]]:min-h-0"
         search={{ placeholder: language.t("common.search.placeholder"), autofocus: true }}
         emptyMessage={language.t("dialog.fork.empty")}
         key={(x) => x.id}

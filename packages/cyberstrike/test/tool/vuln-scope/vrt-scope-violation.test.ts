@@ -11,8 +11,8 @@ describe("vrtScopeViolation", () => {
       expect(vrtScopeViolation("cyberstrike", "sqli")).toBeNull()
     })
 
-    test("web-application agent", () => {
-      expect(vrtScopeViolation("web-application", "xss")).toBeNull()
+    test("wstg-agent orchestrator", () => {
+      expect(vrtScopeViolation("wstg-agent", "xss")).toBeNull()
     })
 
     test("random agent name", () => {
@@ -21,105 +21,117 @@ describe("vrtScopeViolation", () => {
   })
 
   describe("in-scope categories — returns null", () => {
-    test("injection tester recording sqli", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "sqli")).toBeNull()
+    test("input-validation tester recording sqli", () => {
+      expect(vrtScopeViolation("wstg-input-validation", "sqli")).toBeNull()
     })
 
-    test("injection tester recording xss", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "xss")).toBeNull()
+    test("input-validation tester recording xss", () => {
+      expect(vrtScopeViolation("wstg-input-validation", "xss")).toBeNull()
     })
 
-    test("injection tester recording cross-site scripting", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "cross-site scripting")).toBeNull()
+    test("input-validation tester recording cross-site scripting", () => {
+      expect(vrtScopeViolation("wstg-input-validation", "cross-site scripting")).toBeNull()
     })
 
-    test("idor tester recording idor", () => {
-      expect(vrtScopeViolation("proxy-tester-idor", "idor")).toBeNull()
+    test("input-validation tester recording ssrf", () => {
+      expect(vrtScopeViolation("wstg-input-validation", "ssrf")).toBeNull()
     })
 
-    test("idor tester recording bola", () => {
-      expect(vrtScopeViolation("proxy-tester-idor", "bola")).toBeNull()
+    test("input-validation tester recording path traversal", () => {
+      expect(vrtScopeViolation("wstg-input-validation", "path traversal")).toBeNull()
     })
 
-    test("ssrf tester recording ssrf", () => {
-      expect(vrtScopeViolation("proxy-tester-ssrf", "ssrf")).toBeNull()
+    test("input-validation tester recording mass assignment", () => {
+      expect(vrtScopeViolation("wstg-input-validation", "mass assignment")).toBeNull()
     })
 
-    test("authn tester recording session", () => {
-      expect(vrtScopeViolation("proxy-tester-authn", "session")).toBeNull()
+    test("authorization tester recording idor", () => {
+      expect(vrtScopeViolation("wstg-authorization", "idor")).toBeNull()
     })
 
-    test("authn tester recording jwt", () => {
-      expect(vrtScopeViolation("proxy-tester-authn", "jwt")).toBeNull()
+    test("authorization tester recording bola", () => {
+      expect(vrtScopeViolation("wstg-authorization", "bola")).toBeNull()
     })
 
-    test("file-attacks tester recording path traversal", () => {
-      expect(vrtScopeViolation("proxy-tester-file-attacks", "path traversal")).toBeNull()
+    test("authentication tester recording session", () => {
+      expect(vrtScopeViolation("wstg-authentication", "session")).toBeNull()
+    })
+
+    test("authentication tester recording jwt", () => {
+      expect(vrtScopeViolation("wstg-authentication", "jwt")).toBeNull()
+    })
+
+    test("session-mgmt tester recording csrf", () => {
+      expect(vrtScopeViolation("wstg-session-mgmt", "csrf")).toBeNull()
     })
 
     test("business-logic tester recording race condition", () => {
-      expect(vrtScopeViolation("proxy-tester-business-logic", "race condition")).toBeNull()
+      expect(vrtScopeViolation("wstg-business-logic", "race condition")).toBeNull()
+    })
+
+    test("config-deploy tester recording misconfiguration", () => {
+      expect(vrtScopeViolation("wstg-config-deploy", "misconfiguration")).toBeNull()
     })
   })
 
   describe("out-of-scope categories — returns violation", () => {
-    test("injection tester recording idor", () => {
-      const result = vrtScopeViolation("proxy-tester-injection", "idor")
+    test("input-validation tester recording idor", () => {
+      const result = vrtScopeViolation("wstg-input-validation", "idor")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("injection")
-      expect(result!.allowed).toEqual(TESTER_VRT_SCOPE["injection"])
+      expect(result!.cls).toBe("input-validation")
+      expect(result!.allowed).toEqual(TESTER_VRT_SCOPE["input-validation"])
     })
 
-    test("idor tester recording sqli", () => {
-      const result = vrtScopeViolation("proxy-tester-idor", "sqli")
+    test("authorization tester recording sqli", () => {
+      const result = vrtScopeViolation("wstg-authorization", "sqli")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("idor")
+      expect(result!.cls).toBe("authorization")
     })
 
-    test("authn tester recording ssrf", () => {
-      const result = vrtScopeViolation("proxy-tester-authn", "ssrf")
+    test("authentication tester recording ssrf", () => {
+      const result = vrtScopeViolation("wstg-authentication", "ssrf")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("authn")
+      expect(result!.cls).toBe("authentication")
     })
 
-    test("ssrf tester recording xss", () => {
-      const result = vrtScopeViolation("proxy-tester-ssrf", "xss")
+    test("business-logic tester recording xss", () => {
+      const result = vrtScopeViolation("wstg-business-logic", "xss")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("ssrf")
+      expect(result!.cls).toBe("business-logic")
     })
 
-    test("file-attacks tester recording sql injection", () => {
-      const result = vrtScopeViolation("proxy-tester-file-attacks", "sql injection")
+    test("config-deploy tester recording sql injection", () => {
+      const result = vrtScopeViolation("wstg-config-deploy", "sql injection")
       expect(result).not.toBeNull()
-      expect(result!.cls).toBe("file-attacks")
+      expect(result!.cls).toBe("config-deploy")
     })
   })
 
   describe("substring matching — bidirectional", () => {
     test("category contains allowed term", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "blind sqli attack")).toBeNull()
+      expect(vrtScopeViolation("wstg-input-validation", "blind sqli attack")).toBeNull()
     })
 
     test("allowed term contains category", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "sql")).toBeNull()
+      expect(vrtScopeViolation("wstg-input-validation", "sql")).toBeNull()
     })
 
     test("case insensitive matching", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "SQL INJECTION")).toBeNull()
+      expect(vrtScopeViolation("wstg-input-validation", "SQL INJECTION")).toBeNull()
     })
   })
 
   describe("edge cases", () => {
     test("empty category — returns null (no violation)", () => {
-      expect(vrtScopeViolation("proxy-tester-injection", "")).toBeNull()
+      expect(vrtScopeViolation("wstg-input-validation", "")).toBeNull()
     })
 
     test("unknown tester class — returns null", () => {
-      expect(vrtScopeViolation("proxy-tester-unknown", "sqli")).toBeNull()
+      expect(vrtScopeViolation("wstg-unknown", "sqli")).toBeNull()
     })
 
-    test("partial match proxy-tester prefix but not a real agent", () => {
-      expect(vrtScopeViolation("proxy-tester-", "sqli")).toBeNull()
+    test("partial match wstg-tester prefix but not a real agent", () => {
+      expect(vrtScopeViolation("wstg-", "sqli")).toBeNull()
     })
   })
 })

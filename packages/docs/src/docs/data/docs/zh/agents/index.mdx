@@ -1,0 +1,89 @@
+---
+title: 安全代理
+description: 针对不同安全评估场景的专业 AI 代理
+sidebar:
+  order: 1
+  label: 概述
+---
+
+Cyberstrike 包含针对不同安全评估场景优化的专业代理。每个代理都有特定领域的知识、方法论和工具配置。
+
+<img src="/docs/images/gifs/g05-agent-switch.gif" alt="使用 leader+a 从选择器切换活跃代理" className="rounded-lg shadow-lg my-6 w-full" />
+
+<img src="/docs/images/screenshots/s09-agent-select.png" alt="代理选择器列出 cyberstrike 主代理和专业子代理" className="rounded-lg shadow-lg my-6 w-full" />
+
+## 架构
+
+Cyberstrike 运行**一个主代理**——`cyberstrike`——管理会话并自动**委派**给专业子代理。子代理根据任务调度；它们不会直接运行。
+
+### 核心代理
+
+| 代理 | 用途 | 模式 |
+|------|------|------|
+| [`cyberstrike`](/docs/agents/cyberstrike) | 默认攻击性安全代理，拥有完整工具访问权限；编排一切 | 主代理 |
+| [`general`](/docs/agents/general) | 通用研究和并行任务执行 | 子代理 |
+| [`triage`](/docs/agents/triage) | 独立验证草稿漏洞发现 | 子代理 |
+| [`explore`](/docs/agents/explore) | 快速只读代码库和文件系统搜索 | 子代理 |
+
+### Web 安全代理（WSTG 流水线）
+
+Web 域（`@cyberstrike-io/web`）提供完整的 OWASP WSTG 流水线。`wstg-agent` 编排器根据捕获的 HTTP 流量信号调度专家：
+
+| 代理 | WSTG 类别 |
+|------|-----------|
+| [`wstg-agent`](/docs/agents/wstg-agent) | 编排器——根据请求信号调度专家 |
+| `wstg-info-gathering` | 4.1 信息收集 |
+| `wstg-config-deploy` | 4.2 配置与部署管理 |
+| `wstg-identity-mgmt` | 4.3 身份管理 |
+| `wstg-authentication` | 4.4 认证 |
+| `wstg-authorization` | 4.5 授权 |
+| `wstg-session-mgmt` | 4.6 会话管理 |
+| `wstg-input-validation` | 4.7 输入验证 |
+| `wstg-error-handling` | 4.8 错误处理 |
+| `wstg-cryptography` | 4.9 密码学 |
+| `wstg-business-logic` | 4.10 业务逻辑 |
+| `wstg-client-side` | 4.11 客户端 |
+| `wstg-api` | 4.12 API 测试 + OWASP API Top 10 |
+| `wstg-llm` | LLM 安全 |
+| [`escalation-hunter`](/docs/agents/escalation-hunter) | 跨领域关联——链接发现、升级影响 |
+
+WSTG 专家是**信号路由的**——您不直接调用它们。当 HackBrowser 或 Chrome Extension 捕获 HTTP 流量时，每个请求会被分析并根据其特征调度到相关专家。
+
+### 计划中的领域
+
+| 领域 | 状态 |
+|------|------|
+| 云安全 (AWS/Azure/GCP) | 计划中 |
+| 内网 (AD/Kerberos) | 计划中 |
+| 移动应用 (MASTG/MASVS) | 计划中 |
+
+这些将作为独立的领域包（`@cyberstrike-io/cloud`、`@cyberstrike-io/internal-network`、`@cyberstrike-io/mobile`）发布，并通过插件系统自动注册。
+
+## 选择代理
+
+在 TUI 中切换代理：
+
+| 命令 | 操作 |
+|------|------|
+| `/agents` 或 `<leader>a` | 打开代理选择器 |
+| `Tab` | 切换到下一个代理 |
+
+只有 `cyberstrike` 作为内置主代理。您可以创建自定义主代理——参见[自定义代理](/docs/agents/custom-agents)。
+
+### 配置
+
+在 `cyberstrike.json` 中设置默认代理：
+
+```json
+{
+  "default_agent": "cyberstrike"
+}
+```
+
+## 创建自定义代理
+
+自定义代理是 `.cyberstrike/agents/` 中的 Markdown 文件。详情请参阅[自定义代理](/docs/agents/custom-agents)。
+
+<Aside variant="info">
+  可以通过在 `.cyberstrike/agents/` 目录中放置配置文件来为每个项目自定义代理。
+</Aside>

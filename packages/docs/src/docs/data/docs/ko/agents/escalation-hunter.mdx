@@ -1,0 +1,55 @@
+---
+title: Escalation Hunter
+description: 발견 사항을 연결하고 취약점 영향을 에스컬레이션하는 교차 분석 상관관계 에이전트
+sidebar:
+  order: 7
+  label: Escalation Hunter
+---
+
+`escalation-hunter`는 WSTG 전문가들이 테스트를 완료한 후 실행되는 교차 분석 에이전트입니다. 세션의 모든 발견 사항을 검토하여 체인된 취약점을 식별하고, 영향을 에스컬레이션하며, 개별 전문가가 놓칠 수 있는 새로운 공격 경로를 구성합니다.
+
+## 개요
+
+| 속성 | 값 |
+|------|-----|
+| **에이전트 ID** | `escalation-hunter` |
+| **역할** | `analyst` |
+| **도메인** | `@cyberstrike-io/web` |
+| **실행 시기** | WSTG 전문가 테스트 완료 후 |
+
+## 하는 일
+
+개별 WSTG 전문가는 엔드포인트를 격리하여 테스트합니다 — 각자 자신의 카테고리에 집중합니다. `escalation-hunter`는 모든 레인을 교차하여 다음을 찾습니다:
+
+- **체인된 취약점** — 낮은 심각도의 IDOR과 세션 고정을 결합하여 계정 탈취 달성
+- **영향 에스컬레이션** — 다른 발견 사항과 결합 시 치명적이 되는 중간 심각도 발견 사항
+- **새로운 공격 경로** — 순서대로 재생했을 때 더 높은 영향의 결과를 생성하는 요청 시퀀스
+- **교차 역할 에스컬레이션** — 다른 전문가의 발견 사항이 결합될 때 깨지는 권한 경계
+
+## 작동 방식
+
+1. 세션의 모든 발견 사항을 읽습니다 (모든 WSTG 전문가에 걸쳐)
+2. 축적된 Vortex 데이터를 읽습니다 (트래픽 패턴, 규칙 매칭, 객체, 함수)
+3. 발견 사항 간 상관관계 기회를 식별합니다
+4. 제안된 공격 체인을 구성하고 **재생**하여 검증합니다
+5. 검증된 에스컬레이션을 복합 증거가 포함된 새 발견 사항으로 보고합니다
+
+`escalation-hunter`는 전문가의 말을 그대로 믿지 않습니다 — 실제 HTTP 시퀀스를 재생하여 제안된 체인을 검증합니다.
+
+## 예시
+
+```
+Specialist A: IDOR in GET /api/users/{id} (medium)
+Specialist B: Missing rate limit on /api/auth/reset (low)
+Specialist C: Email parameter in reset response body (info)
+
+Escalation Hunter:
+  Chain: enumerate user IDs via IDOR → trigger password reset for each →
+         extract reset tokens from response → account takeover
+  Verified: replayed 3-step chain → confirmed ATO
+  Escalated: Critical (was medium + low + info individually)
+```
+
+<Aside variant="info">
+  escalation-hunter는 자동으로 배치됩니다 — 직접 호출하지 않습니다. WSTG 파이프라인이 완료된 후 최종 분석 단계로 실행됩니다.
+</Aside>

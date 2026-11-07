@@ -3,6 +3,7 @@ import path from "path"
 import { createEffect, createMemo, onMount } from "solid-js"
 import { useSync } from "@tui/context/sync"
 import { createSimpleContext } from "./helper"
+import { severityRole } from "@/session/vulnerability-status"
 import aura from "./theme/aura.json" with { type: "json" }
 import ayu from "./theme/ayu.json" with { type: "json" }
 import catppuccin from "./theme/catppuccin.json" with { type: "json" }
@@ -276,6 +277,24 @@ function ansiToRgba(code: number): RGBA {
   return RGBA.fromInts(0, 0, 0)
 }
 
+// TUI adapter for the canonical severity color scheme (#107). The SCHEME (which severity → which role)
+// lives once in session/vulnerability-status (shared by TUI, web and desktop); here we only map a role to
+// the terminal palette. Terminal ANSI has no true orange, so orange falls back to the nearest warm
+// (warning/yellow) — the one unavoidable platform difference; red/gray match everywhere.
+export { severityBold } from "@/session/vulnerability-status"
+
+export function severityColor(theme: ThemeColors, severity?: string): RGBA {
+  switch (severityRole(severity)) {
+    case "red":
+      return theme.error
+    case "orange":
+    case "yellow":
+      return theme.warning
+    default:
+      return theme.textMuted
+  }
+}
+
 export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
   name: "Theme",
   init: (props: { mode: "dark" | "light" }) => {
@@ -284,12 +303,12 @@ export const { use: useTheme, provider: ThemeProvider } = createSimpleContext({
     const [store, setStore] = createStore({
       themes: DEFAULT_THEMES,
       mode: kv.get("theme_mode", props.mode),
-      active: (sync.data.config.theme ?? kv.get("theme", "cyberstrike")) as string,
+      active: ((sync.data.config as any).theme ?? kv.get("theme", "cyberstrike")) as string,
       ready: false,
     })
 
     createEffect(() => {
-      const theme = sync.data.config.theme
+      const theme = (sync.data.config as any).theme
       if (theme) setStore("active", theme)
     })
 

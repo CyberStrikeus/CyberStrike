@@ -1,0 +1,188 @@
+---
+import type { HTMLAttributes } from "astro/types";
+import { tv } from "tailwind-variants";
+
+type Props = Omit<HTMLAttributes<"button">, "role" | "type" | "aria-checked"> & {
+  /**
+   * Unique identifier for the switch component.
+   */
+  id: string;
+  /**
+   * Optional text label to display alongside the switch.
+   */
+  label?: string;
+  /**
+   * Controls the checked state of the switch.
+   */
+  checked?: boolean;
+  /**
+   * Custom padding in pixels to apply around the switch.
+   */
+  padding?: number;
+  /**
+   * Size variant of the switch component.
+   */
+  size?: "sm" | "md" | "lg";
+  /**
+   * Visual style variant of the switch.
+   * @default "default"
+   */
+  variant?: "default" | "primary" | "secondary" | "info" | "success" | "warning" | "error";
+};
+
+const {
+  id,
+  label,
+  checked = false,
+  padding,
+  size = "md",
+  variant = "default",
+  class: className,
+  ...rest
+} = Astro.props;
+
+// if no specific padding is set, base it off of size
+let newPadding = padding;
+if (!padding) {
+  newPadding = size === "sm" ? 2.5 : size === "lg" ? 4 : 3;
+}
+
+const sizeMultiplier = size === "sm" ? 4 : size === "lg" ? 6 : 5;
+
+let ariaLabel;
+if (rest["aria-label"]) {
+  ariaLabel = rest["aria-label"];
+  delete rest["aria-label"];
+} else if (label) {
+  ariaLabel = label;
+} else {
+  ariaLabel = "switch";
+}
+
+const switchButton = tv({
+  base: [
+    "starwind-transition-colors border-input bg-muted inline-flex h-(--height) w-(--width) items-center rounded-full border",
+    "group peer ring-offset-background focus-visible:outline-2 focus-visible:outline-offset-2",
+    "not-disabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50",
+  ],
+  variants: {
+    variant: {
+      primary: "aria-checked:border-primary focus:outline-primary",
+      secondary: "aria-checked:border-secondary focus:outline-secondary",
+      default: "aria-checked:border-foreground focus:outline-outline",
+      info: "aria-checked:border-info focus:outline-info",
+      success: "aria-checked:border-success focus:outline-success",
+      warning: "aria-checked:border-warning focus:outline-warning",
+      error: "aria-checked:border-error focus:outline-error",
+    },
+  },
+  defaultVariants: { variant: "default" },
+});
+
+const switchToggle = tv({
+  base: [
+    "bg-foreground inline-block transform rounded-full transition-transform",
+    "group-aria-checked:translate-x-(--translation) group-aria-[checked=false]:translate-x-[calc(var(--padding)-var(--border-offset))]",
+  ],
+  variants: { size: { sm: "size-4", md: "size-5", lg: "size-6" } },
+  defaultVariants: { size: "md" },
+});
+
+const switchLabel = tv({
+  base: "text-foreground ml-2 font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+  variants: { size: { sm: "text-sm", md: "text-base", lg: "text-lg" } },
+  defaultVariants: { size: "md" },
+});
+---
+
+<div class="starwind-switch flex items-center">
+  <button
+    type="button"
+    id={id}
+    role="switch"
+    aria-checked={checked ? "true" : "false"}
+    aria-label={ariaLabel}
+    class={switchButton({ variant, class: className })}
+    style={{
+      "--padding": `${newPadding}px`,
+      "--height": `calc((var(--spacing) * ${sizeMultiplier}) + (var(--padding) * 2))`,
+      "--width": `calc((var(--spacing) * ${sizeMultiplier} * 2) + (var(--padding) * 3))`,
+      "--border-offset": "1px",
+    }}
+    {...rest}
+  >
+    <span
+      class={switchToggle({ size })}
+      style={{
+        "--translation": `calc((var(--spacing) * ${sizeMultiplier}) + (var(--padding) * 2) - var(--border-offset))`,
+      }}></span>
+  </button>
+  {
+    label && (
+      <label for={id} class={switchLabel({ size })}>
+        {label}
+      </label>
+    )
+  }
+</div>
+
+<script>
+  import type { SwitchChangeEvent } from "./SwitchTypes";
+
+  class SwitchHandler {
+    private switchButton: HTMLButtonElement;
+
+    constructor(switchButton: HTMLButtonElement) {
+      this.switchButton = switchButton;
+      this.setupEventListeners();
+    }
+
+    private setupEventListeners(): void {
+      this.switchButton.addEventListener("click", () => this.handleStateChange());
+      this.switchButton.addEventListener("keydown", (event) => this.handleKeyDown(event));
+    }
+
+    private handleStateChange(): void {
+      if (this.switchButton.disabled) return;
+
+      const isChecked = this.switchButton.getAttribute("aria-checked") === "true";
+      const newState = !isChecked;
+
+      this.switchButton.setAttribute("aria-checked", newState.toString());
+
+      // Dispatch custom event with the new state
+      const event = new CustomEvent<SwitchChangeEvent["detail"]>("starwind-switch:change", {
+        detail: { checked: newState, switchId: this.switchButton.id },
+        bubbles: true,
+        cancelable: true,
+      });
+
+      this.switchButton.dispatchEvent(event);
+    }
+
+    private handleKeyDown(event: KeyboardEvent): void {
+      if (this.switchButton.disabled) return;
+
+      if (event.key === " " || event.key === "Enter") {
+        event.preventDefault();
+        this.handleStateChange();
+      }
+    }
+  }
+
+  // Store instances in a WeakMap to avoid memory leaks
+  const switchInstances = new WeakMap<HTMLButtonElement, SwitchHandler>();
+
+  const setupSwitches = () => {
+    document
+      .querySelectorAll<HTMLButtonElement>('.starwind-switch button[role="switch"]')
+      .forEach((switchButton) => {
+        if (!switchInstances.has(switchButton)) {
+          switchInstances.set(switchButton, new SwitchHandler(switchButton));
+        }
+      });
+  };
+
+  setupSwitches();
+  document.addEventListener("astro:after-swap", setupSwitches);
+</script>

@@ -1,0 +1,134 @@
+---
+title: First Web Application Assessment
+description: Walk through a full web application security assessment with Cyberstrike
+sidebar:
+  order: 4
+  label: First Assessment
+---
+
+This guide walks you through a real web application assessment — from launching Cyberstrike to triaged vulnerability findings. We'll test a web app with two user roles (admin and regular user) to find authorization, injection, and logic flaws.
+
+## 1. Launch Cyberstrike
+
+```bash
+cyberstrike
+```
+
+The TUI opens with the `cyberstrike` primary agent loaded, ready for input.
+
+## 2. Start a Session
+
+Type anything to start a session. Describe what you're testing:
+
+```
+> I'm testing https://app.example.com — it's a SaaS platform with admin and regular user roles.
+  I have credentials for both. Let's find auth bypass, IDOR, injection, and business logic issues.
+```
+
+The agent acknowledges and may ask clarifying questions about scope, excluded areas, or additional context.
+
+## 3. Rename the Session
+
+Press `Ctrl+R` to rename the session to something meaningful:
+
+```
+example-com-web-assessment
+```
+
+This helps you find it later in `/sessions`.
+
+## 4. Launch HackBrowser
+
+Run the `/hackbrowser` slash command. A launch dialog opens with fields for:
+
+- **Target URL** — enter `https://app.example.com`
+- **Credentials** — add two: `userA` (admin) and `userB` (regular user)
+- **Scope** — defaults to `*.example.com`, adjust if the API lives on a different domain
+- **Steps** — how many pages to crawl (default 50)
+
+Confirm the dialog. Since you defined credentials, HackBrowser opens in visible mode.
+
+## 5. Login as userA
+
+A Chromium browser window opens — this is HackBrowser, with a built-in telemetry extension that provides a UI panel overlay on every page. Log in manually as **userA** (the admin account).
+
+Once logged in, press the **Record** button in the HackBrowser panel. This starts the **AINavigator** — the LLM-driven crawl session. The AI reads the page's accessibility tree, decides which links to follow, which forms to fill, and which buttons to click, navigating the app autonomously as userA.
+
+## 6. Login as userB
+
+A second browser window opens automatically for **userB** (the regular user). Log in manually with userB's credentials, then press **Record** in its panel.
+
+Now HackBrowser is crawling the application with both roles. Every HTTP request is tagged with the credential that made it, so the pipeline knows which role accessed which endpoint.
+
+## 7. What Happens Next
+
+While HackBrowser crawls, the rest of the harness is already working:
+
+**Traffic capture** — Every request/response pair flows into [Vortex](/docs/features/vortex) with full headers, body, and UI context (which form fields were readonly, hidden, or disabled at the moment the request fired).
+
+**Signal generation** — Vortex applies rules against the captured traffic and generates signals: authentication patterns, hidden parameters, suspicious response shapes, role-specific endpoint access.
+
+**WSTG dispatch** — The `wstg-agent` reads the signals and dispatches specialist agents. A request with a user ID in the path triggers `wstg-authorization` for IDOR testing. A POST with form inputs triggers `wstg-input-validation` for injection. A login endpoint triggers `wstg-authentication`.
+
+**Cross-role comparison** — Because both userA and userB crawled the same app, the pipeline compares which endpoints each role reached, which UI elements were visible to each, and whether role boundaries hold when requests are replayed with the other credential.
+
+**Escalation** — After specialists finish, the `escalation-hunter` runs across all findings to chain them — a medium IDOR combined with a low rate-limit bypass might escalate to a critical account takeover.
+
+**Triage** — The `triage` agent independently replays HTTP evidence for each draft finding. Only findings confirmed by replay are promoted to "triaged" status. False positives are rejected. Ambiguous findings stay as drafts for your review.
+
+## 8. Review Findings
+
+Once the crawl completes and testing finishes, review the results:
+
+| Command | What it shows |
+|---------|---------------|
+| `/vulnerabilities` | All findings with severity, status, and evidence |
+| `/web` | Captured endpoints, roles, credentials, and objects |
+| `/methodology` | WSTG coverage — which categories were tested, which are pending |
+| `/report` | Generate a structured report |
+
+### Finding Format
+
+Each finding includes:
+
+```
+FINDING: IDOR in User Profile API
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Severity: High
+CWE: CWE-639
+Description: GET /api/users/{id} returns full profile data for any user ID
+             when accessed with userB credentials (regular user).
+Evidence: Replayed GET /api/users/1 with userB token → 200, body contains
+          admin user's email and phone number.
+Status: triaged (verified by replay)
+Recommendation: Enforce ownership check — users should only access their own profile.
+```
+
+### Severity Levels
+
+| Level | CVSS | Meaning |
+|-------|------|---------|
+| Critical | 9.0–10.0 | Immediate exploitation risk |
+| High | 7.0–8.9 | Significant security impact |
+| Medium | 4.0–6.9 | Moderate risk |
+| Low | 0.1–3.9 | Minor concern |
+| Info | 0.0 | Informational |
+
+## 9. Export and Share
+
+| Command | Action |
+|---------|--------|
+| `/report` | Generate a pentest report with all findings |
+| `/share` | Create a shareable session link |
+| `/export` | Export the session transcript |
+
+## Next Steps
+
+- [Security Agents](/docs/agents) — Understand the WSTG pipeline and specialist agents
+- [Features](/docs/features) — Deep-dive into HackBrowser, Vortex, Bolt, MCP
+- [Configuration](/docs/configuration) — Customize scopes, permissions, and defaults
+- [Slash Commands](/docs/usage/tui) — Full command reference
+
+<Aside variant="tip">
+  Use `/compact` to summarize long sessions and continue testing without losing context.
+</Aside>

@@ -105,8 +105,23 @@ export const VulnerabilityTable = sqliteTable(
     // (execution-dependent class filed without execution_evidence) and holds the severity it
     // was downgraded FROM. NULL = a normal (confirmed/claimed) finding. First-class signal so
     // downstream never parses the title prefix. Cleared to NULL on an in-place evidence upgrade.
+    cvss: text(),
+    references: text("reference_urls"),
+    evidence_request_ids: text(),
+    source_agent: text(),
     candidate: text(),
     duplicate_of: text(), // triage link: this finding is a duplicate of <vuln id>
+    // Systemic-class aggregation (issue #45): a config-level finding (CORS, security-headers, cookie-
+    // flags, …) is ONE issue across many endpoints. aggregate_key = `${class}|${host}|${variant}`
+    // identifies the single aggregate finding; affected_endpoints holds its JSON string[] of endpoints.
+    // NULL on ordinary per-endpoint findings. Both auto-added to existing DBs by the ADD COLUMN pass.
+    aggregate_key: text(),
+    affected_endpoints: text(),
+    // Code-enforced escalation coverage (#84): set to 1 once a hunt pass that had this finding in its
+    // seed set has COMPLETED. NULL/0 = not yet escalation-examined. The EscalationRunner guarantees
+    // every finding enters a pass by draining the NULL/0 rows — never by trusting the hunter's prompt.
+    // Auto-added to existing DBs by the ADD COLUMN pass (NULL on old rows ⇒ correctly treated as pending).
+    escalation_examined: integer(),
     position: integer().notNull(),
     ...Timestamps,
   },
@@ -199,7 +214,9 @@ export const WebCredentialTable = sqliteTable(
       .references(() => SessionTable.id, { onDelete: "cascade" }),
     label: text().notNull(),
     // Generic header storage: { "Authorization": "Bearer xxx", "Cookie": "session=abc" }
-    headers: text({ mode: "json" }).$type<Record<string, string>>().notNull(),
+    // Per-host auth: host → { headerName: value }. Legacy rows are a flat header map and are
+    // normalized (wrapped under "*") on read. See WebCredential.AuthByHost.
+    headers: text({ mode: "json" }).$type<Record<string, Record<string, string>>>().notNull(),
     container_id: text(), // Firefox container ID for sync
     role_id: text(),
     ...Timestamps,
@@ -228,6 +245,29 @@ export const WebRoleTable = sqliteTable(
   ],
 )
 
+// JS files seen during capture (script responses). The request table only holds analysis-relevant
+// endpoints (JS is never ingested as a request row), so JS URLs are persisted here instead — one row
+// per (session, url) — so the panel/TUI can list them durably and a later agent can pull + review
+// each body (analyzed flags that pass).
+export const WebJsTable = sqliteTable(
+  "web_js",
+  {
+    id: text().primaryKey(),
+    session_id: text()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    url: text().notNull(),
+    origin: text(),
+    analyzed: integer({ mode: "boolean" }), // null/false = body not yet pulled/reviewed by an agent
+    discovered_from: text(),
+    ...Timestamps,
+  },
+  (table) => [
+    index("web_js_session_idx").on(table.session_id),
+    uniqueIndex("web_js_url_idx").on(table.session_id, table.url),
+  ],
+)
+
 export const WebObjectTable = sqliteTable(
   "web_object",
   {
@@ -240,9 +280,9 @@ export const WebObjectTable = sqliteTable(
     sensitive_fields: text({ mode: "json" }).$type<string[]>(),
     id_fields: text({ mode: "json" }).$type<string[]>(),
     discovered_from: text(),
-    // Provenance for context relevance-scoping (code-stamped from the processing
-    // request; the analyzer never sees these): which endpoint created this object,
-    // and the list of endpoints whose analysis touched it.
+    // Provenance for context relevance-scoping (code-stamped at ingest by the
+    // Vortex bridge): which endpoint created this object, and the list of
+    // endpoints whose processing touched it.
     created_request_id: text(),
     updated_request_ids: text({ mode: "json" }).$type<string[]>(),
     ...Timestamps,
@@ -272,6 +312,37 @@ export const WebObjectValueTable = sqliteTable(
   (table) => [
     index("web_object_value_session_idx").on(table.session_id),
     index("web_object_value_object_idx").on(table.object_id),
+  ],
+)
+
+// Per-credential UI-affordance observations (Faz B): which credential could SEE which
+// clickable on which page. Complements request_observation (which credential HIT an
+// endpoint) — the offered-but-maybe-unexercised signal for BFLA by forced browsing.
+// Append-only; the unique index makes re-sightings idempotent (ON CONFLICT DO NOTHING),
+// mirroring request_observation's dedup shape.
+export const WebUiObservationTable = sqliteTable(
+  "web_ui_observation",
+  {
+    id: text().primaryKey(),
+    session_id: text()
+      .notNull()
+      .references(() => SessionTable.id, { onDelete: "cascade" }),
+    credential_id: text(), // null = anonymous identity
+    normalized_page: text().notNull(), // origin+path; the availability key, query/fragment-insensitive
+    page_url: text().notNull(), // raw url as seen, for provenance
+    role: text().notNull(), // element semantic role (button, link, textbox, …)
+    label: text().notNull(), // visible label; role:label is the trigger_element key
+    ...Timestamps,
+  },
+  (table) => [
+    uniqueIndex("web_ui_observation_dedup_idx").on(
+      table.session_id,
+      table.normalized_page,
+      table.credential_id,
+      table.role,
+      table.label,
+    ),
+    index("web_ui_observation_page_idx").on(table.session_id, table.normalized_page),
   ],
 )
 
@@ -385,24 +456,3 @@ export const CoverageNoteTable = sqliteTable(
   ],
 )
 
-export const WebRetestQueueTable = sqliteTable(
-  "web_retest_queue",
-  {
-    id: text().primaryKey(),
-    session_id: text()
-      .notNull()
-      .references(() => SessionTable.id, { onDelete: "cascade" }),
-    request_id: text()
-      .notNull()
-      .references(() => RequestTable.id, { onDelete: "cascade" }),
-    trigger_type: text().notNull(), // new_role, new_object_value, new_credential
-    trigger_source: text().notNull(),
-    status: text().notNull(), // pending, processing, completed
-    priority: text().notNull(), // high, medium, low
-    ...Timestamps,
-  },
-  (table) => [
-    index("web_retest_queue_session_idx").on(table.session_id),
-    index("web_retest_queue_status_idx").on(table.session_id, table.status),
-  ],
-)

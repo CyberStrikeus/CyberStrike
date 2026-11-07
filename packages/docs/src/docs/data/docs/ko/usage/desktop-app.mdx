@@ -1,0 +1,64 @@
+---
+title: 데스크톱 앱
+description: macOS, Windows, Linux용 CyberStrike 네이티브 데스크톱 애플리케이션
+sidebar:
+  order: 4
+  label: 데스크톱 앱
+  badge:
+    text: Coming Soon
+    variant: caution
+---
+
+CyberStrike Desktop은 전체 하네스 — 에이전트, 도구, Vortex, HackBrowser, Bolt — 를 독립형 앱으로 번들링하는 네이티브 애플리케이션입니다. 터미널이 필요 없습니다.
+
+<Aside variant="caution">
+  데스크톱 앱은 활발히 개발 중입니다. 초기 릴리스에서 세 플랫폼 모두 지원이 계획되어 있습니다.
+</Aside>
+
+## macOS <Badge text="Coming Soon" variant="caution" size="md" />
+
+Apple Silicon 및 Intel을 지원하는 네이티브 macOS 앱. `.dmg` 인스톨러로 배포됩니다.
+
+- macOS 12 Monterey 이상
+- Apple Silicon (M1+) 또는 Intel
+- 500 MB 디스크 공간
+
+## Windows <Badge text="Coming Soon" variant="caution" size="md" />
+
+NSIS를 통해 `.exe` 인스톨러로 배포되는 네이티브 Windows 앱.
+
+- Windows 10 (1809) 이상
+- x64 아키텍처
+- 500 MB 디스크 공간
+
+<Aside variant="info">
+  WSL은 **필요하지 않습니다**. 데스크톱 앱은 Windows에서 네이티브로 실행됩니다.
+</Aside>
+
+## Linux <Badge text="Coming Soon" variant="caution" size="md" />
+
+`.AppImage` 및 `.deb` 패키지로 배포되는 Linux 빌드.
+
+- Ubuntu 20.04+, Fedora 38+ 또는 동급
+- x64 아키텍처
+- 500 MB 디스크 공간
+
+## 기대할 수 있는 것
+
+데스크톱 앱은 `cyberstrike web`과 동일한 기능을 네이티브 창으로 제공합니다:
+
+- 전체 TUI 기능 동등성 — 모든 슬래시 명령, 에이전트, 도구
+- 통합 HackBrowser — 앱 내에서 Chromium 시작
+- Bolt 서버 관리 — 컨테이너화된 도구 페어링 및 관리
+- MCP 서버 패널 — MCP 연결 구성 및 모니터링
+- 세션 탭 — 여러 평가를 동시에 열기
+- 오프라인 지원 — Ollama 같은 로컬 제공자와 작동
+
+## 최신 소식 받기
+
+개발 진행 상황을 따라가세요:
+
+- [GitHub Releases](https://github.com/CyberStrikeus/CyberStrike/releases) — 데스크톱 빌드가 여기에 게시됩니다
+- [Discord](https://discord.gg/dr97wVJVbn) — 공지 및 얼리 액세스
+
+그동안 [TUI](/docs/usage/tui), [CLI](/docs/usage/cli), 또는 [Web](/docs/usage/web) 인터페이스를 사용하세요.

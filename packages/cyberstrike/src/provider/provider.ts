@@ -26,7 +26,7 @@ import { createAnthropicSubscriptionModel, SUBSCRIPTION_BETAS, AGENT_SDK_PREFIX 
 // Only the type-only imports and createGitLab (referenced via `typeof` below)
 // are still needed directly here.
 import type { AmazonBedrockProviderSettings } from "@ai-sdk/amazon-bedrock"
-import type { LanguageModelV2 } from "@openrouter/ai-sdk-provider"
+import type { LanguageModelV3 } from "@openrouter/ai-sdk-provider"
 import { createGitLab, VERSION as GITLAB_PROVIDER_VERSION } from "@gitlab/gitlab-ai-provider"
 import { BUNDLED_PROVIDERS } from "./bundled-providers"
 import { ProviderTransform } from "./transform"
@@ -98,7 +98,7 @@ export namespace Provider {
 
       if (explicitOAT || oauthSubscription) {
         // Subscription path: use the OFFICIAL @anthropic-ai/sdk (via a custom
-        // LanguageModelV2) instead of @ai-sdk/anthropic — byte-identical to the
+        // LanguageModelV3) instead of @ai-sdk/anthropic — byte-identical to the
         // genuine client (real x-stainless signature, ?beta=true, AGENT_SDK_PREFIX
         // system[0], Bearer OAuth). Resolve the account UUID once (from the OAuth
         // profile) for metadata.user_id parity; non-fatal if it fails.
@@ -375,7 +375,7 @@ export namespace Provider {
         options: {
           headers: {
             "HTTP-Referer": "https://cyberstrike.io/",
-            "X-Title": "cyberstrike",
+            "X-Title": "CyberStrike",
           },
         },
       }
@@ -386,7 +386,7 @@ export namespace Provider {
         options: {
           headers: {
             "http-referer": "https://cyberstrike.io/",
-            "x-title": "cyberstrike",
+            "x-title": "CyberStrike",
           },
         },
       }
@@ -796,7 +796,7 @@ export namespace Provider {
     }
 
     const providers: { [providerID: string]: Info } = {}
-    const languages = new Map<string, LanguageModelV2>()
+    const languages = new Map<string, LanguageModelV3>()
     const modelLoaders: {
       [providerID: string]: CustomModelLoader
     } = {}
@@ -1084,7 +1084,10 @@ export namespace Provider {
       const provider = s.providers[model.providerID]
       const options = { ...provider.options }
 
-      if (model.api.npm.includes("@ai-sdk/openai-compatible") && options["includeUsage"] !== false) {
+      if (
+        (model.api.npm.includes("@ai-sdk/openai-compatible") || model.api.npm === "@ai-sdk/github-copilot") &&
+        options["includeUsage"] !== false
+      ) {
         options["includeUsage"] = true
       }
 
@@ -1203,7 +1206,7 @@ export namespace Provider {
     return info
   }
 
-  export async function getLanguage(model: Model): Promise<LanguageModelV2> {
+  export async function getLanguage(model: Model): Promise<LanguageModelV3> {
     const s = await state()
     const key = `${model.providerID}/${model.id}`
     if (s.models.has(key)) return s.models.get(key)!
@@ -1457,6 +1460,27 @@ export namespace Provider {
       providerID: providerID,
       modelID: rest.join("/"),
     }
+  }
+
+  // Persist the user's selected model as most-recent so defaultModel() — and everything that falls
+  // through to it (HackBrowser, the navigator, compaction, the idle watchdog) — resolves it. The web
+  // and desktop UI keep their model choice client-side and, unlike the TUI (cli/cmd/tui/context/local
+  // writes this same file), never told the server. That left state/model.json empty on a web-only
+  // appliance, so defaultModel() picked the provider's catalog default (e.g. the expensive
+  // deepseek-v4-pro). The app now calls this on every selection so both surfaces behave the same.
+  export async function recordModel(providerID: string, modelID: string) {
+    const file = Bun.file(path.join(Global.Path.state, "model.json"))
+    const prev = (await file.json().catch(() => ({}))) as {
+      recent?: { providerID: string; modelID: string }[]
+      favorite?: unknown[]
+      variant?: Record<string, string | undefined>
+    }
+    const recent = (prev.recent ?? []).filter((e) => e.providerID !== providerID || e.modelID !== modelID)
+    recent.unshift({ providerID, modelID })
+    await Bun.write(
+      file,
+      JSON.stringify({ recent: recent.slice(0, 50), favorite: prev.favorite ?? [], variant: prev.variant ?? {} }),
+    )
   }
 
   export const ModelNotFoundError = NamedError.create(

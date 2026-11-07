@@ -9,7 +9,7 @@ import { processResponse, type ResponseInput } from "./response-processor"
 
 const Status = z.enum(["queued", "processing", "processed"])
 const Method = z.enum(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"])
-const NormSource = z.enum(["tier1", "tier2", "tier3", "failed"])
+const NormSource = z.enum(["tier1", "tier2", "tier3", "failed", "js-mined"])
 
 export namespace Request {
   export const Info = z
@@ -240,7 +240,7 @@ export namespace Request {
   /**
    * Two-stage dedup at the TEMPLATE level. Same endpoint shape (normalized
    * template) hit twice — even with different concrete paths like
-   * `/users/1` vs `/users/2` — must collapse to one row so proxy-agent only
+   * `/users/1` vs `/users/2` — must collapse to one row so web-agent only
    * analyzes the template once. The credential who hit it first wins on
    * `request.credential_id`; subsequent hits with different credentials are
    * still recorded by `WebCredential` and matched against the function via
@@ -343,6 +343,65 @@ export namespace Request {
         .all(),
     )
     return matches(legacyRows)
+  }
+
+  // The id of the (single) request row for an endpoint shape, by key_hash. Indexed
+  // lookup via request_keyhash_idx (session_id, key_hash) — cheap on the hot ingest
+  // path. Used to attach signal-fabric findings on a DUPLICATE capture to the same
+  // canonical request id as the shape's first capture, so per-shape dedup holds.
+  export function findId(sessionID: string, keyHash?: string): string | undefined {
+    if (!keyHash) return undefined
+    const row = Database.use((db) =>
+      db
+        .select({ id: RequestTable.id })
+        .from(RequestTable)
+        .where(and(eq(RequestTable.session_id, sessionID), eq(RequestTable.key_hash, keyHash)))
+        .get(),
+    )
+    return row?.id
+  }
+
+  export function findById(sessionID: string, id: string): Info | undefined {
+    return get(sessionID).find((r) => r.id === id)
+  }
+
+  export function resolveOrigin(req: { origin?: string | null; host?: string | null; scheme?: string | null }): string | null {
+    if (req.origin) {
+      const trimmed = req.origin.replace(/\/+$/, "")
+      if (trimmed.includes("://") && !trimmed.endsWith("//")) return trimmed
+    }
+    if (req.host) return `${req.scheme ?? "https"}://${req.host}`.replace(/\/+$/, "")
+    return null
+  }
+
+  export function getByIds(sessionID: string, ids: string[]): Info[] {
+    if (ids.length === 0) return []
+    const all = get(sessionID)
+    const idSet = new Set(ids)
+    return all.filter((r) => idSet.has(r.id))
+  }
+
+  export function formatEvidence(req: Info): string {
+    const lines: string[] = []
+    const url = req.origin
+      ? `${req.origin}${req.normalized_path}`
+      : req.normalized_path
+    lines.push(`── ${req.method} ${url} ──`)
+    lines.push("")
+    if (req.raw_request) {
+      lines.push("Request:")
+      lines.push(req.raw_request)
+      lines.push("")
+    }
+    if (req.response_status) {
+      lines.push(`Response: ${req.response_status}`)
+      if (req.response_content_type) lines.push(`Content-Type: ${req.response_content_type}`)
+      if (req.processed_response) {
+        lines.push(req.processed_response)
+      }
+      lines.push("")
+    }
+    return lines.join("\n")
   }
 
   export function updateStatus(input: { id: string; status: z.infer<typeof Status> }) {

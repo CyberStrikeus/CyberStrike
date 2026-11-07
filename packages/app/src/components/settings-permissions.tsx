@@ -171,7 +171,7 @@ export const SettingsPermissions: Component = () => {
       showToast({ title: language.t("settings.permissions.toast.updateFailed.title"), description: message })
     }
 
-    globalSync.set("config", "permission", { ...map, [id]: nextValue })
+    globalSync.set("config", "permission", { ...map, [id]: nextValue } as any)
     globalSync.updateConfig({ permission: { [id]: nextValue } }).catch(rollback)
   }
 

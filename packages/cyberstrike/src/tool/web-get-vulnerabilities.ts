@@ -2,6 +2,7 @@ import z from "zod"
 import { Tool } from "./tool"
 import { Vulnerability } from "../session/vulnerability"
 import { Session } from "../session"
+import { ALL_STATUS_VALUES } from "../session/vulnerability-status"
 
 const description = `Get vulnerabilities reported in this session.
 
@@ -19,10 +20,10 @@ export const WebGetVulnerabilitiesTool = Tool.define("web_get_vulnerabilities", 
       .optional()
       .describe("Filter by severity. Omit to return all severities."),
     status: z
-      .enum(["new", "approved", "duplicate", "open", "fixed", "ignored"])
+      .enum(ALL_STATUS_VALUES as unknown as [string, ...string[]])
       .optional()
       .describe(
-        'Filter by status: "new" (recorded, needs triage — has similar findings), "approved" (distinct/real), "duplicate" (linked to another). Omit to return all.',
+        'Filter by status: "draft" (unreviewed), "triaged" (quality verified), "pending_fix" (confirmed real), "rejected" (not valid), "duplicate" (linked), "fixed" (remediated). Omit to return all.',
       ),
     limit: z
       .number()

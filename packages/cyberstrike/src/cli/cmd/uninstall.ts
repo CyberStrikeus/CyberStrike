@@ -186,7 +186,7 @@ async function collectRemovalTargets(args: UninstallArgs, method: Installation.M
     {
       path: Global.Path.cache,
       label: "Cache",
-      description: "models cache, downloaded assets",
+      description: "models cache, downloaded assets, Chrome for Testing (.browsers)",
       keep: false,
     },
     {

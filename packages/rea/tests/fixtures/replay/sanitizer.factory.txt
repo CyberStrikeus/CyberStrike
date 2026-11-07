@@ -1,0 +1,6 @@
+101(module) {
+  module.exports.sanitize = (value) => value
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/giu, "")
+    .replace(/\son\w+=[^\s>]+/giu, "")
+    .replace(/javascript:/giu, "");
+}

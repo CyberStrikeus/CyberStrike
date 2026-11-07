@@ -1,0 +1,53 @@
+---
+import type { ComponentProps } from "astro/types";
+
+import Badge from "@/docs/components/mdx-components/Badge.astro";
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedRoute } from "@/docs/js/translationUtils";
+
+/**
+ * Compares two paths ensuring they both have trailing slashes for consistency
+ * @param path1 First path to compare
+ * @param path2 Second path to compare
+ * @returns boolean indicating if the paths are equal
+ */
+const comparePathsWithTrailingSlash = (path1: string, path2: string): boolean => {
+  const ensureTrailingSlash = (path: string): string => (path.endsWith("/") ? path : `${path}/`);
+
+  return ensureTrailingSlash(path1) === ensureTrailingSlash(path2);
+};
+
+interface Props {
+  link: string;
+  text: string;
+  badge?: ComponentProps<typeof Badge>;
+}
+
+const { link, text, badge } = Astro.props;
+
+// get the current page locale to use in links to other pages
+const currLocale = getLocaleFromUrl(Astro.url);
+
+// internal link, so we need to add the locale to the link
+let actualLink = getLocalizedRoute(currLocale, link);
+
+const currentPath = comparePathsWithTrailingSlash(Astro.url.pathname, actualLink);
+---
+
+<li>
+  <a
+    href={actualLink}
+    class:list={[
+      "docs-nav__link--sidebar docs-primary-focus block text-base md:text-sm",
+      {
+        // styling for current active page link
+        "text-foreground font-medium": currentPath,
+      },
+    ]}
+  >
+    <div class="flex items-center gap-2">
+      <span>{text}</span>
+      {badge && <Badge text={badge.text} variant={badge.variant} />}
+    </div>
+  </a>
+</li>

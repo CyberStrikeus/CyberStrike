@@ -1,0 +1,75 @@
+// Domain provider contract — the shared vocabulary a domain plugin uses to
+// contribute its agents to CyberStrike, exactly as ToolDefinition is the shared
+// vocabulary for contributing tools. Lives in the SDK (not the host) so a plugin
+// package can `import { AgentSpec, DomainProvider } from "@cyberstrike-io/plugin"`
+// and the host can reference the same types when collecting the `provider` hook.
+//
+// These types are intentionally self-contained (primitives + PermissionRule) so
+// the SDK gains no host dependency. Richer per-domain capabilities (signal
+// detectors, routers) stay in the host and are layered on top there.
+import type { InspectionRouter, RouterContext } from "./inspection"
+
+export type PermissionAction = "ask" | "allow" | "deny"
+export type PermissionRule = PermissionAction | Record<string, PermissionAction>
+
+export interface AgentSpec {
+  name: string
+  role:
+    | "analyst"
+    | "batch-verifier"
+    | "verifier"
+    | "followup"
+    | "orchestrator"
+    | "specialist"
+    | "analyzer"
+    | "support"
+    | "escalation-hunter"
+  group?: string
+  description: string
+  // Soft per-agent turn budget. Optional: an agent that ships WITHOUT a cap (e.g. a
+  // standalone specialist) omits it, and the host leaves its turn budget unbounded —
+  // matching the pre-extraction behavior of agents that set no `steps`.
+  steps?: number
+  color: string
+  prompt: string
+  // Skills the agent preloads. Optional: an agent with no preloaded skills omits it
+  // (equivalent to the host receiving `undefined`), rather than being forced to pass `[]`.
+  skills?: string[]
+  permissions: Record<string, PermissionRule>
+  hidden?: boolean
+  prependRequestContext?: boolean
+  useSmallModel?: boolean
+}
+
+/**
+ * A security domain's registration surface: a stable key plus the agents it
+ * contributes. The host collects these (built-in domains + plugin `provider`
+ * hooks) into one agent registry.
+ */
+export interface DomainProvider {
+  key: string
+  agentSpecs(): AgentSpec[]
+
+  /**
+   * Optional signal-class → agent-name routing this domain owns: when the host's deterministic
+   * retest pipeline has a signal of class C, it dispatches to `specialistClasses()[C]`. A domain
+   * that routes its specialists by class (e.g. web, by WSTG category) declares the map HERE so the
+   * routing travels WITH the package — required for a domain to ship as a self-contained npm package
+   * (open-core: a primitive public build and an advanced private build are drop-in swaps). Domains
+   * that group differently (e.g. cloud) omit it. Keys/values are plain strings so the SDK stays
+   * host-dependency-free; the host validates the class names against its own taxonomy.
+   */
+  specialistClasses?(): Record<string, string>
+
+  /** Create an InspectionRouter for the host's inspection dispatcher. The domain
+   *  owns the routing logic — which evidence patterns map to which specialists —
+   *  so the dispatcher stays domain-agnostic. Context carries session-level config
+   *  (workflow, scope) the router may use to adjust priorities or skip classes. */
+  createRouter?(context?: RouterContext): InspectionRouter
+}
+
+/**
+ * Yields a provider instance. May be async (e.g. loading skill files) or sync.
+ * A plugin's `provider` hook maps a domain key to one of these.
+ */
+export type DomainProviderFactory = () => DomainProvider | Promise<DomainProvider>

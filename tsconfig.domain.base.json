@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig.json",
+  // Shared base for domain packages (azure, gcp, aws, oracle, web, android, ios, internal-network …).
+  // They consume cyberstrike's public API as COMPILED types (dist/types, via the ./public export);
+  // `skipLibCheck` is what stops a domain from re-typechecking those declarations — the boundary fix.
+  // Self-contained (no @tsconfig/* extends) so it resolves from the repo root.
+  //
+  // A new domain package's tsconfig only needs:
+  //   { "extends": "../../tsconfig.domain.base.json", "include": ["src"] }
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "verbatimModuleSyntax": false,
+    "allowImportingTsExtensions": true
+  }
+}

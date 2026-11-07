@@ -240,7 +240,7 @@ export namespace MessageV2 {
 
   export const StepFinishPart = PartBase.extend({
     type: z.literal("step-finish"),
-    reason: z.string(),
+    reason: z.string().default("unknown"),
     snapshot: z.string().optional(),
     cost: z.number(),
     tokens: z.object({
@@ -508,7 +508,7 @@ export namespace MessageV2 {
   })
   export type WithParts = z.infer<typeof WithParts>
 
-  export function toModelMessages(input: WithParts[], model: Provider.Model): ModelMessage[] {
+  export async function toModelMessages(input: WithParts[], model: Provider.Model): Promise<ModelMessage[]> {
     const result: UIMessage[] = []
     const toolNames = new Set<string>()
     // Track media from tool results that need to be injected as user messages
@@ -532,15 +532,19 @@ export namespace MessageV2 {
       return false
     })()
 
-    const toModelOutput = (output: unknown) => {
+    const toModelOutput = (args: unknown) => {
+      const output = (args as { output?: unknown }).output ?? args
       if (typeof output === "string") {
         return { type: "text", value: output }
       }
 
-      if (typeof output === "object") {
+      if (typeof output === "object" && output !== null) {
         const outputObject = output as {
           text: string
           attachments?: Array<{ mime: string; url: string }>
+        }
+        if (typeof outputObject.text !== "string") {
+          return { type: "json", value: output }
         }
         const attachments = (outputObject.attachments ?? []).filter((attachment) => {
           return attachment.url.startsWith("data:") && attachment.url.includes(",")
@@ -635,6 +639,7 @@ export namespace MessageV2 {
               type: "step-start",
             })
           if (part.type === "tool") {
+            if (part.metadata?.synthetic) continue
             toolNames.add(part.tool)
             if (part.state.status === "completed") {
               const outputText = part.state.time.compacted
@@ -730,7 +735,7 @@ export namespace MessageV2 {
 
     const tools = Object.fromEntries(Array.from(toolNames).map((toolName) => [toolName, { toModelOutput }]))
 
-    return convertToModelMessages(
+    return await convertToModelMessages(
       result.filter((msg) => msg.parts.length > 0 && msg.parts.some((part) => part.type !== "step-start")),
       {
         //@ts-expect-error (convertToModelMessages expects a ToolSet but only actually needs tools[name]?.toModelOutput)
@@ -867,6 +872,11 @@ export namespace MessageV2 {
         ).toObject()
       case MessageV2.OutputLengthError.isInstance(e):
         return e
+      // Preserve an APIError we threw ourselves (e.g. the stream-idle timeout) — without this it would
+      // fall through to the `e instanceof Error` case below and be flattened into an Unknown, losing its
+      // isRetryable flag and message.
+      case MessageV2.APIError.isInstance(e):
+        return e.toObject()
       case LoadAPIKeyError.isInstance(e):
         return new MessageV2.AuthError(
           {
@@ -941,7 +951,8 @@ export namespace MessageV2 {
             ).toObject()
           }
         } catch {}
-        return new NamedError.Unknown({ message: JSON.stringify(e) }, { cause: e }).toObject()
+        const msg = (() => { try { return JSON.stringify(e) } catch { return String(e) } })()
+        return new NamedError.Unknown({ message: msg }, { cause: e }).toObject()
     }
   }
 }

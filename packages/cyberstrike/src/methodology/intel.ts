@@ -25,6 +25,11 @@ export namespace Intel {
     "business_rule",
     "sensitive_data",
     "infrastructure",
+    "attack_path",
+    "iam_principal",
+    "lateral_movement",
+    "cloud_misconfiguration",
+    "cloud_exposure",
   ])
   export type Type = z.infer<typeof Type>
 

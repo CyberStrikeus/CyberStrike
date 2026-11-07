@@ -161,7 +161,7 @@ export function Prompt(props: PromptProps) {
       if (msg.agent && isPrimaryAgent) {
         local.agent.set(msg.agent)
         if (msg.model) local.model.set(msg.model)
-        if (msg.variant) local.model.variant.set(msg.variant)
+        if ((msg as any).variant) local.model.variant.set((msg as any).variant)
       }
     }
   })

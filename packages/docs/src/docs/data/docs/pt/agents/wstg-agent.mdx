@@ -1,0 +1,82 @@
+---
+title: Agente WSTG
+description: Orquestrador do pipeline de testes de seguranca web OWASP WSTG
+sidebar:
+  order: 5
+  label: Agente WSTG
+---
+
+O `wstg-agent` e o orquestrador do pipeline de testes de seguranca web do Cyberstrike. Ele recebe trafego HTTP capturado e despacha os agentes especialistas WSTG apropriados com base nas caracteristicas das requisicoes e no contexto acumulado da sessao.
+
+## Visao Geral
+
+| Propriedade | Valor |
+|-------------|-------|
+| **ID do Agente** | `wstg-agent` |
+| **Funcao** | `orchestrator` |
+| **Dominio** | `@cyberstrike-io/web` |
+| **Cor** | Azul |
+
+## Como Funciona
+
+O `wstg-agent` e um **orquestrador puro** — ele nao realiza testes de vulnerabilidade por conta propria. Seu fluxo de trabalho:
+
+1. Recebe uma requisicao HTTP capturada (do [HackBrowser](/docs/features/hackbrowser) ou da [Extensao Chrome](/docs/tools/chrome-extension))
+2. Analisa caracteristicas da requisicao e contexto acumulado da sessao
+3. Roteia a requisicao para o(s) especialista(s) WSTG apropriado(s) via despacho baseado em sinais
+4. Gerencia a fila de testes e gatilhos de re-teste
+
+## Roteamento Baseado em Sinais
+
+Cada requisicao capturada gera sinais com base em suas propriedades — caminho do endpoint, parametros, headers, padroes de resposta e correspondencias de regras do [Vortex](/docs/features/vortex). O `wstg-agent` mapeia esses sinais para classes de especialistas:
+
+| Categoria de Sinal | Especialista |
+|--------------------|--------------|
+| Padroes de autenticacao | `wstg-authentication` |
+| Indicadores de autorizacao | `wstg-authorization` |
+| Parametros de entrada | `wstg-input-validation` |
+| Tokens de sessao | `wstg-session-mgmt` |
+| Endpoints de configuracao | `wstg-config-deploy` |
+| Padroes de API | `wstg-api` |
+| Indicadores de criptografia | `wstg-cryptography` |
+| Respostas de erro | `wstg-error-handling` |
+| Logica de negocio | `wstg-business-logic` |
+| Recursos do lado do cliente | `wstg-client-side` |
+| Endpoints de LLM | `wstg-llm` |
+
+Uma unica requisicao pode acionar multiplos especialistas quando exibe sinais de multiplas categorias.
+
+## Especialistas WSTG
+
+Cada especialista e um agente de teste focado para uma categoria WSTG:
+
+| Especialista | Secao WSTG | Foco |
+|-------------|-------------|------|
+| `wstg-info-gathering` | 4.1 | Fingerprinting, enumeracao, deteccao de vazamentos |
+| `wstg-config-deploy` | 4.2 | Configuracao de servidor, credenciais padrao, extensoes de arquivo |
+| `wstg-identity-mgmt` | 4.3 | Enumeracao de usuarios, provisionamento de contas |
+| `wstg-authentication` | 4.4 | Bypass de login, teste de credenciais, MFA |
+| `wstg-authorization` | 4.5 | IDOR, escalacao de privilegios, travessia de caminho |
+| `wstg-session-mgmt` | 4.6 | Fixacao de sessao, atributos de cookie, timeout |
+| `wstg-input-validation` | 4.7 | SQLi, XSS, SSTI, injecao de comando |
+| `wstg-error-handling` | 4.8 | Divulgacao de erros, stack traces |
+| `wstg-cryptography` | 4.9 | Cifras fracas, padding oracle, exposicao de chaves |
+| `wstg-business-logic` | 4.10 | Bypass de fluxo de trabalho, condicoes de corrida |
+| `wstg-client-side` | 4.11 | DOM XSS, clickjacking, postMessage |
+| `wstg-api` | 4.12 | BOLA, mass assignment, limitacao de taxa |
+| `wstg-llm` | Personalizado | Injecao de prompt, ataques especificos de LLM |
+
+Cada especialista carrega skills WSTG (scripts de teste deterministicos) que executa contra requisicoes capturadas.
+
+## Escalation Hunter
+
+Apos os especialistas concluirem seus testes, o [`escalation-hunter`](/docs/agents/escalation-hunter) executa sobre todas as descobertas para identificar vulnerabilidades encadeadas e escalar o impacto.
+
+## Permissoes
+
+O orquestrador `wstg-agent` tem um conjunto restrito de permissoes:
+
+- Pode criar tarefas (despachar especialistas)
+- Pode ler contexto da sessao e notas de cobertura
+- Pode verificar status da metodologia e escopo
+- Nao pode realizar testes diretos ou reportar vulnerabilidades

@@ -55,6 +55,12 @@ delete process.env["FIREWORKS_API_KEY"]
 delete process.env["CEREBRAS_API_KEY"]
 delete process.env["SAMBANOVA_API_KEY"]
 
+// Active injection probing SENDS real payloads over the network (vortex-bridge probeSender → send()).
+// It is ON by default in production (#79); force it OFF in tests so the ingest path stays hermetic —
+// no real network sends to fixture hosts (which would hang on DNS/timeout). Tests that exercise probe
+// logic do so directly with mock senders, not through this env-gated auto-probe.
+process.env["CYBERSTRIKE_VORTEX_ACTIVE_PROBE"] = "0"
+
 // Now safe to import from src/
 const { Log } = await import("../src/util/log")
 

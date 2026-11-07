@@ -9,8 +9,6 @@
   document.documentElement.dataset.theme = themeId
   document.documentElement.dataset.colorScheme = mode
 
-  if (themeId === "cs-1") return
-
   var css = localStorage.getItem("cyberstrike-theme-css-" + themeId + "-" + mode)
   if (css) {
     var style = document.createElement("style")

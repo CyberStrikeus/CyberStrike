@@ -1,0 +1,177 @@
+---
+title: Installation
+description: Cyberstrike ueber npm oder curl installieren
+sidebar:
+  order: 2
+  label: Installation
+---
+
+Cyberstrike kann ueber mehrere Paketmanager installiert werden. Waehlen Sie die Methode, die am besten zu Ihrer Entwicklungsumgebung passt.
+
+<div className="rounded-lg overflow-hidden my-6 border border-gray-200 dark:border-gray-700">
+  <img src="/docs/images/screenshots/s01-installation.png" alt="Cyberstrike TUI nach der Installation" className="w-full" />
+</div>
+
+## npm (Empfohlen)
+
+Die empfohlene Installationsmethode fuer die meisten Benutzer.
+
+```bash
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+Installation ueberpruefen:
+
+```bash
+cyberstrike --version
+```
+
+## Bun <Badge text="Demnächst" variant="caution" size="md" />
+
+Bun-Unterstuetzung ist noch nicht verfuegbar.
+
+## Homebrew (macOS) <Badge text="Demnächst" variant="caution" size="md" />
+
+Homebrew-Unterstuetzung ist noch nicht verfuegbar.
+
+## curl (Linux/macOS)
+
+Direkte Installation ueber Shell-Skript:
+
+```bash
+curl -fsSL https://cyberstrike.io/install | bash
+```
+
+## iwr (Windows/Powershell)
+
+Fuehren Sie das Installationsskript aus:
+
+```bash
+iwr -useb https://cyberstrike.io/install.ps1 | iex
+```
+
+
+<Aside variant="caution">
+  Ueberpruefen Sie Installationsskripte immer, bevor Sie sie ausfuehren. Die Skriptquelle ist verfuegbar unter [github.com/CyberStrikeus/CyberStrike](https://github.com/CyberStrikeus/CyberStrike).
+</Aside>
+
+## Docker
+
+<Aside variant="caution">
+  Das Docker-Image kommt bald. Verwenden Sie vorerst npm oder curl.
+</Aside>
+
+
+## Installation ueberpruefen
+
+Ueberpruefen Sie nach der Installation, ob Cyberstrike funktioniert:
+
+```bash
+# Version pruefen
+cyberstrike --version
+
+# Verfuegbare Befehle auflisten
+cyberstrike --help
+```
+
+Sie sollten das Cyberstrike-Banner und die Versionsnummer sehen, gefolgt von einer Liste verfuegbarer Befehle.
+
+## Cyberstrike aktualisieren
+
+Auf die neueste Version aktualisieren:
+
+```bash
+# npm
+npm update -g @cyberstrike-io/cyberstrike@latest
+
+# Selbst-Aktualisierung (empfohlen)
+cyberstrike upgrade
+```
+
+## Deinstallation
+
+Cyberstrike von Ihrem System entfernen:
+
+```bash
+# npm
+npm uninstall -g @cyberstrike-io/cyberstrike@latest
+```
+
+Die Konfiguration ist in `~/.config/cyberstrike/` gespeichert (Anmeldedaten befinden sich in `~/.local/share/cyberstrike/`) und kann bei Bedarf manuell entfernt werden.
+
+## Fehlerbehebung
+
+### Befehl nicht gefunden
+
+Wenn `cyberstrike` nach der Installation nicht gefunden wird:
+
+1. Pruefen Sie, ob Ihr PATH das globale npm-Bin-Verzeichnis enthaelt
+2. Starten Sie Ihr Terminal neu
+3. Fuehren Sie `npm bin -g` aus, um den globalen Bin-Pfad zu finden
+
+### Berechtigungsfehler
+
+Unter Linux/macOS, wenn Berechtigungsfehler auftreten:
+
+```bash
+# npm-Berechtigungen beheben
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Versionskonflikte
+
+Wenn Sie mehrere Node-Versionen haben:
+
+```bash
+# nvm zur Versionsverwaltung verwenden
+nvm use 20
+npm install -g @cyberstrike-io/cyberstrike@latest
+```
+
+### Firmennetzwerke (SSL-Inspektion / Zscaler)
+
+In einem Firmennetzwerk mit einem SSL-Inspektions-Proxy (Zscaler, Netskope und aehnliche) wird ausgehender HTTPS-Verkehr abgefangen und mit dem firmeneigenen Stammzertifikat neu signiert. Wenn Cyberstrike diesem Zertifikat nicht vertraut, schlaegt die TLS-Verifizierung fehl und Sie sehen Fehler wie:
+
+```
+error: unable_to_get_issuer_cert_locally  downloading package manifest @cyberstrike-io/plugin
+hackbrowser:navigator  TypeError: unable to get local issuer certificate — planPage failed, retrying once
+```
+
+Der HackBrowser-Crawler ist besonders betroffen: Seine Planer-Aufrufe schlagen fehl, sodass der Crawl nur wenige Seiten erkundet und fruehzeitig stoppt.
+
+**Loesung — Vertrauen Sie Ihrem Firmen-Stammzertifikat ueber `NODE_EXTRA_CA_CERTS`.** Das Firmenstammzertifikat ist bereits in Ihrem OS-Vertrauensspeicher (deshalb funktioniert Ihr Browser), exportieren Sie also den Speicher in ein PEM-Bundle und verweisen Sie Cyberstrike darauf. Dies wird automatisch an den HackBrowser-Worker weitergegeben.
+
+**Windows (PowerShell)** — Exportieren Sie jedes Maschinen-Stammzertifikat (das Firmenzertifikat ist enthalten, keine Identifizierung noetig):
+
+```powershell
+$out = "$env:USERPROFILE\corp-ca.pem"
+Get-ChildItem Cert:\LocalMachine\Root | ForEach-Object {
+  "-----BEGIN CERTIFICATE-----"
+  [Convert]::ToBase64String($_.RawData, 'InsertLineBreaks')
+  "-----END CERTIFICATE-----"
+} | Set-Content -Encoding ascii $out
+
+$env:NODE_EXTRA_CA_CERTS = $out       # aktuelle Sitzung
+setx NODE_EXTRA_CA_CERTS "$out"       # fuer neue Sitzungen beibehalten
+```
+
+**macOS**:
+
+```bash
+security find-certificate -a -p /Library/Keychains/System.keychain > ~/corp-ca.pem
+security find-certificate -a -p /System/Library/Keychains/SystemRootCertificates.keychain >> ~/corp-ca.pem
+export NODE_EXTRA_CA_CERTS=~/corp-ca.pem
+```
+
+Fuehren Sie dann Cyberstrike in derselben Shell aus. Die `unable to get local issuer certificate`-Fehler sollten verschwinden und Crawls sollten vollstaendig durchlaufen.
+
+<Aside variant="tip">
+  Schnellpruefung: `Get-ChildItem Cert:\LocalMachine\Root | Where-Object { $_.Subject -like "*Zscaler*" }` (Windows) bestaetigt, dass das Firmenstammzertifikat im Speicher vorhanden ist, bevor Sie es exportieren.
+</Aside>
+
+<Aside variant="caution">
+  Als letzter Ausweg deaktiviert `NODE_TLS_REJECT_UNAUTHORIZED=0` die Zertifikatsverifizierung vollstaendig und umgeht ebenfalls den Fehler — allerdings wird die TLS-Validierung fuer alle Verbindungen deaktiviert, daher ist es **nicht** fuer den regulaeren Gebrauch empfohlen. Bevorzugen Sie `NODE_EXTRA_CA_CERTS`.
+</Aside>

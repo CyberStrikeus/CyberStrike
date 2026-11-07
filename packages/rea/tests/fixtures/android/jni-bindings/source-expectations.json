@@ -1,0 +1,127 @@
+{
+  "scope": "Handwritten source oracle; static APK containers are never loaded or executed.",
+  "native_declarations": [
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "plain_export",
+      "descriptor": "()I",
+      "basis": "export",
+      "symbol": "Java_fixture_jni_Bindings_plain_1export",
+      "per_abi_status": "matched"
+    },
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "over_load",
+      "descriptor": "(I)I",
+      "basis": "export",
+      "symbol": "Java_fixture_jni_Bindings_over_1load__I",
+      "per_abi_status": "matched"
+    },
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "over_load",
+      "descriptor": "([Ljava/lang/String;)I",
+      "basis": "export",
+      "symbol": "Java_fixture_jni_Bindings_over_1load___3Ljava_lang_String_2",
+      "per_abi_status": "matched"
+    },
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "方法𐐀",
+      "descriptor": "([I)I",
+      "basis": "export",
+      "symbol": "Java_fixture_jni_Bindings__065b9_06cd5_0d801_0dc00",
+      "per_abi_status": "matched"
+    },
+    {
+      "class": "fixture.jni.原名𐐀",
+      "name": "入口_方法",
+      "descriptor": "()I",
+      "basis": "export",
+      "symbol": "Java_fixture_jni__0539f_0540d_0d801_0dc00__05165_053e3_1_065b9_06cd5",
+      "per_abi_status": "matched"
+    },
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "sharedExport",
+      "descriptor": "()I",
+      "basis": "export",
+      "symbol": "Java_fixture_jni_Bindings_sharedExport",
+      "per_abi_status": "ambiguous",
+      "libraries": ["libfixture.so", "libduplicate.so"]
+    },
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "registeredData",
+      "descriptor": "(I)I",
+      "basis": "table",
+      "table_symbol": "data_methods",
+      "entry_index": 0,
+      "function_symbol": "data_impl",
+      "per_abi_status": "matched"
+    },
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "registeredRelro",
+      "descriptor": "([B)J",
+      "basis": "table",
+      "table_symbol": "relro_methods",
+      "entry_index": 0,
+      "function_symbol": "relro_impl",
+      "per_abi_status": "matched"
+    },
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "registered_表𐐀",
+      "descriptor": "(Ljava/lang/String;)I",
+      "basis": "table",
+      "table_symbol": "data_methods",
+      "entry_index": 2,
+      "function_symbol": "unicode_impl",
+      "per_abi_status": "matched"
+    },
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "ambiguous",
+      "descriptor": "(I)I",
+      "basis": "table",
+      "table_symbol": "data_methods",
+      "entry_index": 1,
+      "function_symbol": "ambiguous_impl",
+      "per_abi_status": "ambiguous",
+      "candidate_classes": ["fixture.jni.Bindings", "fixture.jni.Twin"]
+    },
+    {
+      "class": "fixture.jni.Twin",
+      "name": "ambiguous",
+      "descriptor": "(I)I",
+      "basis": "table",
+      "table_symbol": "data_methods",
+      "entry_index": 1,
+      "function_symbol": "ambiguous_impl",
+      "per_abi_status": "ambiguous",
+      "candidate_classes": ["fixture.jni.Bindings", "fixture.jni.Twin"]
+    },
+    {
+      "class": "fixture.jni.Bindings",
+      "name": "unmatched",
+      "descriptor": "()V",
+      "basis": null,
+      "per_abi_status": "unmatched"
+    }
+  ],
+  "tables": [
+    { "symbol": "data_methods", "section": ".data", "entries": 3 },
+    { "symbol": "relro_methods", "section": ".data.rel.ro", "entries": 1 }
+  ],
+  "variants": {
+    "ordinary": {
+      "arm64-v8a": "RELA",
+      "x86_64": "RELA",
+      "armeabi-v7a": "REL",
+      "x86": "REL"
+    },
+    "relr": "DT_RELR; verify actual tags and encoded slots from readelf and bytes",
+    "aps2": "Android APS2 packed REL/RELA; deliberately unsupported by the REA feature, with explicit coverage unknown"
+  }
+}

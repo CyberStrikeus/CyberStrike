@@ -1,0 +1,249 @@
+{
+  "base_revision": "e598b4656ad90d59ede2d10454a0ac34f3813558",
+  "scope": "Canonical effect metadata only; real static Obsidian reads, no target execution",
+  "baseline_source_sha256": {
+    "src/contracts/toolEffects.ts": "39505b5f1501768515229a37ff67e8a1a512faedfb6669aee7a690a2ac3ac633",
+    "src/javascript/analysis/JavaScriptAnalysisWorker.ts": "49ea4e6344060fae3529ffe6e14bfadc534132067cfa5c370263dc7476375be0",
+    "scripts/verify/javascript/module-references.mjs": "9d5f0b8b35ed2ebb4591f9dc3baea0fc116a0c3fd7d8e5ce30ec476c84671ed1"
+  },
+  "final_source_sha256": {
+    "src/contracts/toolEffects.ts": "feb66f1b71c4a6849d1730227c9c74e4efbb67b4537d75fd41ce9ff615c25753",
+    "src/javascript/analysis/JavaScriptAnalysisWorker.ts": "49ea4e6344060fae3529ffe6e14bfadc534132067cfa5c370263dc7476375be0",
+    "scripts/verify/javascript/module-references.mjs": "9d5f0b8b35ed2ebb4591f9dc3baea0fc116a0c3fd7d8e5ce30ec476c84671ed1",
+    "tests/boundary/mcp/electronMcp.test.ts": "e483bec8512cfeafa7f951c8faf25e1aecd6e6987ea74aead14230501912928d",
+    "tests/boundary/mcp/toolSchemaValidity.test.ts": "ab6d9ba37035a6ff9279b820aa8660c50a3ef9f31d25f838c0ba40929148e89c"
+  },
+  "cohorts": {
+    "baseline": {
+      "metadata": {
+        "tool": "analyze_javascript_application",
+        "advertised_annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "session_effects": ["mutatesSession", "idempotent"],
+        "session_annotations": ["idempotent"],
+        "catalog_tool_count": 207
+      },
+      "metadata_probe_resources": {
+        "elapsed_seconds": 10.711,
+        "cpu_seconds": 10.503415,
+        "peak_cgroup_bytes": 842891264,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      },
+      "real_workflow": {
+        "artifact": {
+          "path": "/tmp/rea-codemode-experiment-20261015/artifacts/obsidian-1.14.4.asar",
+          "sha256": "146ef8470d8cbb4a6db209bdc19bf2bad13350444186c0fd93c31087b142b92f"
+        },
+        "parent_evidence_id": "ev_73ef06e3b9b944f54c5257f7960279127d8518d2a73cd8618bd045dbe44e6b5a",
+        "samples": [
+          {
+            "round": 0,
+            "mode": "references",
+            "elapsed_ms": 109.19401700000162,
+            "calls": 1,
+            "structured_reply_bytes": 22158,
+            "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+            "matching_modules": 23,
+            "coverage": {
+              "status": "page",
+              "examined": 23,
+              "total": 23,
+              "next_offset": null,
+              "exhausted": true
+            }
+          }
+        ],
+        "token_costs": {
+          "tokenizer": "cl100k_base",
+          "tiktoken_version": "0.12.0",
+          "costs": {
+            "references": {
+              "selected_catalog": 7977,
+              "full_catalog": 195522,
+              "common_request": 53,
+              "common_summary": 2675,
+              "requests": 102,
+              "structured_replies": 5741,
+              "selected_catalog_task_total": 16548,
+              "full_catalog_task_total": 204093
+            }
+          }
+        },
+        "cli_parity": {
+          "evidence_id": "ev_b3586dfdf7d4f01157f8f2978326aaa7103987110f2df4fa5bf3331ff2898749",
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "exact_cli_mcp_view_parity": true
+        }
+      },
+      "real_workflow_resources": {
+        "elapsed_seconds": 30.47,
+        "cpu_seconds": 29.939807,
+        "peak_cgroup_bytes": 1551282176,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    },
+    "final": {
+      "metadata": {
+        "tool": "analyze_javascript_application",
+        "advertised_annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        },
+        "session_effects": [
+          "mutatesSession",
+          "writesFilesystem",
+          "launchesProcess",
+          "idempotent"
+        ],
+        "session_annotations": ["idempotent", "open_world"],
+        "catalog_tool_count": 207
+      },
+      "metadata_probe_resources": {
+        "elapsed_seconds": 10.909,
+        "cpu_seconds": 10.664997,
+        "peak_cgroup_bytes": 853958656,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      },
+      "real_workflow": {
+        "artifact": {
+          "path": "/tmp/rea-codemode-experiment-20261015/artifacts/obsidian-1.14.4.asar",
+          "sha256": "146ef8470d8cbb4a6db209bdc19bf2bad13350444186c0fd93c31087b142b92f"
+        },
+        "parent_evidence_id": "ev_73ef06e3b9b944f54c5257f7960279127d8518d2a73cd8618bd045dbe44e6b5a",
+        "samples": [
+          {
+            "round": 0,
+            "mode": "references",
+            "elapsed_ms": 110.17946600000141,
+            "calls": 1,
+            "structured_reply_bytes": 22158,
+            "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+            "matching_modules": 23,
+            "coverage": {
+              "status": "page",
+              "examined": 23,
+              "total": 23,
+              "next_offset": null,
+              "exhausted": true
+            }
+          }
+        ],
+        "token_costs": {
+          "tokenizer": "cl100k_base",
+          "tiktoken_version": "0.12.0",
+          "costs": {
+            "references": {
+              "selected_catalog": 7977,
+              "full_catalog": 195522,
+              "common_request": 53,
+              "common_summary": 2675,
+              "requests": 102,
+              "structured_replies": 5741,
+              "selected_catalog_task_total": 16548,
+              "full_catalog_task_total": 204093
+            }
+          }
+        },
+        "cli_parity": {
+          "evidence_id": "ev_b3586dfdf7d4f01157f8f2978326aaa7103987110f2df4fa5bf3331ff2898749",
+          "facts_sha256": "d3be5e91d2ec3fd9a95851cfbbdef9c168bb4c7153f78810b8b235e005401299",
+          "exact_cli_mcp_view_parity": true
+        }
+      },
+      "real_workflow_resources": {
+        "elapsed_seconds": 31.059,
+        "cpu_seconds": 30.663163,
+        "peak_cgroup_bytes": 1584574464,
+        "payload_cleanup_verified": true,
+        "events_at_payload_exit": {
+          "memory.events": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "pids.events": {
+            "max": 0
+          }
+        }
+      }
+    }
+  },
+  "conditions": "Separate fresh MCP sessions, uncontrolled warm filesystem/build and shared-host scheduling. One CPU, 8 GiB hard cap, 6 GiB early stop, no swap. Resource counters are at payload exit with the observer alive, not final whole-scope counters; memory includes charged file cache, not summed RSS. Whole real-verifier resources include analysis, export, CLI parity and tokenizer; metadata probe resources are separate. Static BPE uses name/description/inputSchema catalog projections plus requests/structured replies, excludes annotations, metadata-probe calls, rendering/replay/reasoning/final-answer/model usage. No performance improvement or equivalence bound established by one before/after pair.",
+  "regressions": {
+    "baseline": "20 executed: 2 expected metadata failures, 18 passed",
+    "final": "27 passed after the test ownership cleanup across canonical effects and MCP/catalog boundaries",
+    "interim_correction": "26 passed before metadata assertions were split into their own target-free case to satisfy function-size lint"
+  },
+  "selected_input": {
+    "input_path": "/tmp/rea-codemode-experiment-20261015/artifacts/obsidian-1.14.4.asar",
+    "detail": "summary",
+    "source_paths": ["package.json", "main.js"]
+  },
+  "selected_view": {
+    "kind": "javascript",
+    "collection": "modules",
+    "projection": "references",
+    "where": {
+      "path": "main.js",
+      "kind": "javascript-module"
+    }
+  },
+  "observer_sources_sha256": {
+    "resource-run.py": "7728862171415e7dee2c11af2ead2b9a54265fccaf82a7113956d36b29065e33",
+    "resource_payload.py": "6f089e645459eba80c5d73e39c21606c78173a44daf49fabc3b88c4631ce51c6"
+  },
+  "runtime": {
+    "platform": "Linux x64",
+    "node": "24.18.0",
+    "npm": "11.16.0",
+    "tiktoken": "0.12.0"
+  }
+}

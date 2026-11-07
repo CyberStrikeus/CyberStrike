@@ -1,0 +1,21 @@
+---
+title: Plugin hook execution flow
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 30
+    nodeSpacing: 26
+    padding: 12
+---
+flowchart TD
+    P["Plugin: (input) =&gt; Hooks"]:::plugin --> LLM["LLM call"]
+    LLM --> H1["chat.params · chat.headers<br/>modify params / headers"]:::hook
+    H1 --> DEC["Agent picks a tool"]
+    DEC --> H2["permission.ask<br/>allow · deny · ask"]:::hook
+    H2 -->|allow| H3["tool.execute.before<br/>modify args · throw = block"]:::hook
+    H3 --> RUN["Tool runs"]
+    RUN --> H4["tool.execute.after<br/>transform output"]:::hook
+    H4 --> R["Result to agent"]
+
+    classDef plugin fill:#0b1220,stroke:#00d4ff,stroke-width:2px,color:#00d4ff;
+    classDef hook fill:#0b1220,stroke:#00ff88,color:#00ff88;

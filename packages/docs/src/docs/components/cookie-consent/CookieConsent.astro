@@ -1,0 +1,92 @@
+---
+/**
+ * * A cookie consent banner for users to accept or decline cookies
+ * Typically, you setup analytics to not use cookies by default, and update it if the user accepts cookies
+ * You will need to update the javascript to match your analytics setup for accepting cookies
+ *
+ * Useful resources related to analytics / cookies:
+ * - Setup GA4 and GTM: https://webreaper.dev/posts/astro-google-tag-manager-ga4/
+ * - Cookie consent with GA4: https://webreaper.dev/posts/google-tag-manager-cookie-consent/
+ */
+
+import Button from "@/docs/components/button/Button.astro";
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+import { getLocalizedRoute } from "@/docs/js/translationUtils";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+---
+
+<div id="accept-banner" class="fixed inset-x-6 bottom-6 z-50 hidden justify-center">
+  <div
+    class="bg-muted flex flex-wrap items-center justify-center gap-x-6 gap-y-4 rounded-xl border p-4"
+  >
+    <div class="docs-markdown-content text-center">
+      <p class="text-sm lg:text-base">
+        We use cookies to improve your experience on this site. To learn more, see our <a
+          href={getLocalizedRoute(currLocale, "/privacy-policy")}
+          class="">Privacy Policy</a
+        >.
+      </p>
+    </div>
+    <div class="mx-auto flex gap-2">
+      <Button variant="secondary" type="button" class="min-w-0 px-6 py-2">Accept</Button>
+      <Button variant="ghost" type="button" class="min-w-0 px-6 py-2">Decline</Button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // checks the "cookie-consent" cookie
+  function getCookieConsent() {
+    try {
+      //@ts-ignore (it's in a try catch for a reason)
+      const consent = document.cookie.match(/cookie-consent=([^;]+)/)[1];
+      return consent;
+    } catch (error) {
+      return "unk";
+    }
+  }
+
+  function cookieConsentSetup() {
+    const cookieBanner = document.getElementById("accept-banner");
+    const acceptButton = document.querySelector("#accept-banner button:first-of-type");
+    const declineButton = document.querySelector("#accept-banner button:last-of-type");
+
+    // Check if the user has already accepted or declined cookies
+    const cookieConsent = getCookieConsent();
+
+    // If the user has not already accepted or declined cookies, reveal the banner
+    if (cookieConsent !== "accept" && cookieConsent !== "decline") {
+      cookieBanner?.classList.add("flex");
+      cookieBanner?.classList.remove("hidden");
+    }
+
+    // If the user clicks the accept button, hide the banner and set a cookie
+    acceptButton?.addEventListener("click", () => {
+      cookieBanner?.classList.add("hidden");
+      // accepted cookie only lasts for the session
+      document.cookie = "cookie-consent=accept; path=/";
+      // example of cookies lasting for a year (might be limited by browser settings)
+      // let d = new Date();
+      // let oneYear = new Date(d.getFullYear() + 1, d.getMonth(), d.getDate());
+      // document.cookie = "cookie-consent=granted; expires=" + oneYear + "; path=/";
+
+      // call global function (head defined) to update GA4 or other analytics
+      // Example here https://webreaper.dev/posts/google-tag-manager-cookie-consent/
+      // consentGranted();
+    });
+
+    // If the user clicks the decline button, hide the banner and set a cookie
+    declineButton?.addEventListener("click", () => {
+      cookieBanner?.classList.add("hidden");
+      // declined cookie only lasts for the session
+      document.cookie = "cookie-consent=decline; path=/";
+    });
+  }
+
+  // runs on initial page load
+  cookieConsentSetup();
+
+  // runs on view transitions navigation
+  document.addEventListener("astro:after-swap", cookieConsentSetup);
+</script>

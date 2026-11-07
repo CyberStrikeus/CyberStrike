@@ -1,0 +1,190 @@
+---
+title: CLI
+description: Интерфейс командной строки для неинтерактивных оценок безопасности
+sidebar:
+  order: 2
+  label: CLI
+---
+
+CyberStrike CLI по умолчанию запускает [TUI](/docs/usage/tui) при вызове без аргументов. Также принимает команды для неинтерактивного и программного использования.
+
+```bash
+# Запуск интерактивного TUI
+cyberstrike
+
+# Выполнение одного запроса
+cyberstrike run "scan example.com for open ports"
+```
+
+{/* TODO: Video — CLI run command executing a security prompt and streaming output */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-run-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Неинтерактивная команда run с потоковым выводом агента (~12 сек)</p>
+</div>
+
+## Доступные команды
+
+| Команда | Описание |
+|---------|----------|
+| `run` | Неинтерактивный режим с прямым запросом |
+| `serve` | Headless HTTP-сервер для API-доступа |
+| `web` | Headless-сервер с [веб-интерфейсом](/docs/usage/web) |
+| `attach` | Подключение TUI к работающему серверу |
+| `auth` | Управление учётными данными и авторизация провайдеров |
+| `agent` | Управление агентами безопасности |
+| `mcp` | Управление MCP-серверами |
+| `models` | Список доступных моделей провайдеров |
+| `session` | Управление сессиями |
+| `stats` | Отображение статистики использования токенов и затрат |
+| `export` | Экспорт данных сессии в JSON |
+| `import` | Импорт из JSON-файла или URL общего доступа |
+| `upgrade` | Обновление до последней или указанной версии |
+| `uninstall` | Удаление CyberStrike и связанных файлов |
+
+## Глобальные флаги
+
+| Флаг | Псевдоним | Описание |
+|------|-----------|----------|
+| `--help` | `-h` | Показать справку |
+| `--version` | `-v` | Показать версию |
+| `--print-logs` | | Вывод логов в stderr |
+| `--log-level` | | Установить уровень: `DEBUG`, `INFO`, `WARN`, `ERROR` |
+
+## run
+
+Выполнение одного запроса без входа в интерактивный режим.
+
+```bash
+cyberstrike run [message..] [options]
+```
+
+### Опции
+
+| Опция | Псевдоним | Описание |
+|-------|-----------|----------|
+| `--model <model>` | `-m` | Модель в формате `provider/model` |
+| `--agent <name>` | | Агент безопасности |
+| `--continue` | `-c` | Продолжить последнюю сессию |
+| `--session <id>` | `-s` | Возобновить конкретную сессию |
+| `--file <path>` | `-f` | Прикрепить файл(ы) к сообщению |
+| `--format <type>` | | Формат вывода: `default` или `json` |
+| `--share` | | Поделиться сессией |
+| `--title <text>` | | Задать заголовок сессии |
+| `--variant <type>` | | Вариант модели (`high`, `max`, `minimal`) |
+
+### Примеры
+
+```bash
+# Запуск сканирования безопасности
+cyberstrike run "scan example.com for XSS vulnerabilities"
+
+# Прикрепление файла конфигурации для ревью
+cyberstrike run "analyze this config for misconfigurations" -f nginx.conf
+
+# Вывод в JSON для интеграции с конвейером
+cyberstrike run "list all open ports" --format json
+
+# Продолжение предыдущей сессии
+cyberstrike run "now check for SQLi" --continue
+```
+
+{/* TODO: Screenshot — CLI JSON output format example */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">SCREENSHOT: cli-json-output.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Структурированный JSON-вывод с флагом --format json</p>
+</div>
+
+### Передача ввода через pipe
+
+Приём ввода из stdin для интеграции с другими инструментами:
+
+```bash
+echo "analyze this code for vulnerabilities" | cyberstrike run
+nmap -sV target.local | cyberstrike run "analyze these scan results"
+cat report.json | cyberstrike run "summarize findings"
+```
+
+## serve
+
+Запуск headless HTTP API-сервера без UI. Полезно для интеграций, CI/CD-конвейеров и удалённого доступа.
+
+```bash
+cyberstrike serve [options]
+```
+
+| Опция | Описание |
+|-------|----------|
+| `--port <number>` | Порт сервера (по умолчанию: случайный свободный) |
+| `--hostname <address>` | Адрес привязки (по умолчанию: `127.0.0.1`) |
+
+<Aside variant="caution">
+  **Аутентификация:** установите `CYBERSTRIKE_SERVER_PASSWORD` при предоставлении доступа к серверу по сети. Без пароля сервер незащищён.
+</Aside>
+
+```bash
+# Запуск API-сервера на порту 4096
+CYBERSTRIKE_SERVER_PASSWORD=secret cyberstrike serve --port 4096
+```
+
+{/* TODO: Video — Starting serve and piping nmap output into cyberstrike run */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">VIDEO: cli-pipe-demo.mp4</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Передача вывода nmap в cyberstrike run для анализа (~10 сек)</p>
+</div>
+
+## attach
+
+Подключение TUI к уже запущенному серверу CyberStrike. Позволяет нескольким терминалам работать с одними сессиями.
+
+```bash
+cyberstrike attach <url>
+```
+
+```bash
+# Запуск сервера в первом терминале
+cyberstrike web --port 4096
+
+# Подключение из другого терминала
+cyberstrike attach http://localhost:4096
+```
+
+## upgrade
+
+Обновление CyberStrike до последней версии или конкретной целевой.
+
+```bash
+# Обновление до последней стабильной
+cyberstrike upgrade
+
+# Обновление до конкретной версии
+cyberstrike upgrade 1.1.6
+
+# Обновление до последней бета-версии
+cyberstrike upgrade --method npm
+```
+
+Поддерживаемые методы: `curl`, `npm`, `pnpm`, `bun`, `brew`, `choco`, `scoop`.
+
+## Переменные окружения
+
+| Переменная | Описание |
+|------------|----------|
+| `CYBERSTRIKE_PROVIDER` | AI-провайдер по умолчанию |
+| `CYBERSTRIKE_MODEL` | Модель по умолчанию |
+| `CYBERSTRIKE_AGENT` | Агент безопасности по умолчанию |
+| `CYBERSTRIKE_SERVER_PASSWORD` | Пароль аутентификации сервера |
+| `CYBERSTRIKE_SERVER_USERNAME` | Имя пользователя сервера (по умолчанию: `cyberstrike`) |
+| `CYBERSTRIKE_DISABLE_AUTOUPDATE` | Отключение автоматической проверки обновлений |
+| `CYBERSTRIKE_TUI_CONFIG` | Путь к пользовательской конфигурации TUI |
+| `ANTHROPIC_API_KEY` | API-ключ Anthropic |
+| `OPENAI_API_KEY` | API-ключ OpenAI |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | API-ключ Google AI (Gemini) |
+| `OPENROUTER_API_KEY` | API-ключ OpenRouter |
+
+## Коды выхода
+
+| Код | Значение |
+|-----|----------|
+| `0` | Успех |
+| `1` | Ошибка — недопустимые/неизвестные аргументы или критическая ошибка |
+| `130` | Прервано (Ctrl+C) |

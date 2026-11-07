@@ -1,0 +1,20 @@
+---
+title: How a tool becomes available
+config:
+  flowchart:
+    htmlLabels: false
+    rankSpacing: 32
+    nodeSpacing: 28
+    padding: 12
+---
+flowchart TD
+    A["Agent needs a tool"]:::start --> B{"Built-in tool?"}
+    B -->|yes| C["Call directly<br/>bash · read · edit · …"]:::ok
+    B -->|no — it is an MCP tool| D["tool_search<br/>find by capability"]:::dyn
+    D --> E["load_tools<br/>load into context"]:::dyn
+    E --> F["Now callable"]:::ok
+    F --> G["unload_tools<br/>free the context"]:::dyn
+
+    classDef start fill:#0b1220,stroke:#00d4ff,stroke-width:2px,color:#00d4ff;
+    classDef ok fill:#0b1220,stroke:#00ff88,color:#00ff88;
+    classDef dyn fill:#0b1220,stroke:#9fb3c8,color:#9fb3c8;

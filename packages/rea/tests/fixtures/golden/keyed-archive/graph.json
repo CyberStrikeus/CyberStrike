@@ -1,0 +1,176 @@
+{
+  "archive_format": "xml-plist",
+  "roots": {
+    "root": {
+      "CF$UID": 1
+    }
+  },
+  "objects": [
+    {
+      "id": 0,
+      "kind": "nil",
+      "class_id": null,
+      "class_name": null,
+      "status": "nil",
+      "value": "$null"
+    },
+    {
+      "id": 1,
+      "kind": "archived-object",
+      "class_id": 5,
+      "class_name": "NSArray",
+      "status": "unknown-class",
+      "value": {
+        "$class": {
+          "CF$UID": 5
+        },
+        "NS.objects": [
+          {
+            "CF$UID": 2
+          },
+          {
+            "CF$UID": 2
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "kind": "archived-object",
+      "class_id": 4,
+      "class_name": "main.ReaArchiveRecord",
+      "status": "unknown-class",
+      "value": {
+        "$class": {
+          "CF$UID": 4
+        },
+        "conditional": {
+          "CF$UID": 0
+        },
+        "cycle": {
+          "CF$UID": 2
+        },
+        "payload": {
+          "CF$UID": 3
+        }
+      }
+    },
+    {
+      "id": 3,
+      "kind": "scalar",
+      "class_id": null,
+      "class_name": null,
+      "status": "observed",
+      "value": {
+        "$plist_type": "data",
+        "base64": "AAEC/w=="
+      }
+    },
+    {
+      "id": 4,
+      "kind": "class-descriptor",
+      "class_id": null,
+      "class_name": null,
+      "status": "observed",
+      "value": {
+        "$classes": ["main.ReaArchiveRecord", "NSObject"],
+        "$classname": "main.ReaArchiveRecord"
+      }
+    },
+    {
+      "id": 5,
+      "kind": "class-descriptor",
+      "class_id": null,
+      "class_name": null,
+      "status": "observed",
+      "value": {
+        "$classes": ["NSArray", "NSObject"],
+        "$classname": "NSArray"
+      }
+    }
+  ],
+  "references": [
+    {
+      "source": null,
+      "path": ["root"],
+      "target": 1,
+      "raw": {
+        "CF$UID": 1
+      },
+      "status": "resolved"
+    },
+    {
+      "source": 1,
+      "path": ["$class"],
+      "target": 5,
+      "raw": {
+        "CF$UID": 5
+      },
+      "status": "resolved"
+    },
+    {
+      "source": 1,
+      "path": ["NS.objects", 0],
+      "target": 2,
+      "raw": {
+        "CF$UID": 2
+      },
+      "status": "resolved"
+    },
+    {
+      "source": 1,
+      "path": ["NS.objects", 1],
+      "target": 2,
+      "raw": {
+        "CF$UID": 2
+      },
+      "status": "resolved"
+    },
+    {
+      "source": 2,
+      "path": ["$class"],
+      "target": 4,
+      "raw": {
+        "CF$UID": 4
+      },
+      "status": "resolved"
+    },
+    {
+      "source": 2,
+      "path": ["conditional"],
+      "target": 0,
+      "raw": {
+        "CF$UID": 0
+      },
+      "status": "nil"
+    },
+    {
+      "source": 2,
+      "path": ["cycle"],
+      "target": 2,
+      "raw": {
+        "CF$UID": 2
+      },
+      "status": "resolved"
+    },
+    {
+      "source": 2,
+      "path": ["payload"],
+      "target": 3,
+      "raw": {
+        "CF$UID": 3
+      },
+      "status": "resolved"
+    }
+  ],
+  "total_objects": 6,
+  "total_references": 8,
+  "offset": 0,
+  "next_offset": null,
+  "truncated": false,
+  "limitations": [
+    "Archive classes are never instantiated. Class names and serialized fields are observed; class-specific semantics are unknown.",
+    "Conditional references serialized as UID 0 cannot be distinguished from ordinary nil references. Missing fields remain absent in the raw serialized value.",
+    "Root selection selects the named $top entry; object pagination retains original indices and does not recursively expand references."
+  ]
+}

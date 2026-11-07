@@ -1,0 +1,40 @@
+---
+title: Verwendung
+description: CyberStrike ueber Terminal, CLI und Web-Oberflaechen nutzen
+sidebar:
+  order: 1
+  label: Uebersicht
+---
+
+CyberStrike bietet mehrere Moeglichkeiten, mit dem Framework zu interagieren:
+
+- **[TUI](/docs/usage/tui)** — Interaktive Terminal-Oberflaeche mit Echtzeit-Agentenausgabe, Slash-Befehlen und Tastaturkuerzeln
+- **[CLI](/docs/usage/cli)** — Nicht-interaktiver Modus fuer Scripting, Pipelines und Automatisierung
+- **[Web](/docs/usage/web)** — Browserbasierte Oberflaeche mit Sitzungs-Tabs, Seitenpanels und integriertem Terminal
+- **[Desktop-App](/docs/usage/desktop-app)** — Native Anwendung fuer macOS, Windows und Linux *(demnächst verfügbar)*
+
+Jede Oberflaeche verbindet sich mit derselben zugrunde liegenden Engine und teilt Sitzungen, sodass Sie frei zwischen ihnen wechseln koennen.
+
+## Schnellstart
+
+```bash
+# Interaktive TUI (Standard)
+cyberstrike
+
+# Nicht-interaktive CLI
+cyberstrike run "scan example.com for open ports"
+
+# Web-Oberflaeche
+cyberstrike web
+```
+
+## Oberflaeche waehlen
+
+| Oberflaeche | Am besten fuer |
+|-------------|----------------|
+| TUI | Taegliche interaktive Bewertungen, Slash-Befehle, tastaturgesteuerter Workflow |
+| CLI | CI/CD-Pipelines, Scripting, Tool-Ausgabe weiterleiten |
+| Web | Teamzusammenarbeit, visuelle Seitenpanels, browserbasierte Workflows |
+| Desktop | Natives Erlebnis ohne Terminal *(demnächst verfügbar)* |
+
+Alle Oberflaechen unterstuetzen das volle Spektrum an Sicherheitsagenten, MCP-Tools und KI-Anbietern.

@@ -2,37 +2,33 @@ import { describe, test, expect } from "bun:test"
 import { testerClass, categoryInLane } from "../../../src/tool/vuln-scope"
 
 describe("testerClass", () => {
-  describe("recognized proxy-tester agents", () => {
-    test("proxy-tester-injection returns injection", () => {
-      expect(testerClass("proxy-tester-injection")).toBe("injection")
+  describe("recognized wstg-tester agents", () => {
+    test("wstg-input-validation returns input-validation", () => {
+      expect(testerClass("wstg-input-validation")).toBe("input-validation")
     })
 
-    test("proxy-tester-idor returns idor", () => {
-      expect(testerClass("proxy-tester-idor")).toBe("idor")
+    test("wstg-authorization returns authorization", () => {
+      expect(testerClass("wstg-authorization")).toBe("authorization")
     })
 
-    test("proxy-tester-ssrf returns ssrf", () => {
-      expect(testerClass("proxy-tester-ssrf")).toBe("ssrf")
+    test("wstg-authentication returns authentication", () => {
+      expect(testerClass("wstg-authentication")).toBe("authentication")
     })
 
-    test("proxy-tester-authn returns authn", () => {
-      expect(testerClass("proxy-tester-authn")).toBe("authn")
+    test("wstg-session-mgmt returns session-mgmt", () => {
+      expect(testerClass("wstg-session-mgmt")).toBe("session-mgmt")
     })
 
-    test("proxy-tester-authz returns authz", () => {
-      expect(testerClass("proxy-tester-authz")).toBe("authz")
+    test("wstg-business-logic returns business-logic", () => {
+      expect(testerClass("wstg-business-logic")).toBe("business-logic")
     })
 
-    test("proxy-tester-file-attacks returns file-attacks", () => {
-      expect(testerClass("proxy-tester-file-attacks")).toBe("file-attacks")
+    test("wstg-config-deploy returns config-deploy", () => {
+      expect(testerClass("wstg-config-deploy")).toBe("config-deploy")
     })
 
-    test("proxy-tester-mass-assignment returns mass-assignment", () => {
-      expect(testerClass("proxy-tester-mass-assignment")).toBe("mass-assignment")
-    })
-
-    test("proxy-tester-business-logic returns business-logic", () => {
-      expect(testerClass("proxy-tester-business-logic")).toBe("business-logic")
+    test("wstg-llm returns llm", () => {
+      expect(testerClass("wstg-llm")).toBe("llm")
     })
   })
 
@@ -45,12 +41,12 @@ describe("testerClass", () => {
       expect(testerClass("cyberstrike")).toBeUndefined()
     })
 
-    test("web-application agent", () => {
-      expect(testerClass("web-application")).toBeUndefined()
+    test("wstg-agent orchestrator", () => {
+      expect(testerClass("wstg-agent")).toBeUndefined()
     })
 
     test("unknown tester class", () => {
-      expect(testerClass("proxy-tester-unknown")).toBeUndefined()
+      expect(testerClass("wstg-unknown")).toBeUndefined()
     })
 
     test("empty string", () => {
@@ -61,38 +57,54 @@ describe("testerClass", () => {
 
 describe("categoryInLane", () => {
   describe("in-lane categories — returns true", () => {
-    test("injection + sqli", () => {
-      expect(categoryInLane("injection", "sqli")).toBe(true)
+    test("input-validation + sqli", () => {
+      expect(categoryInLane("input-validation", "sqli")).toBe(true)
     })
 
-    test("injection + xss", () => {
-      expect(categoryInLane("injection", "xss")).toBe(true)
+    test("input-validation + xss", () => {
+      expect(categoryInLane("input-validation", "xss")).toBe(true)
     })
 
-    test("idor + idor", () => {
-      expect(categoryInLane("idor", "idor")).toBe(true)
+    test("input-validation + ssrf", () => {
+      expect(categoryInLane("input-validation", "ssrf")).toBe(true)
     })
 
-    test("authn + jwt", () => {
-      expect(categoryInLane("authn", "jwt")).toBe(true)
+    test("input-validation + path traversal", () => {
+      expect(categoryInLane("input-validation", "path traversal")).toBe(true)
     })
 
-    test("file-attacks + lfi", () => {
-      expect(categoryInLane("file-attacks", "lfi")).toBe(true)
+    test("input-validation + mass assignment", () => {
+      expect(categoryInLane("input-validation", "mass assignment")).toBe(true)
+    })
+
+    test("authorization + idor", () => {
+      expect(categoryInLane("authorization", "idor")).toBe(true)
+    })
+
+    test("authorization + bola", () => {
+      expect(categoryInLane("authorization", "bola")).toBe(true)
+    })
+
+    test("authentication + jwt", () => {
+      expect(categoryInLane("authentication", "jwt")).toBe(true)
+    })
+
+    test("session-mgmt + csrf", () => {
+      expect(categoryInLane("session-mgmt", "csrf")).toBe(true)
     })
   })
 
   describe("out-of-lane categories — returns false", () => {
-    test("injection + idor", () => {
-      expect(categoryInLane("injection", "idor")).toBe(false)
+    test("input-validation + idor", () => {
+      expect(categoryInLane("input-validation", "idor")).toBe(false)
     })
 
-    test("idor + ssrf", () => {
-      expect(categoryInLane("idor", "ssrf")).toBe(false)
+    test("authorization + ssrf", () => {
+      expect(categoryInLane("authorization", "ssrf")).toBe(false)
     })
 
-    test("authn + path traversal", () => {
-      expect(categoryInLane("authn", "path traversal")).toBe(false)
+    test("authentication + path traversal", () => {
+      expect(categoryInLane("authentication", "path traversal")).toBe(false)
     })
   })
 
@@ -102,11 +114,11 @@ describe("categoryInLane", () => {
     })
 
     test("empty category returns true", () => {
-      expect(categoryInLane("injection", "")).toBe(true)
+      expect(categoryInLane("input-validation", "")).toBe(true)
     })
 
     test("undefined-like category returns true", () => {
-      expect(categoryInLane("injection", undefined as unknown as string)).toBe(true)
+      expect(categoryInLane("input-validation", undefined as unknown as string)).toBe(true)
     })
   })
 })

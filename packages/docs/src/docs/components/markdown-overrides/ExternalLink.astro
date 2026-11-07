@@ -1,0 +1,32 @@
+---
+/**
+ * * This component is used to add target="_blank" and rel="noopener noreferrer" to external links
+ * * and also ensure the link is relative to the current locale
+ * Used in docs pages so you don't have to worry about that when writing markdown / mdx
+ */
+
+import { getLocaleFromUrl } from "@/docs/js/localeUtils";
+
+const currLocale = getLocaleFromUrl(Astro.url);
+
+const { href }: Record<string, any> = Astro.props;
+
+const domain = import.meta.env.SITE; // pulls from astro.config.mjs
+let attr: { target?: string; rel?: string } = {};
+
+let actualLink: string;
+if (!href.includes(domain) && !href.startsWith("/") && !href.startsWith("#")) {
+  attr["target"] = "_blank";
+  attr["rel"] = "noopener noreferrer";
+  actualLink = href;
+} else {
+  // internal link, so we need to add the locale to the link
+  actualLink = href;
+}
+// remove trailing slash so IDs will work
+if (actualLink.endsWith("/") && actualLink !== "/") {
+  actualLink = actualLink.slice(0, -1);
+}
+---
+
+<a href={actualLink} {...attr}><slot /></a>

@@ -1,0 +1,215 @@
+---
+title: Tastenkombinationen-Konfiguration
+description: Tastaturkuerzel fuer Cyberstrike anpassen
+sidebar:
+  order: 5
+  label: Tastenkombinationen
+---
+
+Passen Sie Tastaturkuerzel an Ihren Workflow an. Tastenbelegungen werden unter dem `keybinds`-Objekt in Ihrer Konfigurationsdatei definiert.
+
+{/* TODO: Screenshot - Keybindings configuration */}
+<div className="border-2 border-dashed border-gray-400 dark:border-gray-600 rounded-lg p-8 my-6 text-center bg-gray-100 dark:bg-gray-800">
+  <p className="text-gray-500 dark:text-gray-400 font-mono text-sm">📸 SCREENSHOT: keybindings-config.png</p>
+  <p className="text-gray-400 dark:text-gray-500 text-xs mt-2">Konfigurationsoptionen fuer Tastenkombinationen</p>
+</div>
+
+## Konfigurationsspeicherort
+
+Tastenkombinationen werden in Ihrer globalen oder Projektkonfigurationsdatei konfiguriert:
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+    "session_new": "<leader>n"
+  }
+}
+```
+
+Nur die auf dieser Seite aufgefuehrten Schluessel sind gueltig — das `keybinds`-Objekt wird streng validiert, sodass unbekannte Schluessel abgelehnt werden.
+
+## Leader-Taste
+
+Die Leader-Taste ist ein Praefix fuer viele Kuerzel (Standard `ctrl+x`):
+
+```json
+{
+  "keybinds": {
+    "leader": "ctrl+a"
+  }
+}
+```
+
+## Tastensyntax
+
+### Modifikatoren
+
+| Modifikator | Syntax |
+|-------------|--------|
+| Control | `ctrl` |
+| Alt/Option | `alt` |
+| Shift | `shift` |
+| Super/Command | `super` |
+
+### Sondertasten
+
+| Taste | Syntax |
+|-------|--------|
+| Enter | `return` |
+| Escape | `escape` |
+| Tab | `tab` |
+| Backspace | `backspace` |
+| Delete | `delete` |
+| Pfeiltasten | `up` `down` `left` `right` |
+| Seite hoch / runter | `pageup` `pagedown` |
+| Home / End | `home` `end` |
+| Funktionstasten | `f2`, `shift+f2` |
+
+### Kombinationen, Alternativen & Leader
+
+```
+ctrl+alt+d          # Ctrl + Alt + D
+<leader>n           # Leader dann N
+pageup,ctrl+alt+b   # zwei alternative Belegungen fuer eine Aktion (kommagetrennt)
+```
+
+Ein Komma trennt **alternative** Belegungen fuer dieselbe Aktion. Setzen Sie einen Wert auf `none`, um eine Aktion zu deaktivieren.
+
+## Verfuegbare Aktionen
+
+Jede Aktion unten zeigt ihre Standardbelegung. Ueberschreiben Sie eine beliebige Teilmenge in Ihrem `keybinds`-Objekt.
+
+### Sitzungen
+
+| Aktion | Standard | Beschreibung |
+|--------|----------|--------------|
+| `session_new` | `<leader>n` | Neue Sitzung erstellen |
+| `session_list` | `<leader>l` | Alle Sitzungen auflisten |
+| `session_compact` | `<leader>c` | Sitzung komprimieren |
+| `session_timeline` | `<leader>g` | Sitzungszeitachse anzeigen |
+| `session_rename` | `ctrl+r` | Sitzung umbenennen |
+| `session_delete` | `ctrl+d` | Sitzung loeschen |
+| `session_export` | `<leader>x` | Sitzung in Editor exportieren |
+| `session_interrupt` | `escape` | Aktuelle Sitzung unterbrechen |
+| `session_fork` | `none` | Sitzung ab Nachricht forken |
+| `session_share` | `none` | Aktuelle Sitzung teilen |
+| `session_child_cycle` | `<leader>right` | Naechste Kind-Sitzung |
+| `session_parent` | `<leader>up` | Zur Eltern-Sitzung wechseln |
+
+### Nachrichten & Navigation
+
+| Aktion | Standard | Beschreibung |
+|--------|----------|--------------|
+| `messages_page_up` | `pageup,ctrl+alt+b` | Eine Seite nach oben scrollen |
+| `messages_page_down` | `pagedown,ctrl+alt+f` | Eine Seite nach unten scrollen |
+| `messages_half_page_up` | `ctrl+alt+u` | Eine halbe Seite nach oben scrollen |
+| `messages_half_page_down` | `ctrl+alt+d` | Eine halbe Seite nach unten scrollen |
+| `messages_first` | `ctrl+g,home` | Zur ersten Nachricht springen |
+| `messages_last` | `ctrl+alt+g,end` | Zur letzten Nachricht springen |
+| `messages_copy` | `<leader>y` | Nachricht kopieren |
+| `messages_undo` | `<leader>u` | Nachricht rueckgaengig machen |
+| `messages_redo` | `<leader>r` | Nachricht wiederherstellen |
+| `messages_toggle_conceal` | `<leader>h` | Code-Block-Ausblendung umschalten |
+
+### Listen & Dialoge
+
+| Aktion | Standard | Beschreibung |
+|--------|----------|--------------|
+| `model_list` | `<leader>m` | Verfuegbare Modelle auflisten |
+| `agent_list` | `<leader>a` | Agenten auflisten |
+| `agent_cycle` | `tab` | Naechster Agent |
+| `agent_cycle_reverse` | `shift+tab` | Vorheriger Agent |
+| `theme_list` | `<leader>t` | Verfuegbare Themes auflisten |
+| `command_list` | `ctrl+p` | Verfuegbare Befehle auflisten |
+
+### Oberflaeche
+
+| Aktion | Standard | Beschreibung |
+|--------|----------|--------------|
+| `sidebar_toggle` | `<leader>b` | Seitenleiste umschalten |
+| `status_view` | `<leader>s` | Status anzeigen |
+| `editor_open` | `<leader>e` | Externen Editor oeffnen |
+| `tips_toggle` | `<leader>h` | Startbildschirm-Tipps umschalten |
+
+### Anwendung & Eingabe
+
+| Aktion | Standard | Beschreibung |
+|--------|----------|--------------|
+| `app_exit` | `ctrl+c,ctrl+d,<leader>q` | Anwendung beenden |
+| `terminal_suspend` | `ctrl+z` | Terminal anhalten |
+| `input_submit` | `return` | Eingabe absenden |
+| `input_newline` | `shift+return,ctrl+return,alt+return,ctrl+j` | Neue Zeile einfuegen |
+| `input_clear` | `ctrl+c` | Eingabefeld loeschen |
+| `input_paste` | `ctrl+v` | Aus Zwischenablage einfuegen |
+
+<Aside variant="info">
+  Das Eingabefeld hat auch eine grosse Anzahl von Cursor-Bewegungs- und Bearbeitungsbindungen (`input_move_*`, `input_word_*`, `input_delete_*`, usw.). Sie folgen der gleichen `keybinds`-Benennung und koennen auf die gleiche Weise ueberschrieben werden.
+</Aside>
+
+## Vollstaendiges Konfigurationsbeispiel
+
+```json title="~/.config/cyberstrike/cyberstrike.json"
+{
+  "keybinds": {
+    "leader": "ctrl+x",
+
+    "session_new": "<leader>n",
+    "session_list": "<leader>l",
+    "session_compact": "<leader>c",
+    "session_timeline": "<leader>g",
+    "session_rename": "ctrl+r",
+    "session_export": "<leader>x",
+
+    "model_list": "<leader>m",
+    "agent_list": "<leader>a",
+    "theme_list": "<leader>t",
+    "command_list": "ctrl+p",
+
+    "sidebar_toggle": "<leader>b",
+    "status_view": "<leader>s",
+    "editor_open": "<leader>e",
+
+    "messages_half_page_up": "ctrl+alt+u",
+    "messages_half_page_down": "ctrl+alt+d",
+    "messages_undo": "<leader>u",
+
+    "app_exit": "ctrl+c,ctrl+d,<leader>q"
+  }
+}
+```
+
+## Mehrere Belegungen
+
+Weisen Sie einer Aktion mehrere Kuerzel mit einem Komma zu:
+
+```json
+{
+  "keybinds": {
+    "app_exit": "ctrl+c,ctrl+d,<leader>q",
+    "model_list": "<leader>m,ctrl+shift+m"
+  }
+}
+```
+
+Das Komma trennt alternative Belegungen — es ist keine Akkord-Sequenz.
+
+## Tastenkombinationen zuruecksetzen
+
+Es gibt keinen Zuruecksetz-Befehl. Um einen Standard wiederherzustellen, entfernen Sie den Schluessel aus Ihrem `keybinds`-Objekt (oder loeschen Sie das gesamte Objekt, um alle Standards wiederherzustellen).
+
+## Fehlerbehebung
+
+1. Pruefen Sie auf Konflikte mit Ihrem Terminal-Emulator
+2. Stellen Sie sicher, dass die Konfiguration gueltiges JSON ist und der Schluesselname genau mit dieser Seite uebereinstimmt (unbekannte Schluessel schlagen bei der Validierung fehl)
+3. Durchsuchen Sie registrierte Befehle in der TUI mit `command_list` (`ctrl+p`)
+
+<Aside variant="tip">
+  Verwenden Sie `/help` in Cyberstrike, um eine Kurzreferenz der aktiven Tastenkombinationen zu sehen.
+</Aside>
+
+## Verwandte Dokumentation
+
+- [Konfigurationsreferenz](/docs/configuration) - Alle Konfigurationsoptionen
+- [Tastaturkuerzel](/docs/getting-started/keyboard-shortcuts) - Kuerzelreferenz
+- [Globale Konfiguration](/docs/configuration/global-config) - Konfigurationsanleitung

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="475" viewBox="0 0 760 475" role="img" aria-labelledby="title desc">
+<title id="title">One check reveals one character</title>
+<desc id="desc">The seventh mask selects only position 21 in the six by six input grid. Its character code must equal 55, so the character is 7. The other masks select different positions and give further equations.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#8191a2"/></marker></defs>
+<style>
+@media (prefers-color-scheme: dark){
+svg{background-color:#181825}
+[fill="#20252b"]{fill:#cdd6f4}
+[fill="#294f82"]{fill:#89b4fa}
+[stroke="#294f82"]{stroke:#89b4fa}
+[fill="#5b6570"]{fill:#a6adc8}
+[fill="#7a8490"]{fill:#9399b2}
+[fill="#8191a2"]{fill:#7f849c}
+[stroke="#8191a2"]{stroke:#7f849c}
+[stroke="#e0e5e9"]{stroke:#45475a}
+[fill="#edf2f8"]{fill:#313244}
+[fill="#f4f6f8"]{fill:#1e1e2e}
+[fill="#fafbfc"]{fill:#11111b}
+[fill="#ffffff"]{fill:#181825}
+}
+</style>
+<rect width="760" height="475" fill="#ffffff"/>
+<g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#20252b">
+<text x="32" y="36" font-size="19" font-weight="600">One check reveals one character</text>
+<text x="32" y="63" fill="#5b6570">The seventh check. Cell labels are input positions, starting at 0.</text>
+<rect x="32" y="87" width="696" height="43" rx="4" fill="#f4f6f8" stroke="#e0e5e9"/>
+<text x="48" y="114" font-family="monospace">Encoded mask: −21, +1, −14, 0</text>
+<text x="32" y="149" fill="#5b6570">Skip 21 cells. Select 1. Skip 14. Stop at 0.</text>
+<rect x="32" y="160" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="51" y="183" text-anchor="middle" fill="#7a8490">00</text><rect x="76" y="160" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="95" y="183" text-anchor="middle" fill="#7a8490">01</text><rect x="120" y="160" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="139" y="183" text-anchor="middle" fill="#7a8490">02</text><rect x="164" y="160" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="183" y="183" text-anchor="middle" fill="#7a8490">03</text><rect x="208" y="160" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="227" y="183" text-anchor="middle" fill="#7a8490">04</text><rect x="252" y="160" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="271" y="183" text-anchor="middle" fill="#7a8490">05</text><rect x="32" y="202" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="51" y="225" text-anchor="middle" fill="#7a8490">06</text><rect x="76" y="202" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="95" y="225" text-anchor="middle" fill="#7a8490">07</text><rect x="120" y="202" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="139" y="225" text-anchor="middle" fill="#7a8490">08</text><rect x="164" y="202" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="183" y="225" text-anchor="middle" fill="#7a8490">09</text><rect x="208" y="202" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="227" y="225" text-anchor="middle" fill="#7a8490">10</text><rect x="252" y="202" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="271" y="225" text-anchor="middle" fill="#7a8490">11</text><rect x="32" y="244" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="51" y="267" text-anchor="middle" fill="#7a8490">12</text><rect x="76" y="244" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="95" y="267" text-anchor="middle" fill="#7a8490">13</text><rect x="120" y="244" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="139" y="267" text-anchor="middle" fill="#7a8490">14</text><rect x="164" y="244" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="183" y="267" text-anchor="middle" fill="#7a8490">15</text><rect x="208" y="244" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="227" y="267" text-anchor="middle" fill="#7a8490">16</text><rect x="252" y="244" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="271" y="267" text-anchor="middle" fill="#7a8490">17</text><rect x="32" y="286" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="51" y="309" text-anchor="middle" fill="#7a8490">18</text><rect x="76" y="286" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="95" y="309" text-anchor="middle" fill="#7a8490">19</text><rect x="120" y="286" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="139" y="309" text-anchor="middle" fill="#7a8490">20</text><rect x="164" y="286" width="38" height="34" rx="3" fill="#edf2f8" stroke="#294f82"/><text x="183" y="309" text-anchor="middle" fill="#294f82">21</text><rect x="208" y="286" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="227" y="309" text-anchor="middle" fill="#7a8490">22</text><rect x="252" y="286" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="271" y="309" text-anchor="middle" fill="#7a8490">23</text><rect x="32" y="328" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="51" y="351" text-anchor="middle" fill="#7a8490">24</text><rect x="76" y="328" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="95" y="351" text-anchor="middle" fill="#7a8490">25</text><rect x="120" y="328" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="139" y="351" text-anchor="middle" fill="#7a8490">26</text><rect x="164" y="328" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="183" y="351" text-anchor="middle" fill="#7a8490">27</text><rect x="208" y="328" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="227" y="351" text-anchor="middle" fill="#7a8490">28</text><rect x="252" y="328" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="271" y="351" text-anchor="middle" fill="#7a8490">29</text><rect x="32" y="370" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="51" y="393" text-anchor="middle" fill="#7a8490">30</text><rect x="76" y="370" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="95" y="393" text-anchor="middle" fill="#7a8490">31</text><rect x="120" y="370" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="139" y="393" text-anchor="middle" fill="#7a8490">32</text><rect x="164" y="370" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="183" y="393" text-anchor="middle" fill="#7a8490">33</text><rect x="208" y="370" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="227" y="393" text-anchor="middle" fill="#7a8490">34</text><rect x="252" y="370" width="38" height="34" rx="3" fill="#ffffff" stroke="#e0e5e9"/><text x="271" y="393" text-anchor="middle" fill="#7a8490">35</text>
+<path d="M 306 282 H 327" stroke="#8191a2" stroke-width="2" marker-end="url(#arrow)"/>
+<rect x="340" y="202" width="388" height="148" rx="5" fill="#fafbfc" stroke="#e0e5e9"/>
+<text x="358" y="231" font-weight="600">Only one cell contributes to this sum</text>
+<text x="358" y="262" font-family="monospace" fill="#294f82">code[21] = 55</text>
+<text x="358" y="303" font-size="25" font-weight="600" fill="#294f82">55 → '7'</text>
+<text x="358" y="333" fill="#5b6570">Position 21 in the flag must contain 7.</text>
+<rect x="32" y="431" width="15" height="15" rx="2" fill="#edf2f8" stroke="#294f82"/>
+<text x="56" y="444" fill="#5b6570">Selected: one cell</text>
+<text x="340" y="437" fill="#5b6570">26 masks give 26 equations.</text>
+<text x="340" y="459" fill="#5b6570">Solve them together to find the flag.</text>
+</g></svg>
