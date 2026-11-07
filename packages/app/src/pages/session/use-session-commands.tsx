@@ -858,7 +858,9 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       title: "Stop HackBrowser",
       description: "Stop the active HackBrowser crawl",
       slash: "hackbrowser-stop",
-      disabled: !params.id,
+      // Only while a crawl is live (phase starting/crawling), matching the TUI; disabled when
+      // completed/failed/none so it can't fire against a session with no active run.
+      disabled: !params.id || !["starting", "crawling"].includes(sync()?.data.session_hackbrowser_status?.[params.id]?.phase ?? ""),
       onSelect: async () => {
         const sessionID = params.id
         if (!sessionID) return
@@ -931,7 +933,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       title: "Pause Queue",
       description: "Pause the ingest queue for this session",
       slash: "qpause",
-      disabled: !params.id,
+      disabled: !params.id || !!sync()?.data.session_queue_status?.[params.id]?.paused,
       onSelect: async () => {
         const sessionID = params.id
         if (!sessionID) return
@@ -950,7 +952,7 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       title: "Resume Queue",
       description: "Resume the ingest queue for this session",
       slash: "qresume",
-      disabled: !params.id,
+      disabled: !params.id || !sync()?.data.session_queue_status?.[params.id]?.paused,
       onSelect: async () => {
         const sessionID = params.id
         if (!sessionID) return
