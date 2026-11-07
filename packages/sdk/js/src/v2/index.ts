@@ -1,5 +1,6 @@
 export * from "./client.js"
 export * from "./server.js"
+export * from "./commands.js"
 
 import { createClient } from "./client.js"
 import { createServer } from "./server.js"
