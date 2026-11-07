@@ -1462,6 +1462,27 @@ export namespace Provider {
     }
   }
 
+  // Persist the user's selected model as most-recent so defaultModel() — and everything that falls
+  // through to it (HackBrowser, the navigator, compaction, the idle watchdog) — resolves it. The web
+  // and desktop UI keep their model choice client-side and, unlike the TUI (cli/cmd/tui/context/local
+  // writes this same file), never told the server. That left state/model.json empty on a web-only
+  // appliance, so defaultModel() picked the provider's catalog default (e.g. the expensive
+  // deepseek-v4-pro). The app now calls this on every selection so both surfaces behave the same.
+  export async function recordModel(providerID: string, modelID: string) {
+    const file = Bun.file(path.join(Global.Path.state, "model.json"))
+    const prev = (await file.json().catch(() => ({}))) as {
+      recent?: { providerID: string; modelID: string }[]
+      favorite?: unknown[]
+      variant?: Record<string, string | undefined>
+    }
+    const recent = (prev.recent ?? []).filter((e) => e.providerID !== providerID || e.modelID !== modelID)
+    recent.unshift({ providerID, modelID })
+    await Bun.write(
+      file,
+      JSON.stringify({ recent: recent.slice(0, 50), favorite: prev.favorite ?? [], variant: prev.variant ?? {} }),
+    )
+  }
+
   export const ModelNotFoundError = NamedError.create(
     "ProviderModelNotFoundError",
     z.object({

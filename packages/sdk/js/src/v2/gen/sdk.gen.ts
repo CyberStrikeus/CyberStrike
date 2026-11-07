@@ -113,6 +113,7 @@ import type {
   ProviderOauthAuthorizeResponses,
   ProviderOauthCallbackErrors,
   ProviderOauthCallbackResponses,
+  ProviderRecordModelResponses,
   PtyConnectErrors,
   PtyConnectResponses,
   PtyCreateErrors,
@@ -4097,6 +4098,43 @@ export class Provider extends HeyApiClient {
       url: "/provider",
       ...options,
       ...params,
+    })
+  }
+
+  /**
+   * Record the selected model
+   *
+   * Persist the UI's selected model as most-recent so server-side model resolution (HackBrowser, the navigator, compaction, the idle watchdog) uses it. The TUI already writes this file; the web and desktop UI call this on every model change so all surfaces behave the same.
+   */
+  public recordModel<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+      providerID?: string
+      modelID?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "query", key: "directory" },
+            { in: "body", key: "providerID" },
+            { in: "body", key: "modelID" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).post<ProviderRecordModelResponses, unknown, ThrowOnError>({
+      url: "/provider/model",
+      ...options,
+      ...params,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+        ...params.headers,
+      },
     })
   }
 

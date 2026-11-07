@@ -6545,6 +6545,29 @@ export type ProviderListResponses = {
 
 export type ProviderListResponse = ProviderListResponses[keyof ProviderListResponses]
 
+export type ProviderRecordModelData = {
+  body?: {
+    providerID: string
+    modelID: string
+  }
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/provider/model"
+}
+
+export type ProviderRecordModelResponses = {
+  /**
+   * Recorded
+   */
+  200: {
+    ok: boolean
+  }
+}
+
+export type ProviderRecordModelResponse = ProviderRecordModelResponses[keyof ProviderRecordModelResponses]
+
 export type ProviderAuthData = {
   body?: never
   path?: never
