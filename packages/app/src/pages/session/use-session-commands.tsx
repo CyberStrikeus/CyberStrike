@@ -16,7 +16,7 @@ import { downloadSessionExport, fetchSessionExport, sessionExportFilename } from
 import { findLast } from "@cyberstrike-io/core/util/array"
 import { createSessionTabs } from "@/pages/session/helpers"
 import { extractPromptFromParts } from "@/utils/prompt"
-import { Message, Part, UserMessage } from "@cyberstrike-io/sdk/v2"
+import { Message, Part, UserMessage, command as commandSpec } from "@cyberstrike-io/sdk/v2"
 import { useSessionLayout } from "@/pages/session/session-layout"
 import { useSessionArchive } from "@/pages/session/session-archive"
 import { createSessionOwnership } from "./session-ownership"
@@ -31,10 +31,19 @@ export type SessionCommandContext = {
 }
 
 const withCategory = (category: string) => {
-  return (option: Omit<CommandOption, "category">): CommandOption => ({
-    ...option,
-    category,
-  })
+  return (option: Omit<CommandOption, "category">): CommandOption => {
+    // Pull the contract fields from the shared command catalog (@cyberstrike-io/sdk/v2) when this id
+    // is listed there — one source of truth for ids / slash triggers / keybinds across the TUI, web
+    // and desktop, so they can't drift. The caller still owns onSelect / title / disabled / when.
+    // Commands not in the catalog keep their inline values.
+    const spec = commandSpec(option.id)
+    return {
+      ...option,
+      category: spec?.category ?? category,
+      slash: spec?.slash ?? option.slash,
+      keybind: spec?.keybind ?? option.keybind,
+    }
+  }
 }
 
 export const useSessionCommands = (actions: SessionCommandContext) => {

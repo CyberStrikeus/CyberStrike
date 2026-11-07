@@ -61,7 +61,7 @@ export const COMMANDS: CommandSpec[] = [
   { id: "session.hackbrowser.stop", title: "command.hackbrowser.stop", category: "Security", slash: { name: "hackbrowser-stop" }, surfaces: BOTH },
   { id: "session.vulnerabilities", title: "command.vulnerabilities", category: "Security", slash: { name: "vulnerabilities", aliases: ["vuln", "vulns"] }, surfaces: BOTH },
   { id: "session.web", title: "command.web", category: "Security", slash: { name: "web", aliases: ["endpoints", "roles", "credentials"] }, surfaces: BOTH },
-  { id: "session.methodology", title: "command.methodology", category: "Security", slash: { name: "methodology" }, surfaces: BOTH },
+  { id: "session.methodology", title: "command.methodology", category: "Security", slash: { name: "methodology", aliases: ["intel", "vrt", "chains"] }, surfaces: BOTH },
   { id: "session.report", title: "command.report", category: "Security", slash: { name: "report" }, surfaces: BOTH },
   { id: "session.poster", title: "command.poster", category: "Security", slash: { name: "poster" }, surfaces: BOTH },
   { id: "session.queue.pause", title: "command.queue.pause", category: "Security", slash: { name: "qpause" }, surfaces: BOTH },
