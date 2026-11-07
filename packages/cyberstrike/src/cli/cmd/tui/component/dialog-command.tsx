@@ -12,7 +12,7 @@ import {
 import { useKeyboard } from "@opentui/solid"
 import { useKeybind } from "@tui/context/keybind"
 import type { KeybindsConfig } from "@cyberstrike-io/sdk/v2"
-import { command as commandSpec } from "@cyberstrike-io/sdk/v2"
+import { command as commandSpec } from "@cyberstrike-io/sdk/v2/commands"
 
 type Context = ReturnType<typeof init>
 const ctx = createContext<Context>()
