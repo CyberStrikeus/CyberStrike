@@ -970,27 +970,13 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       description: "View methodology coverage and state",
       slash: { name: "methodology", aliases: ["intel", "vrt", "chains"] },
       disabled: !params.id,
-      onSelect: async () => {
+      onSelect: () => {
         const sessionID = params.id
         if (!sessionID) return
-        const s = sdk()
-        if (!s) return
-        try {
-          const res = await s.client.methodology.state({ sessionID })
-          const state = res?.data
-          if (!state) {
-            showToast({ title: "No methodology data", variant: "error" })
-            return
-          }
-          const covered = state.completedCount ?? 0
-          const total = state.totalCount ?? 0
-          showToast({
-            title: `Methodology: ${covered}/${total} covered`,
-            description: state.currentPhase ?? "Unknown phase",
-          })
-        } catch {
-          showToast({ title: "Failed to load methodology", variant: "error" })
-        }
+        void openDialog(
+          () => import("@/components/dialog-methodology"),
+          (x) => dialog.show(() => <x.DialogMethodology sessionID={sessionID} />),
+        )
       },
     }),
     securityCommand({
@@ -999,20 +985,13 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       description: "Compile and download the assessment report",
       slash: "report",
       disabled: !params.id,
-      onSelect: async () => {
+      onSelect: () => {
         const sessionID = params.id
         if (!sessionID) return
-        const s = sdk()
-        if (!s) return
-        try {
-          showToast({ title: "Compiling report..." })
-          const res = await s.client.methodology.reportCompile({ sessionID })
-          if (res?.data) {
-            showToast({ title: "Report compiled", variant: "success" })
-          }
-        } catch {
-          showToast({ title: "Failed to compile report", variant: "error" })
-        }
+        void openDialog(
+          () => import("@/components/dialog-report"),
+          (x) => dialog.show(() => <x.DialogReport sessionID={sessionID} />),
+        )
       },
     }),
   ]
