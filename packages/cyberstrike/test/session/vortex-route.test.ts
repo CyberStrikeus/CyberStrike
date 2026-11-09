@@ -46,16 +46,17 @@ describe("signalPriority", () => {
   })
 })
 
-describe("shouldRoute — the volume gate", () => {
-  test("medium+ with an owning class auto-routes", () => {
+describe("shouldRoute — every severity with an owning class routes", () => {
+  test("medium+ with an owning class routes", () => {
     expect(shouldRoute("injection", "high")).toBe(true)
     expect(shouldRoute("access-control", "medium")).toBe(true)
     expect(shouldRoute("misconfiguration", "critical")).toBe(true)
   })
 
-  test("low/info never auto-route (sidebar-only)", () => {
-    expect(shouldRoute("injection", "low")).toBe(false)
-    expect(shouldRoute("misconfiguration", "info")).toBe(false)
+  test("low/info ALSO route — no severity floor, full WSTG coverage", () => {
+    expect(shouldRoute("injection", "low")).toBe(true)
+    expect(shouldRoute("misconfiguration", "info")).toBe(true)
+    expect(shouldRoute("info-disclosure", "info")).toBe(true)
   })
 
   test("an unmapped category never routes even at high severity", () => {
@@ -63,7 +64,7 @@ describe("shouldRoute — the volume gate", () => {
     expect(shouldRoute("something-new", "critical")).toBe(false)
   })
 
-  test("technology always routes despite info severity (it tags the endpoint with its stack slug)", () => {
+  test("technology routes (owns information-gathering + tags the stack slug)", () => {
     expect(shouldRoute("technology", "info")).toBe(true)
     expect(shouldRoute("technology", "low")).toBe(true)
   })

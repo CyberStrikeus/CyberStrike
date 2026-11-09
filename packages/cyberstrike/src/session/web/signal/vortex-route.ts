@@ -60,15 +60,14 @@ export function signalPriority(severity: VortexSeverity): "high" | "medium" | "l
   return "low"
 }
 
-// Only medium+ signals auto-spawn a specialist (the volume gate — low/info Vortex leads,
-// e.g. an informational header note, stay visible in the sidebar but don't burn an LLM
-// spawn). A signal is routable only if it ALSO has an owning class.
-// Exception: `technology` always routes despite being info-severity — it does not spawn an
-// agent of its own (information-gathering owns it, and a tech-only flag resolves to no agent),
-// it exists to TAG the endpoint with its stack slug so any later retest injects the matching
-// TechPlaybook. Dropping it would lose that enrichment (full CS-parity requirement, #15).
-export function shouldRoute(category: string, severity: VortexSeverity): boolean {
-  if (!categoryToClass(category)) return false
-  if (category === "technology") return true
-  return severity === "critical" || severity === "high" || severity === "medium"
+// Every signal that has an owning specialist is routed to it, at EVERY severity — informational and
+// low leads (server banners, tech stack, missing security headers, deprecated APIs, directory listing,
+// …) are real WSTG coverage the owning specialist must examine, not noise to drop. The previous
+// medium+ "volume gate" silently starved config-deploy / info-gathering / session-mgmt / error-handling
+// of their low/info findings. Fan-out stays bounded by dedup (per-host dedupKey) and the per-endpoint
+// group cap, and ordering is set by signalPriority() (severity still drives queue priority, so
+// critical/high are examined first) — NOT by a severity floor. An unmapped category still returns false
+// so a new Vortex category never silently spawns the wrong agent.
+export function shouldRoute(category: string, _severity: VortexSeverity): boolean {
+  return !!categoryToClass(category)
 }
