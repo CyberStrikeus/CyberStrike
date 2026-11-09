@@ -1,4 +1,5 @@
 import { realpathSync } from "fs"
+import { readdir } from "fs/promises"
 import { dirname, join, relative } from "path"
 
 export namespace Filesystem {
@@ -89,5 +90,14 @@ export namespace Filesystem {
       current = parent
     }
     return result
+  }
+
+  // Recursively find every file named `name` under `root`, returned as absolute paths.
+  // Uses Node's recursive readdir instead of Bun.Glob.scan: the glob silently returns a
+  // partial result set on Windows for large/deep trees (e.g. the 7k+ skill corpus), so most
+  // skills never reach the loader. A plain recursive readdir walks the whole tree reliably.
+  export async function findByName(root: string, name: string): Promise<string[]> {
+    const entries = await readdir(root, { recursive: true }).catch(() => [] as string[])
+    return entries.filter((e) => e === name || e.endsWith(`/${name}`) || e.endsWith(`\\${name}`)).map((e) => join(root, e))
   }
 }

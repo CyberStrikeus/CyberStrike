@@ -102,8 +102,6 @@ export namespace Skill {
   const EXTERNAL_DIRS = [".claude", ".agents"]
   const EXTERNAL_SKILL_GLOB = new Bun.Glob("skills/**/SKILL.md")
 
-  const CYBERSTRIKE_SKILL_GLOB = new Bun.Glob("{skill,skills}/**/SKILL.md")
-  const SKILL_GLOB = new Bun.Glob("**/SKILL.md")
 
   // Run `fn` over `items` at most `limit` at a time. Skill loading opens each file (parse + read),
   // so loading thousands of external skills with an unbounded Promise.all can exhaust file
@@ -238,15 +236,12 @@ export namespace Skill {
       }
     }
 
-    // Scan .cyberstrike/skill/ directories
+    // Scan .cyberstrike/skill/ and .cyberstrike/skills/ directories
     for (const dir of await Config.directories()) {
-      for await (const match of CYBERSTRIKE_SKILL_GLOB.scan({
-        cwd: dir,
-        absolute: true,
-        onlyFiles: true,
-        followSymlinks: true,
-      })) {
-        await addSkill(match)
+      for (const sub of ["skill", "skills"]) {
+        const root = path.join(dir, sub)
+        if (!(await Filesystem.isDir(root))) continue
+        await mapLimit(await Filesystem.findByName(root, "SKILL.md"), SKILL_LOAD_CONCURRENCY, addSkill)
       }
     }
 
@@ -257,13 +252,10 @@ export namespace Skill {
       const builtinRoot = path.resolve(import.meta.dir, "../../../..")
       const builtinDir = path.join(builtinRoot, ".cyberstrike")
       if (await Filesystem.isDir(builtinDir)) {
-        for await (const match of CYBERSTRIKE_SKILL_GLOB.scan({
-          cwd: builtinDir,
-          absolute: true,
-          onlyFiles: true,
-          followSymlinks: true,
-        })) {
-          await addSkill(match)
+        for (const sub of ["skill", "skills"]) {
+          const root = path.join(builtinDir, sub)
+          if (!(await Filesystem.isDir(root))) continue
+          await mapLimit(await Filesystem.findByName(root, "SKILL.md"), SKILL_LOAD_CONCURRENCY, addSkill)
         }
       }
 
@@ -279,11 +271,11 @@ export namespace Skill {
         path.join(path.dirname(process.execPath), "..", "skill"),
       ]) {
         if (!(await Filesystem.isDir(dir))) continue
-        for await (const match of SKILL_GLOB.scan({ cwd: dir, absolute: true, onlyFiles: true, followSymlinks: true })) {
-          await addSkill(match)
-          bundledFound = true
-        }
-        if (bundledFound) break
+        const matches = await Filesystem.findByName(dir, "SKILL.md")
+        if (matches.length === 0) continue
+        await mapLimit(matches, SKILL_LOAD_CONCURRENCY, addSkill)
+        bundledFound = true
+        break
       }
 
       // Installed skills: XDG data dir. Not bundled in the npm tarball (offensive skill
@@ -293,14 +285,7 @@ export namespace Skill {
       const installedDir = path.join(Global.Path.data, "skill")
       if (!bundledFound) await ensureInstalledSkills(installedDir)
       if (await Filesystem.isDir(installedDir)) {
-        for await (const match of SKILL_GLOB.scan({
-          cwd: installedDir,
-          absolute: true,
-          onlyFiles: true,
-          followSymlinks: true,
-        })) {
-          await addSkill(match)
-        }
+        await mapLimit(await Filesystem.findByName(installedDir, "SKILL.md"), SKILL_LOAD_CONCURRENCY, addSkill)
       }
     }
 
@@ -313,14 +298,7 @@ export namespace Skill {
         log.warn("skill path not found", { path: resolved })
         continue
       }
-      for await (const match of SKILL_GLOB.scan({
-        cwd: resolved,
-        absolute: true,
-        onlyFiles: true,
-        followSymlinks: true,
-      })) {
-        await addSkill(match)
-      }
+      await mapLimit(await Filesystem.findByName(resolved, "SKILL.md"), SKILL_LOAD_CONCURRENCY, addSkill)
     }
 
     // Download and load skills from URLs
@@ -328,14 +306,7 @@ export namespace Skill {
       const list = await Discovery.pull(url)
       for (const dir of list) {
         dirs.add(dir)
-        for await (const match of SKILL_GLOB.scan({
-          cwd: dir,
-          absolute: true,
-          onlyFiles: true,
-          followSymlinks: true,
-        })) {
-          await addSkill(match)
-        }
+        await mapLimit(await Filesystem.findByName(dir, "SKILL.md"), SKILL_LOAD_CONCURRENCY, addSkill)
       }
     }
 
@@ -394,15 +365,16 @@ export namespace Skill {
       }
     }
 
-    // Scan .cyberstrike/skill/ directories
+    const addDirs = (matches: string[]) => {
+      for (const match of matches) dirs.add(path.dirname(match))
+    }
+
+    // Scan .cyberstrike/skill/ and .cyberstrike/skills/ directories
     for (const dir of await Config.directories()) {
-      for await (const match of CYBERSTRIKE_SKILL_GLOB.scan({
-        cwd: dir,
-        absolute: true,
-        onlyFiles: true,
-        followSymlinks: true,
-      })) {
-        dirs.add(path.dirname(match))
+      for (const sub of ["skill", "skills"]) {
+        const root = path.join(dir, sub)
+        if (!(await Filesystem.isDir(root))) continue
+        addDirs(await Filesystem.findByName(root, "SKILL.md"))
       }
     }
 
@@ -411,28 +383,16 @@ export namespace Skill {
       const builtinRoot = path.resolve(import.meta.dir, "../../../..")
       const builtinDir = path.join(builtinRoot, ".cyberstrike")
       if (await Filesystem.isDir(builtinDir)) {
-        for await (const match of CYBERSTRIKE_SKILL_GLOB.scan({
-          cwd: builtinDir,
-          absolute: true,
-          onlyFiles: true,
-          followSymlinks: true,
-        })) {
-          dirs.add(path.dirname(match))
+        for (const sub of ["skill", "skills"]) {
+          const root = path.join(builtinDir, sub)
+          if (!(await Filesystem.isDir(root))) continue
+          addDirs(await Filesystem.findByName(root, "SKILL.md"))
         }
       }
 
       // Installed skills: XDG data dir
       const installedDir = path.join(Global.Path.data, "skill")
-      if (await Filesystem.isDir(installedDir)) {
-        for await (const match of SKILL_GLOB.scan({
-          cwd: installedDir,
-          absolute: true,
-          onlyFiles: true,
-          followSymlinks: true,
-        })) {
-          dirs.add(path.dirname(match))
-        }
-      }
+      if (await Filesystem.isDir(installedDir)) addDirs(await Filesystem.findByName(installedDir, "SKILL.md"))
     }
 
     // Scan additional skill paths from config
@@ -441,14 +401,7 @@ export namespace Skill {
       const expanded = skillPath.startsWith("~/") ? path.join(os.homedir(), skillPath.slice(2)) : skillPath
       const resolved = path.isAbsolute(expanded) ? expanded : path.join(Instance.directory, expanded)
       if (!(await Filesystem.isDir(resolved))) continue
-      for await (const match of SKILL_GLOB.scan({
-        cwd: resolved,
-        absolute: true,
-        onlyFiles: true,
-        followSymlinks: true,
-      })) {
-        dirs.add(path.dirname(match))
-      }
+      addDirs(await Filesystem.findByName(resolved, "SKILL.md"))
     }
 
     // Downloaded skills from URLs
