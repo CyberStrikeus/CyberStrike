@@ -6,7 +6,7 @@ stages:
   - deploy
 
 variables:
-  BUN_VERSION: "1.3.9"
+  BUN_VERSION: "1.3.14"
   FF_USE_FASTZIP: "true"
 
 default:
@@ -52,7 +52,7 @@ deploy-docs:
 
 version:
   stage: version
-  image: oven/bun:1.3.9-debian
+  image: oven/bun:1.3.14-debian
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
     - if: $CI_PIPELINE_SOURCE == "web"
@@ -85,7 +85,7 @@ version:
 
 build-app:
   stage: build
-  image: oven/bun:1.3.9-debian
+  image: oven/bun:1.3.14-debian
   needs: [version]
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
@@ -102,7 +102,7 @@ build-app:
 
 build-cli:
   stage: build
-  image: oven/bun:1.3.9-debian
+  image: oven/bun:1.3.14-debian
   needs: [version]
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
@@ -232,7 +232,7 @@ release:
 
 publish-gitlab:
   stage: publish
-  image: oven/bun:1.3.9-debian
+  image: oven/bun:1.3.14-debian
   needs: [version, build-cli, build-app]
   rules:
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+/
