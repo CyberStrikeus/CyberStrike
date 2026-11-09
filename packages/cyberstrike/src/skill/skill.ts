@@ -28,21 +28,30 @@ export namespace Skill {
   // builds use the in-repo .cyberstrike/skill tree (VERSION "local") and skip this entirely.
   async function ensureInstalledSkills(installedDir: string) {
     if (Installation.VERSION === "local") return
-    if (await Filesystem.isDir(installedDir)) {
-      const entries = await fs.readdir(installedDir).catch(() => [] as string[])
-      if (entries.length > 0) return
-    }
     const url =
       process.env.CYBERSTRIKE_SKILLS_URL ||
       "https://github.com/CyberStrikeus/CyberStrike/releases/download/skills/skills.tar.gz"
+    // A completed install writes this marker LAST, recording the source url. The corpus is treated as
+    // intact only when the marker exists AND matches the current url. This replaces the old
+    // "skip when the dir is non-empty" check, which treated a half-extracted or interrupted corpus
+    // (e.g. a crash/kill mid-`tar`, or a Windows extraction that dropped the WEB tree) as "installed"
+    // forever — so a broken corpus never self-healed and most skills silently failed to load. With the
+    // marker, any incomplete/stale corpus is detected and cleanly reinstalled.
+    const marker = path.join(installedDir, ".corpus-ok")
+    if ((await Bun.file(marker).text().catch(() => "")).trim() === url) return
     const tmp = path.join(Global.Path.cache, "skills.tar.gz")
     try {
-      process.stderr.write("\n  \x1b[36m◆ CyberStrike\x1b[0m — first run: downloading the skill corpus…\n")
+      process.stderr.write("\n  \x1b[36m◆ CyberStrike\x1b[0m — installing the skill corpus…\n")
       const res = await fetch(url)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       await Bun.write(tmp, res)
+      // Uninstall any partial/stale corpus, then install fresh.
+      await fs.rm(installedDir, { recursive: true, force: true })
+      await fs.mkdir(Global.Path.data, { recursive: true })
       await Bun.$`tar -xzf ${tmp} -C ${Global.Path.data}`.quiet()
       await fs.rm(tmp, { force: true })
+      // Written LAST: if anything above is interrupted the marker is absent and the next run reinstalls.
+      await Bun.write(marker, url)
       process.stderr.write("  \x1b[32m✓\x1b[0m skill corpus ready\n\n")
       log.info("installed skill corpus from release", { version: Installation.VERSION })
     } catch (error) {
