@@ -37,6 +37,13 @@ const RULE_OWNER: Record<string, SpecialistClass> = {
   "cors-origin-reflection-with-credentials": "client-side", // CORS is client-side-exploitable (WSTG 4.11)
   "cors-wildcard-origin": "client-side",
   "graphql-introspection-enabled": "api", // GraphQL schema disclosure → the API specialist (WSTG-APIT-99)
+  // hypothesis-* behavioral rules whose coarse Vortex category routes them to an adjacent specialist,
+  // but whose actual WSTG owner (per the rule's own tag) is finer. Without these, wstg-business-logic
+  // and (part of) wstg-api would never be dispatched by the deterministic router.
+  "hypothesis-payment-flow": "business-logic", // price/qty tampering, race on payment confirm (WSTG 4.10)
+  "hypothesis-approval-flow": "business-logic", // approval/workflow state-machine bypass (WSTG 4.10)
+  "hypothesis-api-docs": "api", // API schema/doc exposure, hidden/deprecated endpoints (WSTG-APIT)
+  "hypothesis-bulk-batch": "api", // bulk/batch operation abuse — mass access, mixed-authz items (WSTG-APIT)
 }
 
 // The owning specialist for a signal: a per-rule override when the rule's WSTG owner is finer than
