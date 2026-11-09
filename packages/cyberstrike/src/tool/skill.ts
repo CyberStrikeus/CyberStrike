@@ -1,4 +1,5 @@
 import path from "path"
+import fs from "fs/promises"
 import { pathToFileURL } from "url"
 import z from "zod"
 import { Tool } from "./tool"
@@ -7,8 +8,6 @@ import { SkillIndex } from "../skill/index-engine"
 import { SkillContext } from "../skill/context"
 import { KillChain } from "../skill/killchain"
 import { PermissionNext } from "../permission/next"
-import { Ripgrep } from "../file/ripgrep"
-import { iife } from "@/util/iife"
 import { Agent } from "../agent/agent"
 
 const accessibleCache = new Map<string, Skill.Info[]>()
@@ -219,21 +218,20 @@ export const SkillTool = Tool.define("skill", async (ctx) => {
       const dir = path.dirname(skill.location)
       const base = pathToFileURL(dir).href
 
+      // List the skill's auxiliary files (scripts/, reference/, …) with a plain recursive readdir.
+      // Deliberately NOT ripgrep: loading a skill must never depend on the on-demand `rg` download,
+      // which fails in locked-down/offline environments and would block every skill invocation.
       const limit = 10
-      const files = await iife(async () => {
-        const arr: string[] = []
-        for await (const file of Ripgrep.files({
-          cwd: dir,
-          follow: false,
-          hidden: true,
-          signal: ctx.abort,
-        })) {
-          if (file.includes("SKILL.md")) continue
-          arr.push(path.resolve(dir, file))
-          if (arr.length >= limit) break
-        }
-        return arr
-      }).then((f) => f.map((file) => `<file>${file}</file>`).join("\n"))
+      const files = await fs
+        .readdir(dir, { recursive: true })
+        .catch(() => [] as string[])
+        .then((all) =>
+          all
+            .filter((f) => !f.includes("SKILL.md"))
+            .slice(0, limit)
+            .map((f) => `<file>${path.resolve(dir, f)}</file>`)
+            .join("\n"),
+        )
 
       const chains = SkillIndex.chainsFrom(params.name)
       const chainInfo =
