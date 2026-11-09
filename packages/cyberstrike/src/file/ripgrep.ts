@@ -129,7 +129,17 @@ export namespace Ripgrep {
       if (stat?.isFile()) return { filepath: system }
       log.warn("bun.which returned invalid rg path", { filepath: system })
     }
-    const filepath = path.join(Global.Path.bin, "rg" + (process.platform === "win32" ? ".exe" : ""))
+    const exeName = "rg" + (process.platform === "win32" ? ".exe" : "")
+    // Beside the compiled binary (shipped in the release archive, or dropped in by the user). A
+    // locked-down/offline machine that can't reach github.com/BurntSushi then still has rg with no
+    // download — the same reason the download below fails behind a corporate proxy.
+    for (const cand of [
+      path.join(path.dirname(process.execPath), exeName),
+      path.join(path.dirname(process.execPath), "bin", exeName),
+    ]) {
+      if (await Bun.file(cand).exists()) return { filepath: cand }
+    }
+    const filepath = path.join(Global.Path.bin, exeName)
 
     const file = Bun.file(filepath)
     if (!(await file.exists())) {
