@@ -137,10 +137,30 @@ function mergePermissions(base: Record<string, PermissionRule>, extra: Record<st
   return result
 }
 
+// The canonical WSTG + LLM specialist classes a signal can be routed to. MUST stay in sync with the
+// SpecialistClass union the signal fabric emits (cyberstrike session/web/signal/types.ts + the
+// CATEGORY_OWNER map in vortex-route.ts). A mismatch here is silent and fatal: an agent that declares
+// a class no router ever emits (e.g. "info-gathering" vs the emitted "information-gathering") is never
+// dispatched. Typing the field catches that at compile time instead of at runtime-never.
+type SpecialistClass =
+  | "information-gathering"
+  | "config-deployment"
+  | "identity-management"
+  | "authentication"
+  | "authorization"
+  | "session-management"
+  | "input-validation"
+  | "error-handling"
+  | "weak-cryptography"
+  | "business-logic"
+  | "client-side"
+  | "api"
+  | "llm"
+
 type SpecDef = Omit<AgentSpec, "steps" | "color" | "group"> & {
   steps?: number
   color?: string
-  specialistClass?: string
+  specialistClass?: SpecialistClass
 }
 
 /**
@@ -278,7 +298,7 @@ function buildSpecDefs(): SpecDef[] {
     {
       name: "wstg-info-gathering",
       role: "specialist",
-      specialistClass: "info-gathering",
+      specialistClass: "information-gathering",
       prompt: vulnPrompt(PROMPT_WSTG_INFO_GATHERING),
       description: DESC_WSTG_INFO_GATHERING,
       skills: ["wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08"],
@@ -388,7 +408,7 @@ function buildSpecDefs(): SpecDef[] {
     {
       name: "wstg-cryptography",
       role: "specialist",
-      specialistClass: "cryptography",
+      specialistClass: "weak-cryptography",
       prompt: vulnPrompt(PROMPT_WSTG_CRYPTOGRAPHY),
       description: DESC_WSTG_CRYPTOGRAPHY,
       skills: ["wstg-cryp-01", "wstg-cryp-02", "wstg-cryp-03", "wstg-cryp-04"],
