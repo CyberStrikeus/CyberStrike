@@ -102,6 +102,9 @@ import { CloudflareTestTool } from "./webhook/stack/cloudflare"
 import { AkamaiTestTool } from "./webhook/stack/akamai"
 import { FastlyTestTool } from "./webhook/stack/fastly"
 import { CloudfrontTestTool } from "./webhook/stack/cloudfront"
+import { HaproxyTestTool } from "./webhook/stack/haproxy"
+import { TraefikTestTool } from "./webhook/stack/traefik"
+import { EnvoyTestTool } from "./webhook/stack/envoy"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -283,6 +286,9 @@ export namespace ToolRegistry {
       AkamaiTestTool,
       FastlyTestTool,
       CloudfrontTestTool,
+      HaproxyTestTool,
+      TraefikTestTool,
+      EnvoyTestTool,
       ...custom,
     ]
   }

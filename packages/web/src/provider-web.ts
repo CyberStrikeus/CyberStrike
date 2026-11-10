@@ -285,6 +285,9 @@ const STACK_TOOL_PERMISSIONS: Record<string, PermissionRule> = {
   akamai_test: "allow",
   fastly_test: "allow",
   cloudfront_test: "allow",
+  haproxy_test: "allow",
+  traefik_test: "allow",
+  envoy_test: "allow",
 }
 
 function buildSpecDefs(): SpecDef[] {
