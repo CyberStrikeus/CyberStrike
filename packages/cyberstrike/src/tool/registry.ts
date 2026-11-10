@@ -98,6 +98,10 @@ import { IisTestTool } from "./webhook/stack/iis"
 import { TomcatTestTool } from "./webhook/stack/tomcat"
 import { LitespeedTestTool } from "./webhook/stack/litespeed"
 import { CaddyTestTool } from "./webhook/stack/caddy"
+import { CloudflareTestTool } from "./webhook/stack/cloudflare"
+import { AkamaiTestTool } from "./webhook/stack/akamai"
+import { FastlyTestTool } from "./webhook/stack/fastly"
+import { CloudfrontTestTool } from "./webhook/stack/cloudfront"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -275,6 +279,10 @@ export namespace ToolRegistry {
       TomcatTestTool,
       LitespeedTestTool,
       CaddyTestTool,
+      CloudflareTestTool,
+      AkamaiTestTool,
+      FastlyTestTool,
+      CloudfrontTestTool,
       ...custom,
     ]
   }

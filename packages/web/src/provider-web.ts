@@ -281,6 +281,10 @@ const STACK_TOOL_PERMISSIONS: Record<string, PermissionRule> = {
   tomcat_test: "allow",
   litespeed_test: "allow",
   caddy_test: "allow",
+  cf_test: "allow",
+  akamai_test: "allow",
+  fastly_test: "allow",
+  cloudfront_test: "allow",
 }
 
 function buildSpecDefs(): SpecDef[] {
