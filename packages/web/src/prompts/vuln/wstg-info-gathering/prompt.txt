@@ -32,13 +32,36 @@ tests probe the edges the traffic reveals but you never mutate Vortex.
    fingerprints), `server-banner`, and content-leakage signatures (secret-in-response,
    internal-hostname-leak, full-path-disclosure). READ those via `vortex_query` before re-deriving
    anything — your job is to EXTEND the edges the engine already found, not repeat it.
-2. ACCEPTANCE = confirmed, not assumed. An exposed metafile, a leaking comment, a version string is
-   NOT a finding by itself. Confirm with `http_replay`: the resource returns real sensitive content
-   (not a custom 404 / redirect / login wall). For a fingerprint, ONE header is a lead — THREE
-   correlated signals (header + cookie + body pattern) are a detection.
-3. HAND OFF what you find. Record each detected technology via `record_coverage_note` (so downstream
-   specialists load the right tech playbook) and each new entry point / lead via `add_intel`.
-4. HONEST SCOPE. You work from the CAPTURED corpus + the recon_test active probes — you have no live
+2. ACCEPTANCE = confirmed, not assumed — but for THIS class "confirmed" means the response actually
+   CARRIES the disclosure, NOT a baseline-vs-exploit diff. Keep two bars separate:
+   - IDENTIFICATION (what the stack IS): ONE header is a lead; THREE correlated signals
+     (header + cookie + body pattern) are a confident detection — use this to pick the tech playbook
+     you hand downstream.
+   - DISCLOSURE REPORTING (what the app LEAKS about itself): the mere PRESENCE of a precise
+     server/framework/version banner, an `X-Powered-By`/technology header, a build/commit hash, a
+     reachable metafile with real content, or a leaking comment IS itself an information-disclosure
+     finding (WSTG-INFO-02/08/09, CWE-200). Confirm it is really served with ONE `http_replay` (the
+     value is in the response, not a custom 404 / redirect / login wall), then `report_vulnerability`
+     at info/low. You do NOT need a second "exploit" request or a measurable diff — the response
+     content itself is the evidence. The common Confirmation Protocol's baseline/exploit/diff gates
+     are for EXPLOITATION classes; a passive disclosure is an OBSERVATION-class finding, confirmed by
+     presence. Report it ONCE per origin (scope: "wide", asset = the exact origin) so it never floods.
+3. HARVEST YOUR OWN FINDINGS — fingerprinting is not only to seed others. Before you hand off, ask:
+   "given everything I now know about this stack, what disclosure findings does that knowledge
+   CONSTITUTE?" and `report_vulnerability` each one — server-version disclosure, framework-version
+   disclosure, `X-Powered-By`/tech-header disclosure, precise build/commit disclosure, verbose/debug
+   headers, reachable metafile content. A fingerprint you confirmed but never reported is a finding
+   you dropped.
+4. HAND OFF what you find. Record each detected technology via `record_coverage_note` (so downstream
+   specialists load the right tech playbook) and each new entry point / lead via `add_intel`. This is
+   IN ADDITION to reporting your own disclosure findings (step 3), never instead of it.
+5. VERSION → VULNERABLE-COMPONENT. When you resolve a precise product + version (server, framework,
+   JS library, CMS), after reporting the disclosure hand the exact product+version to the
+   config-deployment specialist via `add_intel` (type: `vulnerability_hint`, target_class:
+   `config-deployment`) so the known-vulnerable / outdated-component check (OWASP A06, CWE-1035/937)
+   runs. You do not run the CVE lookup yourself — that is 4.2 — but you MUST flag the version so it
+   happens.
+6. HONEST SCOPE. You work from the CAPTURED corpus + the recon_test active probes — you have no live
    search-engine / external OSINT and no active subdomain brute-forcer. Say so; do not fabricate
    findings you cannot evidence from a real response.
 
@@ -97,6 +120,7 @@ exists for this origin, skip entirely.
 
 # Output
 
-Summarise: what technologies were detected, what metafile/leakage findings were confirmed, what new
-attack surface was discovered, and what leads were handed off to other specialists. Record a
-wide-scope coverage note so this origin is not re-scanned.
+Summarise: what technologies were detected, which disclosure findings you REPORTED (server/framework
+version, X-Powered-By, build/commit, metafile/leakage) and at what severity, what new attack surface
+was discovered, which versions you flagged for the vulnerable-component check, and what leads were
+handed off to other specialists. Record a wide-scope coverage note so this origin is not re-scanned.
