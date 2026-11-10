@@ -269,6 +269,20 @@ const VORTEX_READ_PERMISSIONS: Record<string, PermissionRule> = {
   vortex_untested: "allow",
 }
 
+// Per-stack deterministic technique tools (ported from infra-security). Granted to
+// the info-gathering + config-deployment specialists, which own tech fingerprinting
+// and configuration/deployment testing; the `tech-playbook` directive tells them
+// which to run for the fired `technology:<slug>` signal. Grows as providers are ported.
+const STACK_TOOL_PERMISSIONS: Record<string, PermissionRule> = {
+  iis_tilde: "allow",
+  nginx_test: "allow",
+  apache_test: "allow",
+  iis_test: "allow",
+  tomcat_test: "allow",
+  litespeed_test: "allow",
+  caddy_test: "allow",
+}
+
 function buildSpecDefs(): SpecDef[] {
   return [
     // ── Support ──
@@ -303,7 +317,11 @@ function buildSpecDefs(): SpecDef[] {
       description: DESC_WSTG_INFO_GATHERING,
       skills: ["wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08"],
       prependRequestContext: true,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { recon_test: "allow", ...VORTEX_READ_PERMISSIONS }),
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, {
+        recon_test: "allow",
+        ...STACK_TOOL_PERMISSIONS,
+        ...VORTEX_READ_PERMISSIONS,
+      }),
     },
 
     // ── WSTG 4.2 Configuration & Deployment Management ──
@@ -319,7 +337,12 @@ function buildSpecDefs(): SpecDef[] {
         "wstg-info-02", "wstg-info-03", "wstg-info-05", "wstg-info-08",
       ],
       prependRequestContext: true,
-      permissions: mergePermissions(VULN_BASE_PERMISSIONS, { misconfig_test: "allow", recon_test: "allow", ...VORTEX_READ_PERMISSIONS }),
+      permissions: mergePermissions(VULN_BASE_PERMISSIONS, {
+        misconfig_test: "allow",
+        recon_test: "allow",
+        ...STACK_TOOL_PERMISSIONS,
+        ...VORTEX_READ_PERMISSIONS,
+      }),
     },
 
     // ── WSTG 4.3 Identity Management ──

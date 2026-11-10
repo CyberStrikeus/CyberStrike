@@ -92,6 +92,12 @@ import { CveLookupTool } from "./cve-lookup"
 import { IisTildeTool } from "./webhook/technique/iis-tilde"
 import { GraphqlIntrospectTool } from "./webhook/technique/graphql-introspect"
 import { HttpSmugglingTool } from "./webhook/technique/http-smuggling"
+import { NginxTestTool } from "./webhook/stack/nginx"
+import { ApacheTestTool } from "./webhook/stack/apache"
+import { IisTestTool } from "./webhook/stack/iis"
+import { TomcatTestTool } from "./webhook/stack/tomcat"
+import { LitespeedTestTool } from "./webhook/stack/litespeed"
+import { CaddyTestTool } from "./webhook/stack/caddy"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -263,6 +269,12 @@ export namespace ToolRegistry {
       IisTildeTool,
       GraphqlIntrospectTool,
       HttpSmugglingTool,
+      NginxTestTool,
+      ApacheTestTool,
+      IisTestTool,
+      TomcatTestTool,
+      LitespeedTestTool,
+      CaddyTestTool,
       ...custom,
     ]
   }
