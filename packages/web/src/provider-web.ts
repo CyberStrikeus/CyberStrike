@@ -288,6 +288,11 @@ const STACK_TOOL_PERMISSIONS: Record<string, PermissionRule> = {
   haproxy_test: "allow",
   traefik_test: "allow",
   envoy_test: "allow",
+  spring_test: "allow",
+  dotnet_test: "allow",
+  php_test: "allow",
+  node_test: "allow",
+  rails_test: "allow",
 }
 
 function buildSpecDefs(): SpecDef[] {

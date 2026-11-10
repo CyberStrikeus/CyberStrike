@@ -105,6 +105,11 @@ import { CloudfrontTestTool } from "./webhook/stack/cloudfront"
 import { HaproxyTestTool } from "./webhook/stack/haproxy"
 import { TraefikTestTool } from "./webhook/stack/traefik"
 import { EnvoyTestTool } from "./webhook/stack/envoy"
+import { SpringTestTool } from "./webhook/stack/spring"
+import { DotnetTestTool } from "./webhook/stack/dotnet"
+import { PhpTestTool } from "./webhook/stack/php"
+import { NodeTestTool } from "./webhook/stack/node"
+import { RailsTestTool } from "./webhook/stack/rails"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -289,6 +294,11 @@ export namespace ToolRegistry {
       HaproxyTestTool,
       TraefikTestTool,
       EnvoyTestTool,
+      SpringTestTool,
+      DotnetTestTool,
+      PhpTestTool,
+      NodeTestTool,
+      RailsTestTool,
       ...custom,
     ]
   }
