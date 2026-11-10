@@ -1,74 +1,107 @@
-// litespeed stack checks — ported from infra-security-mcp `providers/litespeed`.
+// LiteSpeed stack checks — ported 1:1 from infra-security-mcp `providers/litespeed`.
+// Every path/payload/condition matches the source exactly; only the transport
+// (scope-guarded webhook sender) and the Check/severity adapter are CyberStrike's.
 import z from "zod"
 import { defineWebhookTool } from "../define"
 import type { HttpSender } from "../transport"
 import { get, header, failed, ok, base, host, summarize, type Check } from "./shared"
 
 export namespace Litespeed {
-  export async function version(sender: HttpSender, origin: string): Promise<Check> {
-    const res = await get(sender, origin)
-    if (failed(res)) return { check: "version", hit: false, severity: "info", detail: "no response" }
-    const server = header(res, "server")
-    const m = server.match(/(Open)?LiteSpeed\/?([\d.]+)?/i)
-    if (!m) return { check: "version", hit: false, severity: "info", detail: "LiteSpeed not disclosed" }
-    const cache = header(res, "x-litespeed-cache") || header(res, "x-lsadc-cache")
+  export async function versionDetect(sender: HttpSender, origin: string): Promise<Check> {
+    const [main, notFound] = await Promise.all([get(sender, origin), get(sender, `${origin}/__nonexistent_${Date.now()}__`)])
+    const serverHeader = (ok(main) ? header(main, "server") : "") || (ok(notFound) ? header(notFound, "server") : "")
+    const notFoundBody = ok(notFound) ? notFound.body : ""
+    const lsMatch = serverHeader.match(/LiteSpeed\/([\d.]+)/i)
+    const olsMatch = serverHeader.match(/OpenLiteSpeed\/([\d.]+)/i)
+    const bodyMatch = notFoundBody.match(/LiteSpeed\/([\d.]+)/i) ?? notFoundBody.match(/OpenLiteSpeed\/([\d.]+)/i)
+    const variant = olsMatch ? "OpenLiteSpeed" : lsMatch ? "LiteSpeed" : null
+    const version = olsMatch?.[1] ?? lsMatch?.[1] ?? bodyMatch?.[1] ?? null
+    const isLiteSpeed = serverHeader.toLowerCase().includes("litespeed") || notFoundBody.toLowerCase().includes("litespeed")
+    const xPoweredBy = ok(main) ? header(main, "x-powered-by") : ""
+    const lsCache = (ok(main) ? header(main, "x-litespeed-cache") : "") || (ok(main) ? header(main, "x-lsadc-cache") : "")
+    if (!isLiteSpeed) return { check: "version_detect", hit: false, severity: "info", detail: "LiteSpeed not detected" }
     return {
-      check: "version",
+      check: "version_detect",
       hit: true,
-      severity: m[2] ? "low" : "info",
-      detail: `${m[1] ? "OpenLiteSpeed" : "LiteSpeed"}${m[2] ? ` ${m[2]}` : ""} detected${cache ? ` (cache: ${cache})` : ""}`,
-      evidence: server,
+      severity: version ? "low" : "info",
+      detail: `${variant ?? "LiteSpeed"}${version ? ` ${version}` : ""} detected${lsCache ? ` [cache: ${lsCache}]` : ""}${xPoweredBy ? ` X-Powered-By: ${xPoweredBy}` : ""}${bodyMatch ? " (error page leaks version)" : ""}`,
+      evidence: serverHeader || (bodyMatch ? bodyMatch[0] : "LiteSpeed"),
     }
   }
 
   export async function adminExposure(sender: HttpSender, origin: string): Promise<Check> {
+    const port = 7080
     const h = host(origin)
-    const bases = [`https://${h}:7080`, `http://${h}:7080`]
-    for (const b of bases)
-      for (const p of ["/", "/login.php", "/view/serviceMgr.php"]) {
-        const res = await get(sender, `${b}${p}`)
-        if (failed(res)) continue
-        if (res.status === 200 && /(litespeed|WebAdmin|lsws)/i.test(res.body))
-          return { check: "admin_exposure", hit: true, severity: "high", detail: `LiteSpeed WebAdmin console exposed at ${b}${p}`, evidence: res.body.slice(0, 200) }
-      }
-    return { check: "admin_exposure", hit: false, severity: "info", detail: "WebAdmin console (:7080) not exposed" }
+    const adminPaths = [
+      { url: `https://${h}:${port}/`, desc: "Admin root (HTTPS)" },
+      { url: `http://${h}:${port}/`, desc: "Admin root (HTTP)" },
+      { url: `https://${h}:${port}/login.php`, desc: "Login page" },
+      { url: `https://${h}:${port}/view/serviceMgr.php`, desc: "Service manager" },
+    ]
+    for (const ap of adminPaths) {
+      const res = await get(sender, ap.url)
+      if (failed(res)) continue
+      if (
+        res.status === 200 &&
+        (res.body.toLowerCase().includes("litespeed") ||
+          res.body.includes("WebAdmin") ||
+          res.body.includes("lsws") ||
+          res.body.includes("login"))
+      )
+        return { check: "admin_exposure", hit: true, severity: "high", detail: `LiteSpeed admin console exposed at ${ap.url} (${ap.desc})`, evidence: res.body.substring(0, 500) }
+    }
+    return { check: "admin_exposure", hit: false, severity: "info", detail: `admin console not exposed on :${port}` }
   }
 
   export async function cachePoison(sender: HttpSender, origin: string): Promise<Check> {
-    const evil = "evil.attacker.example"
-    const injections: Record<string, string>[] = [
-      { "X-Forwarded-Host": evil },
-      { "X-Original-URL": `http://${evil}/` },
-      { "X-Rewrite-URL": `http://${evil}/` },
-      { "X-Forwarded-Scheme": "http" },
-      { "X-Forwarded-Host": evil, "X-Forwarded-Scheme": "http" },
+    const path = "/"
+    const url = `${origin}${path}`
+    const baseline = await get(sender, url)
+    const baselineBody = ok(baseline) ? baseline.body : ""
+    const poisonTests: { name: string; headers: Record<string, string> }[] = [
+      { name: "X-Forwarded-Host", headers: { "X-Forwarded-Host": "evil.attacker.com" } },
+      { name: "X-Original-URL", headers: { "X-Original-URL": "/admin" } },
+      { name: "X-Rewrite-URL", headers: { "X-Rewrite-URL": "/admin" } },
+      { name: "X-Forwarded-Scheme", headers: { "X-Forwarded-Scheme": "http" } },
+      { name: "X-Forwarded-Proto + Host", headers: { "X-Forwarded-Proto": "http", "X-Forwarded-Host": "evil.attacker.com" } },
     ]
-    for (const inj of injections) {
-      const res = await get(sender, origin, inj)
+    for (const pt of poisonTests) {
+      const res = await get(sender, url, pt.headers)
       if (failed(res)) continue
-      if (res.body.includes(evil))
-        return { check: "cache_poison", hit: true, severity: "high", detail: `forwarding header reflected (cache-poison vector): ${Object.keys(inj).join("+")}`, evidence: `cache: ${header(res, "x-litespeed-cache") || "n/a"}` }
+      const reflected =
+        res.body.includes("evil.attacker.com") ||
+        (pt.headers["X-Original-URL"] === "/admin" && res.body !== baselineBody && res.status === 200)
+      if (reflected)
+        return { check: "cache_poison", hit: true, severity: "medium", detail: `LiteSpeed cache poisoning via ${pt.name}`, evidence: res.body.substring(0, 500) }
     }
-    return { check: "cache_poison", hit: false, severity: "info", detail: "no reflected forwarding-header cache-poison" }
+    return { check: "cache_poison", hit: false, severity: "info", detail: "no reflected cache-poisoning vector" }
   }
 
   export async function htaccessCompat(sender: HttpSender, origin: string): Promise<Check> {
-    for (const f of ["/.htaccess", "/.htpasswd"]) {
-      const res = await get(sender, `${origin}${f}`)
-      if (ok(res) && res.status === 200 && /(AuthType|Require |RewriteRule|:\$)/.test(res.body))
-        return { check: "htaccess_compat", hit: true, severity: "high", detail: `.htaccess/.htpasswd readable at ${f}`, evidence: res.body.slice(0, 200) }
+    const htaccessPaths = ["/.htaccess", "/.htpasswd"]
+    for (const hp of htaccessPaths) {
+      const res = await get(sender, `${origin}${hp}`)
+      if (failed(res)) continue
+      if (
+        res.status === 200 &&
+        (res.body.includes("RewriteRule") || res.body.includes("AuthType") || res.body.includes("Require") || res.body.includes("$"))
+      )
+        return { check: "htaccess_compat", hit: true, severity: "medium", detail: `.htaccess/.htpasswd directly accessible at ${hp}`, evidence: res.body.substring(0, 500) }
     }
-    const g = await get(sender, `${origin}/admin`)
-    if (ok(g) && (g.status === 401 || g.status === 403)) {
-      const put = await sender.send({ method: "PUT", url: `${origin}/admin`, headers: {} })
-      if (ok(put) && (put.status === 200 || put.status === 201))
-        return { check: "htaccess_compat", hit: true, severity: "high", detail: "method-based ACL bypass on /admin (GET blocked, PUT allowed)", evidence: `GET=${g.status} PUT=${put.status}` }
-    }
-    return { check: "htaccess_compat", hit: false, severity: "info", detail: "no .htaccess leak or method bypass" }
+    const adminRes = await get(sender, `${origin}/admin`)
+    const adminPut = await sender.send({ method: "PUT", url: `${origin}/admin`, headers: {} })
+    const methodBypass =
+      ok(adminRes) &&
+      ok(adminPut) &&
+      (adminRes.status === 403 || adminRes.status === 401) &&
+      (adminPut.status === 200 || adminPut.status === 204)
+    if (methodBypass)
+      return { check: "htaccess_compat", hit: true, severity: "high", detail: "LiteSpeed ignores Limit/LimitExcept — HTTP method restriction bypassed on /admin", evidence: `GET=${ok(adminRes) ? adminRes.status : "?"} PUT=${ok(adminPut) ? adminPut.status : "?"}` }
+    return { check: "htaccess_compat", hit: false, severity: "info", detail: "no .htaccess leak or method-restriction bypass" }
   }
 
   const RUNNERS: Record<string, (s: HttpSender, o: string) => Promise<Check>> = {
-    version,
+    version_detect: versionDetect,
     admin_exposure: adminExposure,
     cache_poison: cachePoison,
     htaccess_compat: htaccessCompat,
@@ -82,9 +115,9 @@ export namespace Litespeed {
   }
 }
 
-const DESCRIPTION = `LiteSpeed / OpenLiteSpeed deterministic checks (version + cache-header disclosure, WebAdmin console :7080 exposure, forwarding-header cache poisoning, .htaccess leak + method ACL bypass).
+const DESCRIPTION = `LiteSpeed / OpenLiteSpeed deterministic checks (variant+version disclosure, admin console exposure on :7080, cache poisoning via X-Forwarded-Host/X-Original-URL/X-Rewrite-URL, .htaccess compatibility leaks + Limit/LimitExcept method-restriction bypass). 1:1 port of the infra-security litespeed provider.
 
-Run after Vortex fingerprints LiteSpeed. Probes go through the scope-guarded replay engine. check="all" (default) runs every check.`
+Run after Vortex fingerprints LiteSpeed/OpenLiteSpeed. Probes go through the scope-guarded replay engine. check="all" (default) runs every check.`
 
 export const LitespeedTestTool = defineWebhookTool({
   name: "litespeed_test",
@@ -92,9 +125,9 @@ export const LitespeedTestTool = defineWebhookTool({
   parameters: z.object({
     target: z.string().describe("Target origin or URL (e.g. https://target.com)."),
     check: z
-      .enum(["all", "version", "admin_exposure", "cache_poison", "htaccess_compat"])
+      .enum(["all", "version_detect", "admin_exposure", "cache_poison", "htaccess_compat"])
       .default("all")
-      .describe("Which check to run; 'all' runs every LiteSpeed check."),
+      .describe("Which check to run; 'all' runs every litespeed check."),
   }),
   async run(params, ctx) {
     const origin = base(params.target)

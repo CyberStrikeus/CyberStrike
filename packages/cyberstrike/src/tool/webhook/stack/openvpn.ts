@@ -1,45 +1,85 @@
-// openvpn stack checks (HTTP subset) — ported from infra-security-mcp `providers/openvpn`.
-// The raw-TCP `openvpn_detect` (port 1194 handshake) needs a scoped TCP transport
-// and is deferred (see the raw-socket follow-up issue).
+// OpenVPN stack checks — 1:1 port of the HTTP-based checks in infra-security-mcp
+// `providers/openvpn`. Every panel path, .ovpn config path, version regex and
+// detection branch matches the source exactly; only the transport (scope-guarded
+// webhook sender) and the Check/severity adapter are CyberStrike's.
+// NOTE: the raw-TCP `openvpn_detect` (port 1194 control-reset handshake) is a
+// node:net socket probe and is intentionally NOT ported here — deferred to #32.
 import z from "zod"
 import { defineWebhookTool } from "../define"
 import type { HttpSender } from "../transport"
-import { get, header, failed, ok, base, host, withPort, summarize, type Check } from "./shared"
+import { get, header, failed, ok, base, summarize, verdict, type Check, type Finding } from "./shared"
 
 export namespace Openvpn {
   export async function webPanel(sender: HttpSender, origin: string): Promise<Check> {
-    const targets = [`${origin}/admin`, `${origin}/__session`, origin, `${withPort(origin, 9090)}/`, `https://${host(origin)}/login`]
-    for (const t of targets) {
-      const res = await get(sender, t)
+    const panels = [
+      { path: "/admin", name: "OpenVPN Access Server Admin" },
+      { path: "/__session", name: "OpenVPN Access Server" },
+      { path: "/", name: "OpenVPN Access Server Client" },
+      { path: ":9090/", name: "Pritunl" },
+      { path: ":443/login", name: "Pritunl Login" },
+    ]
+    const indicators = ["openvpn", "access server", "pritunl", "ovpn", "vpn-login", "openvpn-gui"]
+
+    const findings: Finding[] = []
+    for (const panel of panels) {
+      const url = panel.path.startsWith(":") ? `${origin.replace(/:\d+/, "")}${panel.path}` : `${origin}${panel.path}`
+      const res = await get(sender, url)
       if (failed(res)) continue
-      if (res.status < 400 && /(OpenVPN Access Server|Pritunl|openvpn|ovpn)/i.test(res.body))
-        return { check: "web_panel", hit: true, severity: "medium", detail: `OpenVPN web panel reachable at ${t}`, evidence: res.body.slice(0, 120) }
+      const bodyLower = res.body.toLowerCase()
+      const matched = indicators.filter((i) => bodyLower.includes(i))
+      if (matched.length > 0) findings.push({ severity: "medium", detail: `${panel.name} exposed at ${url} (status ${res.status}) — indicators: ${matched.join(", ")}`, evidence: bodyLower.match(/<title>([^<]*)<\/title>/)?.[1]?.trim() })
     }
-    return { check: "web_panel", hit: false, severity: "info", detail: "no OpenVPN web panel" }
+
+    return verdict("web_panel", findings, "no OpenVPN web management panel exposed")
   }
 
   export async function configLeak(sender: HttpSender, origin: string): Promise<Check> {
-    const paths = ["/client.ovpn", "/server.ovpn", "/openvpn.conf", "/config.ovpn", "/vpn/client.ovpn", "/.ovpn", "/server.conf"]
-    for (const p of paths) {
-      const res = await get(sender, `${origin}${p}`)
-      if (failed(res)) continue
-      if (res.status === 200 && /(remote |client|dev tun|<ca>|<cert>|<key>|tls-auth)/i.test(res.body)) {
-        const keys = /<key>|<tls-auth>/i.test(res.body)
-        const ep = (res.body.match(/remote\s+(\S+)\s+(\d+)/i) || []).slice(1).join(":")
-        return { check: "config_leak", hit: true, severity: keys ? "critical" : "high", detail: `OpenVPN config exposed at ${p}${keys ? " (embedded private key!)" : ""}${ep ? ` → ${ep}` : ""}`, evidence: res.body.slice(0, 120) }
+    const paths = [
+      "/client.ovpn", "/vpn/client.ovpn", "/openvpn/client.ovpn",
+      "/config.ovpn", "/vpn.ovpn", "/openvpn.ovpn",
+      "/download/client.ovpn", "/files/client.ovpn",
+      "/vpn/config/client.ovpn", "/etc/openvpn/client.conf",
+      "/.openvpn/client.ovpn", "/backup/vpn.ovpn",
+    ]
+
+    const findings: Finding[] = []
+    for (const path of paths) {
+      const res = await get(sender, `${origin}${path}`)
+      if (!ok(res) || res.status !== 200) continue
+      const body = res.body
+      const isConfig = body.includes("remote ") || (body.includes("client") && body.includes("dev tun"))
+      if (isConfig) {
+        const hasKey = body.includes("<ca>") || body.includes("<cert>") || body.includes("<key>") || body.includes("<tls-auth>")
+        const remoteMatch = body.match(/^remote\s+(\S+)\s+(\d+)/m)
+        findings.push({ severity: hasKey ? "critical" : "high", detail: `OpenVPN config exposed at ${path} (${body.length} bytes)${hasKey ? " — embeds CA/cert/key material" : ""}${remoteMatch ? ` — remote ${remoteMatch[1]}:${remoteMatch[2]}` : ""}`, evidence: body.slice(0, 200) })
       }
     }
-    return { check: "config_leak", hit: false, severity: "info", detail: "no exposed .ovpn/.conf" }
+
+    return verdict("config_leak", findings, "no exposed .ovpn config file")
   }
 
   export async function versionDetect(sender: HttpSender, origin: string): Promise<Check> {
-    for (const p of ["/admin", "/rest/GetUserlogin", "/api/version", "/"]) {
-      const res = await get(sender, `${origin}${p}`)
+    const endpoints = ["/admin", "/__session", "/rest/GetUserlogin", "/api/version"]
+    const vPatterns = [
+      /OpenVPN[- ](?:Access Server[- ])?v?(\d+\.\d+(?:\.\d+)?)/i,
+      /openvpn_version['":\s]+v?(\d+\.\d+(?:\.\d+)?)/i,
+      /version['":\s]+v?(\d+\.\d+(?:\.\d+)?[^'"<\s]*)/i,
+    ]
+
+    const versions = new Map<string, string>()
+    for (const ep of endpoints) {
+      const res = await get(sender, `${origin}${ep}`)
       if (failed(res)) continue
-      const m = (header(res, "server") + res.body.slice(0, 1000)).match(/OpenVPN[- ]?(?:Access Server )?([\d.]+)/i)
-      if (m) return { check: "version_detect", hit: true, severity: "low", detail: `OpenVPN ${m[1]} disclosed at ${p}`, evidence: m[0] }
+      for (const pat of vPatterns) {
+        const match = res.body.match(pat)
+        if (match) versions.set(match[1], ep)
+      }
+      const server = header(res, "server")
+      if (server.toLowerCase().includes("openvpn")) versions.set(server, `${ep} (Server header)`)
     }
-    return { check: "version_detect", hit: false, severity: "info", detail: "OpenVPN version not disclosed over HTTP" }
+
+    const findings: Finding[] = [...versions].map(([version, source]) => ({ severity: "low" as const, detail: `OpenVPN version '${version}' disclosed via ${source}` }))
+    return verdict("version_detect", findings, "no OpenVPN version disclosed")
   }
 
   const RUNNERS: Record<string, (s: HttpSender, o: string) => Promise<Check>> = {
@@ -56,16 +96,19 @@ export namespace Openvpn {
   }
 }
 
-const DESCRIPTION = `OpenVPN HTTP checks (web panel exposure, .ovpn/.conf config leak incl. embedded keys, version disclosure).
+const DESCRIPTION = `OpenVPN HTTP checks (Access Server / Pritunl admin panels at /admin, /__session, :9090/, :443/login; exposed .ovpn config leak with embedded CA/cert/key detection; Access Server version disclosure via /admin, /__session, /rest/GetUserlogin, /api/version). 1:1 port of the HTTP checks in the infra-security openvpn provider.
 
-The raw-TCP port-1194 handshake detection is deferred to a scoped TCP transport. Probes go through the scope-guarded replay engine. check="all" (default) runs every HTTP check.`
+NOTE: the raw-TCP openvpn_detect (port 1194 control-reset handshake) is a node:net socket probe and is deferred to #32; this tool covers only the HTTP-reachable surface. check="all" (default) runs every check.`
 
 export const OpenvpnTestTool = defineWebhookTool({
   name: "openvpn_test",
   description: DESCRIPTION,
   parameters: z.object({
-    target: z.string().describe("Target origin or URL (e.g. https://target.com)."),
-    check: z.enum(["all", "web_panel", "config_leak", "version_detect"]).default("all").describe("Which HTTP check to run."),
+    target: z.string().describe("Target origin or URL (e.g. https://vpn.target.com)."),
+    check: z
+      .enum(["all", "web_panel", "config_leak", "version_detect"])
+      .default("all")
+      .describe("Which check to run; 'all' runs every OpenVPN HTTP check."),
   }),
   async run(params, ctx) {
     const origin = base(params.target)

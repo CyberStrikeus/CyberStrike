@@ -1,61 +1,120 @@
-// caddy stack checks — ported from infra-security-mcp `providers/caddy`.
+// Caddy stack checks — ported 1:1 from infra-security-mcp `providers/caddy`.
+// Every path/payload/condition matches the source exactly; only the transport
+// (scope-guarded webhook sender) and the Check/severity adapter are CyberStrike's.
 import z from "zod"
 import { defineWebhookTool } from "../define"
 import type { HttpSender } from "../transport"
 import { get, header, failed, ok, base, host, summarize, type Check } from "./shared"
 
 export namespace Caddy {
-  export async function version(sender: HttpSender, origin: string): Promise<Check> {
-    const res = await get(sender, origin)
-    if (failed(res)) return { check: "version", hit: false, severity: "info", detail: "no response" }
-    const server = header(res, "server")
-    if (!/caddy/i.test(server)) return { check: "version", hit: false, severity: "info", detail: "Caddy not disclosed" }
-    const m = server.match(/Caddy\/?([\d.]+)?/i)
-    return { check: "version", hit: true, severity: m?.[1] ? "low" : "info", detail: `Caddy${m?.[1] ? ` ${m[1]}` : ""} detected`, evidence: server }
+  export async function versionDetect(sender: HttpSender, origin: string): Promise<Check> {
+    const [main, notFound] = await Promise.all([get(sender, origin), get(sender, `${origin}/__nonexistent_${Date.now()}__`)])
+    const serverHeader = (ok(main) ? header(main, "server") : "") || (ok(notFound) ? header(notFound, "server") : "")
+    const notFoundBody = ok(notFound) ? notFound.body : ""
+    const notFoundStatus = ok(notFound) ? notFound.status : 0
+    const caddyMatch = serverHeader.match(/Caddy\/?(\S*)/i)
+    const isCaddy = serverHeader.toLowerCase().includes("caddy")
+    const defaultErrorPage = notFoundBody.includes("Caddy") || (notFoundStatus === 404 && notFoundBody.trim() === "")
+    // Caddy enforces HTTPS by default — check redirect behavior
+    const httpBase = origin.replace("https://", "http://")
+    const httpRes = await get(sender, httpBase)
+    const autoHttpsRedirect = ok(httpRes) && (httpRes.status === 301 || httpRes.status === 308)
+    if (!isCaddy) return { check: "version_detect", hit: false, severity: "info", detail: "Caddy not detected" }
+    const version = caddyMatch?.[1] || null
+    return {
+      check: "version_detect",
+      hit: true,
+      severity: version ? "low" : "info",
+      detail: `Caddy${version ? ` ${version}` : ""} detected${autoHttpsRedirect ? " (auto-HTTPS redirect active)" : ""}${defaultErrorPage ? " (default error page)" : ""}`,
+      evidence: serverHeader || "Caddy",
+    }
   }
 
   export async function adminApi(sender: HttpSender, origin: string): Promise<Check> {
+    const port = 2019
     const h = host(origin)
-    const endpoints = ["/config/", "/load", "/reverse_proxy/upstreams", "/pki/ca/local"]
-    for (const b of [`http://${h}:2019`, `https://${h}:2019`])
-      for (const p of endpoints) {
-        const res = await get(sender, `${b}${p}`)
+    const adminEndpoints = [
+      { path: "/config/", desc: "Full server configuration" },
+      { path: "/config/apps/http/servers", desc: "HTTP server config" },
+      { path: "/load", desc: "Config load endpoint (POST)" },
+      { path: "/stop", desc: "Server stop endpoint" },
+      { path: "/reverse_proxy/upstreams", desc: "Reverse proxy upstreams" },
+      { path: "/id/", desc: "Object ID lookup" },
+      { path: "/pki/ca/local", desc: "PKI certificate authority" },
+    ]
+    for (const ep of adminEndpoints) {
+      for (const scheme of ["http", "https"]) {
+        const url = `${scheme}://${h}:${port}${ep.path}`
+        const res = await get(sender, url)
         if (failed(res)) continue
-        if (res.status === 200 && /("apps"|"routes"|"handler"|certificate)/i.test(res.body))
-          return { check: "admin_api", hit: true, severity: "critical", detail: `Caddy admin API exposed at ${b}${p}`, evidence: res.body.slice(0, 200) }
+        if (res.status === 200 || (res.status === 400 && res.body.includes("caddy"))) {
+          const hasConfig =
+            res.body.includes('"apps"') || res.body.includes('"http"') || res.body.includes('"routes"') || res.body.includes('"listen"')
+          return { check: "admin_api", hit: true, severity: "critical", detail: `Caddy admin API externally accessible at ${url} (${ep.desc})${hasConfig ? " — leaks config" : ""}`, evidence: res.body.substring(0, 1000) }
+        }
       }
-    return { check: "admin_api", hit: false, severity: "info", detail: "admin API (:2019) not exposed" }
+    }
+    return { check: "admin_api", hit: false, severity: "info", detail: `admin API not exposed on :${port}` }
   }
 
   export async function autoHttps(sender: HttpSender, origin: string): Promise<Check> {
     const h = host(origin)
-    const res = await get(sender, `http://${h}`)
-    if (failed(res)) return { check: "auto_https", hit: false, severity: "info", detail: "HTTP not reachable" }
-    const loc = header(res, "location")
-    const redirects = (res.status === 301 || res.status === 308) && loc.startsWith("https://")
-    const https = await get(sender, `https://${h}`)
-    const hsts = ok(https) ? header(https, "strict-transport-security") : ""
-    const weakHsts = hsts && !/max-age=\d{7,}/.test(hsts)
-    if (!redirects)
-      return { check: "auto_https", hit: true, severity: "low", detail: "HTTP does not redirect to HTTPS", evidence: `http status=${res.status}` }
-    if (weakHsts)
-      return { check: "auto_https", hit: true, severity: "low", detail: `weak/short HSTS max-age`, evidence: hsts }
-    return { check: "auto_https", hit: false, severity: "info", detail: "HTTP→HTTPS redirect + adequate HSTS" }
+    const httpRes = await get(sender, `http://${h}/`)
+    const httpsRes = await get(sender, `https://${h}/`)
+    const hasRedirect =
+      ok(httpRes) && (httpRes.status === 301 || httpRes.status === 308 || httpRes.status === 302 || httpRes.status === 307)
+    const redirectLocation = ok(httpRes) ? header(httpRes, "location") : ""
+    const redirectsToHttps = redirectLocation.startsWith("https://")
+    const hsts = ok(httpsRes) ? header(httpsRes, "strict-transport-security") : ""
+    const hstsMaxAge = hsts.match(/max-age=(\d+)/)?.[1]
+    const wwwRes = await get(sender, `https://www.${h}/`)
+    const httpFollowed = await get(sender, `http://${h}/`)
+    const redirectLoop = (failed(httpFollowed) ? httpFollowed.error : "")?.includes("redirect") ?? false
+    const issues: string[] = []
+    if (!hasRedirect) issues.push("No HTTP→HTTPS redirect detected")
+    if (hasRedirect && !redirectsToHttps) issues.push(`Redirect goes to ${redirectLocation} (not HTTPS)`)
+    if (!hsts) issues.push("No HSTS header — users can be MitM'd on first visit")
+    if (hstsMaxAge && parseInt(hstsMaxAge) < 31536000) issues.push("HSTS max-age below 1 year")
+    if (redirectLoop) issues.push("Redirect loop detected")
+    void wwwRes
+    if (issues.length > 0)
+      return { check: "auto_https", hit: true, severity: "low", detail: `Caddy auto-HTTPS/HSTS hardening gaps: ${issues.join("; ")}`, evidence: hsts || redirectLocation || `http=${ok(httpRes) ? httpRes.status : "?"}` }
+    return { check: "auto_https", hit: false, severity: "info", detail: "auto-HTTPS and HSTS configured correctly" }
   }
 
   export async function configLeak(sender: HttpSender, origin: string): Promise<Check> {
-    const paths = ["/debug/pprof/", "/debug/vars", "/metrics", "/Caddyfile", "/Caddyfile.bak", "/caddy.json"]
-    for (const p of paths) {
-      const res = await get(sender, `${origin}${p}`)
+    const configPaths = [
+      { path: "/debug/pprof/", desc: "Go pprof profiling" },
+      { path: "/debug/pprof/goroutine?debug=1", desc: "Goroutine dump" },
+      { path: "/debug/pprof/heap?debug=1", desc: "Heap profile" },
+      { path: "/debug/vars", desc: "Go expvar" },
+      { path: "/metrics", desc: "Prometheus metrics" },
+      { path: "/Caddyfile", desc: "Caddyfile" },
+      { path: "/Caddyfile.bak", desc: "Caddyfile backup" },
+      { path: "/caddy.json", desc: "Caddy JSON config" },
+    ]
+    for (const cp of configPaths) {
+      const res = await get(sender, `${origin}${cp.path}`)
       if (failed(res)) continue
-      if (res.status === 200 && /(goroutine|pprof|"apps"|reverse_proxy|caddy)/i.test(res.body))
-        return { check: "config_leak", hit: true, severity: "high", detail: `Caddy debug/config endpoint exposed at ${p}`, evidence: res.body.slice(0, 200) }
+      if (res.status === 200 && res.body.length > 50) {
+        const isLegit =
+          res.body.includes("goroutine") ||
+          res.body.includes("pprof") ||
+          res.body.includes("allocs") ||
+          res.body.includes("caddy") ||
+          res.body.includes("{") ||
+          res.body.includes("# Caddyfile") ||
+          res.body.includes("go_") ||
+          res.body.includes("process_")
+        if (isLegit)
+          return { check: "config_leak", hit: true, severity: "high", detail: `Caddy config/debug endpoint exposed at ${cp.path} (${cp.desc})`, evidence: res.body.substring(0, 1000) }
+      }
     }
-    return { check: "config_leak", hit: false, severity: "info", detail: "no exposed pprof/config endpoint" }
+    return { check: "config_leak", hit: false, severity: "info", detail: "no exposed config/debug endpoint" }
   }
 
   const RUNNERS: Record<string, (s: HttpSender, o: string) => Promise<Check>> = {
-    version,
+    version_detect: versionDetect,
     admin_api: adminApi,
     auto_https: autoHttps,
     config_leak: configLeak,
@@ -69,7 +128,7 @@ export namespace Caddy {
   }
 }
 
-const DESCRIPTION = `Caddy deterministic checks (version disclosure, admin API :2019 exposure, auto-HTTPS/HSTS posture, pprof/Caddyfile/config leak).
+const DESCRIPTION = `Caddy deterministic checks (version/auto-HTTPS detection, admin API exposure on :2019, auto-HTTPS/HSTS hardening analysis, config/debug leak via pprof/expvar/metrics/Caddyfile). 1:1 port of the infra-security caddy provider.
 
 Run after Vortex fingerprints Caddy. Probes go through the scope-guarded replay engine. check="all" (default) runs every check.`
 
@@ -79,9 +138,9 @@ export const CaddyTestTool = defineWebhookTool({
   parameters: z.object({
     target: z.string().describe("Target origin or URL (e.g. https://target.com)."),
     check: z
-      .enum(["all", "version", "admin_api", "auto_https", "config_leak"])
+      .enum(["all", "version_detect", "admin_api", "auto_https", "config_leak"])
       .default("all")
-      .describe("Which check to run; 'all' runs every Caddy check."),
+      .describe("Which check to run; 'all' runs every caddy check."),
   }),
   async run(params, ctx) {
     const origin = base(params.target)

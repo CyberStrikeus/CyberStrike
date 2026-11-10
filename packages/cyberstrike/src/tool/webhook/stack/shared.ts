@@ -55,6 +55,24 @@ export function host(origin: string): string {
   return new URL(origin).hostname
 }
 
+// One branch outcome inside a multi-branch sub-check. The source providers
+// accumulate an array of findings per tool; `verdict` folds them into one Check.
+export interface Finding {
+  severity: Severity
+  detail: string
+  evidence?: string
+}
+
+const ORDER: Severity[] = ["info", "low", "medium", "high", "critical"]
+
+// Fold a sub-check's branch findings into one Check verdict: hit if any branch
+// matched, severity = the worst matched branch, detail = every branch joined.
+export function verdict(check: string, findings: Finding[], miss: string): Check {
+  if (findings.length === 0) return { check, hit: false, severity: "info", detail: miss }
+  const severity = findings.reduce<Severity>((s, f) => (ORDER.indexOf(f.severity) > ORDER.indexOf(s) ? f.severity : s), "info")
+  return { check, hit: true, severity, detail: findings.map((f) => f.detail).join("; "), evidence: findings.find((f) => f.evidence)?.evidence }
+}
+
 // Compact one-line summary shared by every stack tool's `format`.
 export function summarize(name: string, target: string, results: Check[]): string {
   const hits = results.filter((r) => r.hit)
