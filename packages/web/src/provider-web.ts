@@ -293,6 +293,10 @@ const STACK_TOOL_PERMISSIONS: Record<string, PermissionRule> = {
   php_test: "allow",
   node_test: "allow",
   rails_test: "allow",
+  openvpn_test: "allow",
+  wireguard_test: "allow",
+  rdp_test: "allow",
+  ssh_test: "allow",
 }
 
 function buildSpecDefs(): SpecDef[] {

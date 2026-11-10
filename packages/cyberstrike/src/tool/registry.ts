@@ -110,6 +110,10 @@ import { DotnetTestTool } from "./webhook/stack/dotnet"
 import { PhpTestTool } from "./webhook/stack/php"
 import { NodeTestTool } from "./webhook/stack/node"
 import { RailsTestTool } from "./webhook/stack/rails"
+import { OpenvpnTestTool } from "./webhook/stack/openvpn"
+import { WireguardTestTool } from "./webhook/stack/wireguard"
+import { RdpTestTool } from "./webhook/stack/rdp"
+import { SshTestTool } from "./webhook/stack/ssh"
 
 export namespace ToolRegistry {
   const log = Log.create({ service: "tool.registry" })
@@ -299,6 +303,10 @@ export namespace ToolRegistry {
       PhpTestTool,
       NodeTestTool,
       RailsTestTool,
+      OpenvpnTestTool,
+      WireguardTestTool,
+      RdpTestTool,
+      SshTestTool,
       ...custom,
     ]
   }
