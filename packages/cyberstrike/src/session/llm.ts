@@ -222,6 +222,11 @@ export namespace LLM {
                 "User-Agent": `cyberstrike/${Installation.VERSION}`,
               }
             : undefined),
+        // OpenCode Go rejects any request without a stable per-conversation session id
+        // (400 MissingSessionID since 2026-09-05). Scoped STRICTLY to this provider, so
+        // the session id reaches opencode.ai only when the user is actually using an
+        // opencode-go model — never for any other provider. (issue #139)
+        ...(input.model.providerID === "opencode-go" ? { "x-opencode-session": input.sessionID } : {}),
         ...input.model.headers,
         ...headers,
       },

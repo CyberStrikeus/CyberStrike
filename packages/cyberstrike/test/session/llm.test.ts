@@ -307,6 +307,9 @@ describe("session.llm.stream", () => {
         expect(url.pathname.endsWith("/chat/completions")).toBe(true)
         expect(headers.get("Authorization")).toBe("Bearer test-key")
         expect(headers.get("User-Agent") ?? "").toMatch(/^cyberstrike\//)
+        // Scoping guard (#139): the OpenCode Go session header must NEVER be attached
+        // for any other provider — only an opencode-go model may send it.
+        expect(headers.get("x-opencode-session")).toBeNull()
 
         expect(body.model).toBe(resolved.api.id)
         expect(body.temperature).toBe(0.4)
@@ -661,6 +664,9 @@ describe("session.llm.stream", () => {
         expect(config?.temperature).toBe(0.3)
         expect(config?.topP).toBe(0.8)
         expect(config?.maxOutputTokens).toBe(ProviderTransform.maxOutputTokens(resolved))
+        // Scoping guard (#139): a non-opencode provider (here Google) must never carry
+        // the OpenCode Go session header, regardless of model or API key.
+        expect(capture.headers.get("x-opencode-session")).toBeNull()
       },
     })
   })
