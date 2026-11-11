@@ -22,7 +22,7 @@ import { Observe } from "../replay/observe"
 import { Mutate } from "../replay/mutate"
 import { Batch } from "../replay/batch"
 import { vortexRegisterCanary, vortexScanProbeResponse } from "../session/web/vortex-bridge"
-import { governedSend } from "../replay/govern"
+import { governedSend, governorsFor } from "../replay/govern"
 import { Verification } from "../inspection/verification"
 
 // Encode codecs mirrored as a zod enum for the tool schema (kept in sync with
@@ -247,6 +247,7 @@ export async function sendGoverned(
     total_timeout_ms?: number
     follow_redirects?: boolean
     signal?: AbortSignal
+    session?: string
   },
 ): Promise<Send.Result> {
   return governedSend(msg, origin, {
@@ -254,6 +255,7 @@ export async function sendGoverned(
     totalTimeoutMs: opts.total_timeout_ms,
     followRedirects: opts.follow_redirects,
     signal: opts.signal,
+    session: opts.session,
   })
 }
 
@@ -434,6 +436,9 @@ export const HttpReplayTool = Tool.define("http_replay", {
       total_timeout_ms: params.total_timeout_ms,
       follow_redirects: params.follow_redirects,
       signal: ctx.abort,
+      // Root session so budget + per-host breaker/limiter are shared across the whole
+      // run (every parallel sub-agent), not reset per send. (issue #91)
+      session: sessionID,
     }
 
     // Elicited-response write-back to Vortex (the single signal producer, #15). Feed each elicited
@@ -542,6 +547,11 @@ export const HttpReplayTool = Tool.define("http_replay", {
       sharedMsg = authResult
       if (params.mutations) sharedMsg = Apply.mutations(sharedMsg, params.mutations as Apply.Mutation[])
 
+      // Pace the sweep through this run+host's SHARED governors: concurrency follows
+      // the AIMD limiter (auto-tunes to the target, coordinated across sub-agents) and
+      // the token bucket caps requests/sec. The worker's sendGoverned reuses the same
+      // limiter instance, so its send outcomes feed back into the concurrency. (issue #91)
+      const gov = governorsFor(sessionID, origin)
       const results = await Batch.run(
         sweep.values,
         async (value) => {
@@ -554,7 +564,7 @@ export const HttpReplayTool = Tool.define("http_replay", {
             return { value, error: e instanceof Error ? e.message : String(e) }
           }
         },
-        { concurrency: 3 },
+        { concurrency: () => gov.limiter.value, bucket: gov.bucket, signal: ctx.abort },
       )
 
       return {

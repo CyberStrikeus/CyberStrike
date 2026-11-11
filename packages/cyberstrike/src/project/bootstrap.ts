@@ -12,6 +12,8 @@ import { Log } from "@/util/log"
 import { ShareNext } from "@/share/share-next"
 import { Snapshot } from "../snapshot"
 import { Truncate } from "../tool/truncation"
+import { Session } from "../session"
+import { releaseGovernors } from "../replay/govern"
 
 export async function InstanceBootstrap() {
   Log.Default.info("bootstrapping", { directory: Instance.directory })
@@ -29,6 +31,14 @@ export async function InstanceBootstrap() {
     if (payload.properties.name === Command.Default.INIT) {
       await Project.setInitialized(Instance.project.id)
     }
+  })
+
+  // Free a run's shared replay governors (budget/breaker/limiter/bucket) when its
+  // root engagement ends. A sub-agent session closing must NOT drop the run — its
+  // siblings are still live — so only a parentless (root) deletion releases. The
+  // registry is also self-bounded, so this is prompt cleanup, not the only safeguard. (#91)
+  Bus.subscribe(Session.Event.Deleted, async (payload) => {
+    if (!payload.properties.info.parentID) releaseGovernors(payload.properties.info.id)
   })
 
   Project.reconcileSessionDirectories().catch((error) => {

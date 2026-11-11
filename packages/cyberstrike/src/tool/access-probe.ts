@@ -106,8 +106,13 @@ export async function runAccessMatrix<T>(
   return { owner, findings }
 }
 
-async function sendDecoded(msg: HttpMessage.Request, origin: string, abort: AbortSignal): Promise<AccessResp> {
-  const r = await sendGoverned(msg, origin, { signal: abort })
+async function sendDecoded(
+  msg: HttpMessage.Request,
+  origin: string,
+  abort: AbortSignal,
+  session: string,
+): Promise<AccessResp> {
+  const r = await sendGoverned(msg, origin, { signal: abort, session })
   if (r.error || !r.response) return { error: r.error?.message ?? "no response (transport error)" }
   return { status: r.response.status, body: new TextDecoder("latin1").decode(r.response.body) }
 }
@@ -168,7 +173,7 @@ export const AccessProbeTool = Tool.define("access_probe", {
     // Owner baseline (reads only — a write baseline would duplicate the owner's own mutation) + swaps.
     const { owner: ownerResp, findings } = await runAccessMatrix(
       { ownerMsg: baseMsg, stateChanging, variants },
-      (msg) => sendDecoded(msg, origin, ctx.abort),
+      (msg) => sendDecoded(msg, origin, ctx.abort, sessionID),
     )
     if (!stateChanging && ownerResp.error) return out(`Owner baseline send failed: ${ownerResp.error} — cannot compare.`)
 
