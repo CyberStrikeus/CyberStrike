@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test"
+import type { PluginInput } from "@cyberstrike-io/plugin"
+import type { Provider } from "@cyberstrike-io/sdk"
 import {
+  CodexAuthPlugin,
   parseJwtClaims,
   extractAccountIdFromClaims,
   extractAccountId,
@@ -12,7 +15,60 @@ function createTestJwt(payload: object): string {
   return `${header}.${body}.sig`
 }
 
+async function filter(ids: string[]) {
+  const provider = {
+    models: Object.fromEntries(
+      ids.map((id) => [id, { id, cost: { input: 1, output: 1, cache: { read: 1, write: 1 } } }]),
+    ),
+  } as unknown as Provider
+  const loader = (await CodexAuthPlugin({} as PluginInput)).auth?.loader
+  if (!loader) throw new Error("Codex auth loader is missing")
+  await loader(async () => ({ type: "oauth", refresh: "test", access: "test", expires: Date.now() + 60_000 }), provider)
+  return provider.models
+}
+
 describe("plugin.codex", () => {
+  describe("OAuth model filter", () => {
+    test("keeps explicitly allowed and future GPT versions", async () => {
+      const ids = [
+        "gpt-5.6",
+        "gpt-5.6-luna",
+        "gpt-5.6-sol",
+        "gpt-5.6-terra",
+        "gpt-5.7",
+        "gpt-6",
+        "gpt-6-luna",
+        "gpt-6-sol",
+        "gpt-6-astra",
+        "gpt-6.1",
+        "gpt-6.1-luna",
+        "gpt-7",
+      ]
+      const models = await filter(ids)
+      ids.forEach((id) => expect(models[id]).toBeDefined())
+    })
+
+    test("removes older and unrelated models outside the allow list", async () => {
+      const ids = ["gpt-5.4-unknown", "gpt-5.3-unknown", "gpt-4.1", "gpt-4o", "foo-gpt-6", "some-random-model"]
+      const models = await filter(ids)
+      ids.forEach((id) => expect(models[id]).toBeUndefined())
+    })
+
+    test("removes explicitly denied models before checking their versions", async () => {
+      const ids = [
+        "gpt-5.5-pro",
+        "gpt-5.3-codex",
+        "gpt-5.2",
+        "gpt-5.2-codex",
+        "gpt-5.1-codex-max",
+        "gpt-5.1-codex-mini",
+        "gpt-5.1-codex",
+      ]
+      const models = await filter(ids)
+      ids.forEach((id) => expect(models[id]).toBeUndefined())
+    })
+  })
+
   describe("parseJwtClaims", () => {
     test("parses valid JWT with claims", () => {
       const payload = { email: "test@example.com", chatgpt_account_id: "acc-123" }
