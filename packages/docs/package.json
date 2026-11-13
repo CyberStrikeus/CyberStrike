@@ -31,7 +31,7 @@
 		"@tabler/icons": "3.35.0",
 		"@tailwindcss/forms": "0.5.10",
 		"@tailwindcss/vite": "4.1.17",
-		"astro": "5.16.2",
+		"astro": "7.4.7",
 		"astro-auto-import": "0.4.5",
 		"astro-expressive-code": "0.41.3",
 		"astro-icon": "1.1.5",
