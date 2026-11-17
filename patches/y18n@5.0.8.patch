@@ -1,0 +1,23 @@
+diff --git a/build/lib/index.js b/build/lib/index.js
+index e38f33594c158b6335ef049f35a0ed18abf7d2d0..cd5a88299e96206bee4613a503bb8ac5f795a9cb 100644
+--- a/build/lib/index.js
++++ b/build/lib/index.js
+@@ -138,11 +138,14 @@ class Y18N {
+         catch (err) {
+             if (err instanceof SyntaxError) {
+                 err.message = 'syntax error in ' + languageFile;
+-            }
+-            if (err.code === 'ENOENT')
+-                localeLookup = {};
+-            else
+                 throw err;
++            }
++            // Any filesystem read failure must not crash the CLI over a cosmetic locale
++            // file. A Bun-compiled binary mounts embedded files at B:\~BUN\; when B: is a
++            // mapped network drive that is unreachable (e.g. Zscaler/VPN down) the open
++            // returns EUNKNOWN instead of ENOENT, which upstream rethrows and kills the
++            // whole process. Fall back to built-in defaults for every non-syntax error.
++            localeLookup = {};
+         }
+         this.cache[this.locale] = localeLookup;
+     }

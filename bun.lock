@@ -965,6 +965,7 @@
   ],
   "patchedDependencies": {
     "@standard-community/standard-openapi@0.2.9": "patches/@standard-community%2Fstandard-openapi@0.2.9.patch",
+    "y18n@5.0.8": "patches/y18n@5.0.8.patch",
   },
   "overrides": {
     "@types/bun": "catalog:",
