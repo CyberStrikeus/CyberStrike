@@ -26,9 +26,9 @@ describe("signal store — signals are first-class, persisted 'flags'", () => {
     const store = new MemoryStore()
     store.add(bareApi("a"))
     scan(store, defaultRegistry())
-    expect(store.signals({ ruleId: "server-banner" }).length).toBe(1)
+    expect(store.signals({ ruleId: "server-banner-bare" }).length).toBe(1) // "nginx" is a bare banner → info rule
     expect(store.signals({ transactionId: "a" }).length).toBeGreaterThan(0)
-    expect(store.signals({ severity: "info" }).some((s) => s.ruleId === "server-banner")).toBe(true)
+    expect(store.signals({ severity: "info" }).some((s) => s.ruleId === "server-banner-bare")).toBe(true)
   })
 
   test("SqliteStore persists signals, session-scoped, and dedups", () => {

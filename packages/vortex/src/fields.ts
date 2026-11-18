@@ -10,7 +10,7 @@ import { endpointKey, normalizePath } from "./endpoint"
 import { contentType } from "./scope"
 import { requestCookies, responseCookies } from "./cookies"
 import { graphql } from "./graphql"
-import { missingHeaders, weakCookies } from "./security-headers"
+import { missingHeaders, weakCookies, disclosedBanners } from "./security-headers"
 
 // Resolve a dotted field path against a transaction to a scalar (or undefined when absent).
 export function fieldValue(tx: Transaction, field: string): string | number | undefined {
@@ -28,6 +28,10 @@ export function fieldValue(tx: Transaction, field: string): string | number | un
   // this response, comma-joined ("" when none). A `when` fires on != "" and {…} interpolates the list.
   if (head === "missing_security_headers") return missingHeaders(tx).join(", ")
   if (head === "weak_cookies") return weakCookies(tx).join(", ")
+  // Stack/version banners this response discloses, split by severity so the host-scoped corpus rules fire
+  // once per host (#87): versioned (low, feeds the version-CVE probe) vs bare (info). "" when none.
+  if (head === "versioned_banners") return disclosedBanners(tx, true).join(", ")
+  if (head === "bare_banners") return disclosedBanners(tx, false).join(", ")
   if (head === "tech") return (tx.tech ?? []).join(",") // extractor-attached markers; regex(\"spring\", tech)
   if (head === "httpVersion") return tx.httpVersion
   if (head === "timeMs") return tx.timing?.ms

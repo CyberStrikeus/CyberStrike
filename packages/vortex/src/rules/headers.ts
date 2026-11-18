@@ -1,61 +1,18 @@
-// Baseline header/cookie hygiene rules — now authored as DATA (#16), not coded Rule.evaluate logic.
+// Baseline header/cookie hygiene rules — authored as DATA (#16), not coded Rule.evaluate logic.
 // This exact class (missing security headers, weak cookie flags, banner disclosure) was being missed
 // for whole sessions: the passive layer couldn't see headers and the misconfig agent only eyeballed
 // the one endpoint it happened to replay.
 //
-// - server-banner  → per-header DECLARATIVE rules (DISCLOSURE_HEADERS × {bare, versioned}); the
-//   computed "which headers/cookies" detail lives as the missing_security_headers / weak_cookies
-//   FIELDS (fields.ts) so the rules stay pure data.
-// - missing-security-headers / weak-cookie-flags → CONFIG-CLASS corpus rules (one signal per host,
-//   listing affected endpoints + the union of the missing/weak detail — issue #87).
+// All of it is now CONFIG-CLASS corpus rules (one signal per host, listing affected endpoints — #87):
+// - missing-security-headers / weak-cookie-flags → the union of the missing/weak detail per host.
+// - server-banner (low) / server-banner-bare (info) → stack/version disclosure is HOST-SCOPED
+//   enumeration (the same Server/X-Powered-By leaks on every endpoint), so it fires detect-once per host
+//   instead of per transaction — the 100x banner noise. Promoted here from the old per-header declarative
+//   rules so the rule FORMAT itself carries the host scope and the agent never sees per-endpoint dupes.
+// The computed "which headers / cookies / banners" detail lives as the missing_security_headers /
+// weak_cookies / versioned_banners / bare_banners FIELDS (fields.ts) so the rules stay pure data.
 import type { Rule, CorpusRule } from "../rule"
-import { compileRule, type DeclarativeRule } from "../declarative"
 import { compileCorpusRule, type CorpusRuleDef } from "../corpus-rule"
-
-// ── Banner disclosure (per-header declarative rules) ─────────────────────────
-// Response headers that disclose the stack/tech (and often a version) — a recon leak that narrows an
-// attacker's search. A banner carrying a version (Apache/2.4.49) maps to CVEs and feeds the version-CVE
-// probe, so it is `low`; a bare one (Apache) is `info` (#5). name = the header looked up; label = how it
-// reads. Server / X-Powered-By keep canonical casing; framework headers keep the CS detector's lowercase
-// (#15 parity). All rules share id "server-banner" (one rule CLASS); dedup is per host+value.
-const DISCLOSURE_HEADERS: { name: string; label: string }[] = [
-  { name: "server", label: "Server" },
-  { name: "x-powered-by", label: "X-Powered-By" },
-  { name: "x-aspnet-version", label: "x-aspnet-version" },
-  { name: "x-aspnetmvc-version", label: "x-aspnetmvc-version" },
-  { name: "x-generator", label: "x-generator" },
-  { name: "x-runtime", label: "x-runtime" },
-  { name: "via", label: "via" },
-  { name: "x-backend-server", label: "x-backend-server" },
-  { name: "x-served-by", label: "x-served-by" },
-  { name: "x-drupal-dynamic-cache", label: "x-drupal-dynamic-cache" },
-]
-
-// A dotted version in the banner (\d+\.\d+) — splitting each header into a versioned (low) and a bare
-// (info) rule with mutually-exclusive `when` keeps the severity/title conditional as pure data.
-const VERSION_RX = '\\d+\\.\\d+'
-
-export const bannerRuleDefs: DeclarativeRule[] = DISCLOSURE_HEADERS.flatMap(({ name, label }) => {
-  const field = `resp.header.${name}`
-  const dedupBy = `{host}:{${field}}`
-  const common = { id: "server-banner", category: "misconfiguration", evidence: `${label}: {${field}}`, dedupBy, tags: ["info-disclosure", "banner"] }
-  return [
-    {
-      ...common,
-      severity: "low" as const,
-      when: `${field} && regex("${VERSION_RX}", ${field})`,
-      message: `${label} version disclosed`,
-    },
-    {
-      ...common,
-      severity: "info" as const,
-      when: `${field} && !regex("${VERSION_RX}", ${field})`,
-      message: `${label} disclosed`,
-    },
-  ]
-})
-
-export const bannerRules: Rule[] = bannerRuleDefs.map(compileRule)
 
 // ── Config-class corpus rules (detect-once per host — issue #87) ─────────────
 export const headerCorpusRuleDefs: CorpusRuleDef[] = [
@@ -91,13 +48,51 @@ export const headerCorpusRuleDefs: CorpusRuleDef[] = [
     evidence: "Weak cookies: {detail}. Affected endpoints: {list}",
     tags: ["misconfig", "cookies"],
   },
+  {
+    // Versioned stack banners (Apache/2.4.49) — map to CVEs, feed the version-CVE probe → `low` (#5).
+    // Separate id from the bare rule so a host disclosing both does not collide on dedupKey (id:host).
+    id: "server-banner",
+    title: "Stack/version disclosed in response banner",
+    category: "misconfiguration",
+    severity: "low",
+    corpus: {
+      groupBy: "host",
+      where: 'versioned_banners != ""',
+      having: 'any(versioned_banners != "")',
+      list: "endpoint",
+      detail: "versioned_banners",
+    },
+    message: "Versioned stack banner disclosed on {group} ({count} endpoints)",
+    evidence: "Banners: {detail}. Affected endpoints: {list}",
+    tags: ["info-disclosure", "banner"],
+  },
+  {
+    // Bare stack banners (Apache, nginx, Express) — recon leak without a version → `info` (#5).
+    id: "server-banner-bare",
+    title: "Stack disclosed in response banner",
+    category: "misconfiguration",
+    severity: "info",
+    corpus: {
+      groupBy: "host",
+      where: 'bare_banners != ""',
+      having: 'any(bare_banners != "")',
+      list: "endpoint",
+      detail: "bare_banners",
+    },
+    message: "Stack banner disclosed on {group} ({count} endpoints)",
+    evidence: "Banners: {detail}. Affected endpoints: {list}",
+    tags: ["info-disclosure", "banner"],
+  },
 ]
 
 export const missingSecurityHeaders = compileCorpusRule(headerCorpusRuleDefs[0]!)
 export const weakCookieFlags = compileCorpusRule(headerCorpusRuleDefs[1]!)
+export const bannerVersions = compileCorpusRule(headerCorpusRuleDefs[2]!)
+export const bannerDisclosures = compileCorpusRule(headerCorpusRuleDefs[3]!)
 
-// Per-transaction header rules registered into the baseline (the banner rules).
-export const headerRules: Rule[] = bannerRules
+// No per-transaction header rules any more — banner disclosure moved to the detect-once corpus class
+// above, so it fires once per host instead of once per endpoint.
+export const headerRules: Rule[] = []
 
 // Config-class header rules in the detect-once format (one signal per host).
-export const headerCorpusRules: CorpusRule[] = [missingSecurityHeaders, weakCookieFlags]
+export const headerCorpusRules: CorpusRule[] = [missingSecurityHeaders, weakCookieFlags, bannerVersions, bannerDisclosures]

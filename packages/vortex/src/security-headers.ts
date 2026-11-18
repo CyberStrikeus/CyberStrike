@@ -37,6 +37,41 @@ export function missingHeaders(tx: Transaction): string[] {
   return out
 }
 
+// Response headers that disclose the stack/tech (and often a version) — a recon leak that narrows an
+// attacker's search. HOST-SCOPED enumeration: the same banner leaks on every endpoint of a host, so the
+// corpus rules (rules/headers.ts) fire ONCE per host off these fields. Split so a versioned banner
+// (Apache/2.4.49 → maps to CVEs, feeds the version-CVE probe) reads `low` and a bare one (Apache) `info`
+// (#5). Server / X-Powered-By keep canonical casing; framework headers keep the detector's lowercase (#15).
+const DISCLOSURE: { name: string; label: string }[] = [
+  { name: "server", label: "Server" },
+  { name: "x-powered-by", label: "X-Powered-By" },
+  { name: "x-aspnet-version", label: "x-aspnet-version" },
+  { name: "x-aspnetmvc-version", label: "x-aspnetmvc-version" },
+  { name: "x-generator", label: "x-generator" },
+  { name: "x-runtime", label: "x-runtime" },
+  { name: "via", label: "via" },
+  { name: "x-backend-server", label: "x-backend-server" },
+  { name: "x-served-by", label: "x-served-by" },
+  { name: "x-drupal-dynamic-cache", label: "x-drupal-dynamic-cache" },
+]
+const VERSION_RX = /\d+\.\d+/
+
+// The disclosure headers present on this response, as "Label: value" tokens. `versioned` selects the ones
+// carrying a dotted version (low); the complement are bare (info). [] when none — mirrors missingHeaders so
+// a corpus `where`/`having` gates on != "" and {detail} interpolates the list. Commas in a value are
+// neutralized so the detail tokenizer (which splits on ",") keeps each banner whole.
+export function disclosedBanners(tx: Transaction, versioned: boolean): string[] {
+  if (!tx.response) return []
+  const out: string[] = []
+  for (const d of DISCLOSURE) {
+    const value = header(tx.response.headers, d.name)
+    if (!value) continue
+    if (VERSION_RX.test(value) !== versioned) continue
+    out.push(`${d.label}: ${value.replace(/,/g, ";")}`)
+  }
+  return out
+}
+
 // Which hardening flags a Set-Cookie lacks, summarized per cookie for this response, or [] if all good.
 export function weakCookies(tx: Transaction): string[] {
   if (!tx.response) return []

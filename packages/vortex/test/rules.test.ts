@@ -1,10 +1,9 @@
 import { describe, expect, test } from "bun:test"
 import type { Transaction, Header } from "../src/index"
-import { missingSecurityHeaders, weakCookieFlags, bannerRules, defaultRegistry } from "../src/index"
+import { missingSecurityHeaders, weakCookieFlags, bannerVersions, bannerDisclosures, defaultRegistry } from "../src/index"
 
-// server-banner is now a set of per-header declarative rules (all sharing id "server-banner"); run the
-// whole set over a transaction the way the registry does.
-const runBanner = (t: Transaction) => bannerRules.flatMap((r) => r.evaluate(t))
+// server-banner is now a pair of detect-once corpus rules (versioned → low, bare → info), one signal per
+// host — promoted from the old per-header declarative rules so banner disclosure stops firing per endpoint.
 
 function tx(responseHeaders: Header[] | null, over: Partial<Transaction> = {}): Transaction {
   return {
@@ -87,46 +86,63 @@ describe("weak-cookie-flags (detect-once, per-host — #87)", () => {
   })
 })
 
-describe("server-banner", () => {
-  test("fires for Server and X-Powered-By separately", () => {
-    const s = runBanner(tx([h("server", "uvicorn"), h("x-powered-by", "Express")]))
-    expect(s).toHaveLength(2)
-    expect(s.map((x) => x.evidence)).toEqual(["Server: uvicorn", "X-Powered-By: Express"])
-  })
-  test("also fires for framework/version banners (x-aspnet-version, x-generator) — CS parity", () => {
-    const s = runBanner(tx([h("x-aspnet-version", "4.0.30319"), h("x-generator", "Drupal 9")]))
-    expect(s.map((x) => x.evidence)).toEqual(["x-aspnet-version: 4.0.30319", "x-generator: Drupal 9"])
-  })
-  test("covers the wider disclosure-header set (#5)", () => {
-    const s = runBanner(
-      tx([h("x-runtime", "12ms"), h("via", "1.1 varnish"), h("x-served-by", "cache-fra-1"), h("x-drupal-dynamic-cache", "MISS")]),
-    )
-    expect(s.map((x) => x.evidence)).toEqual([
-      "x-runtime: 12ms",
-      "via: 1.1 varnish",
-      "x-served-by: cache-fra-1",
-      "x-drupal-dynamic-cache: MISS",
+describe("server-banner (detect-once, per-host — #87/#5)", () => {
+  const ep = (host: string, id: string, p: string) => ({ id, host, request: { method: "GET", url: `https://${host}${p}`, headers: [] } })
+
+  test("bare banners → ONE info signal per host, listing the banners + affected endpoints", () => {
+    // Same bare banner on three endpoints of one host → still ONE signal (the old 100x-per-endpoint noise).
+    const s = bannerDisclosures.evaluate([
+      tx([h("server", "uvicorn"), h("x-powered-by", "Express")], ep("app.test", "a", "/api/a")),
+      tx([h("server", "uvicorn")], ep("app.test", "b", "/api/b")),
+      tx([h("server", "uvicorn")], ep("app.test", "c", "/api/c")),
     ])
+    expect(s).toHaveLength(1)
+    expect(s[0].severity).toBe("info")
+    expect(s[0].evidence).toContain("Server: uvicorn")
+    expect(s[0].evidence).toContain("X-Powered-By: Express")
+    expect(s[0].evidence).toContain("Affected endpoints")
+    expect(s[0].dedupKey).toBe("server-banner-bare:app.test")
   })
-  test("bumps a versioned banner from info to low (#5)", () => {
-    const s = runBanner(tx([h("server", "Apache/2.4.49"), h("x-powered-by", "PHP")]))
-    const apache = s.find((x) => x.evidence === "Server: Apache/2.4.49")!
-    const php = s.find((x) => x.evidence === "X-Powered-By: PHP")!
-    expect(apache.severity).toBe("low")
-    expect(apache.title).toBe("Server version disclosed")
-    expect(php.severity).toBe("info")
-    expect(php.title).toBe("X-Powered-By disclosed")
+  test("covers the wider bare disclosure-header set (#5)", () => {
+    const s = bannerDisclosures.evaluate([
+      tx([h("x-served-by", "cache-fra-1"), h("x-drupal-dynamic-cache", "MISS"), h("x-generator", "Drupal 9")]),
+    ])
+    expect(s).toHaveLength(1)
+    expect(s[0].evidence).toContain("x-served-by: cache-fra-1")
+    expect(s[0].evidence).toContain("x-drupal-dynamic-cache: MISS")
+    expect(s[0].evidence).toContain("x-generator: Drupal 9")
+  })
+  test("a versioned banner is low, not info — it feeds the version-CVE probe (#5)", () => {
+    const versioned = bannerVersions.evaluate([tx([h("server", "Apache/2.4.49"), h("x-aspnet-version", "4.0.30319")])])
+    expect(versioned).toHaveLength(1)
+    expect(versioned[0].severity).toBe("low")
+    expect(versioned[0].evidence).toContain("Server: Apache/2.4.49")
+    expect(versioned[0].dedupKey).toBe("server-banner:app.test")
+    // the bare rule does not double-fire on the same (versioned) headers
+    expect(bannerDisclosures.evaluate([tx([h("server", "Apache/2.4.49")])])).toHaveLength(0)
+  })
+  test("one signal PER HOST — a multi-host session keeps each host visible", () => {
+    const s = bannerDisclosures.evaluate([
+      tx([h("server", "nginx")], ep("www.test", "1", "/")),
+      tx([h("server", "nginx")], ep("admin.test", "2", "/")),
+    ])
+    expect(s).toHaveLength(2)
+    expect(new Set(s.map((x) => x.dedupKey))).toEqual(new Set(["server-banner-bare:www.test", "server-banner-bare:admin.test"]))
+  })
+  test("clean when no disclosure header is present", () => {
+    expect(bannerVersions.evaluate([tx([h("content-type", "application/json")])])).toHaveLength(0)
+    expect(bannerDisclosures.evaluate([tx([h("content-type", "application/json")])])).toHaveLength(0)
   })
 })
 
 describe("defaultRegistry", () => {
-  test("runs the baseline pack: a bare API response yields missing-headers (corpus) + banner (per-tx) signals, no agent needed", () => {
-    // analyze() runs per-tx AND corpus rules over the whole set — missing-security-headers is now a
-    // per-host corpus rule, so the single-tx run() no longer carries it; analyze() does.
+  test("runs the baseline pack: a bare API response yields missing-headers + banner signals (both corpus), no agent needed", () => {
+    // analyze() runs per-tx AND corpus rules over the whole set — missing-security-headers and the banner
+    // rules are now per-host corpus rules, so the single-tx run() no longer carries them; analyze() does.
     const signals = defaultRegistry().analyze([tx([h("content-type", "application/json"), h("server", "uvicorn")])])
     const ids = signals.map((s) => s.ruleId)
     expect(ids).toContain("missing-security-headers")
-    expect(ids).toContain("server-banner")
+    expect(ids).toContain("server-banner-bare") // uvicorn is a bare banner → info rule
     expect(signals.every((s) => s.transactionId === "t1")).toBe(true)
   })
 })
