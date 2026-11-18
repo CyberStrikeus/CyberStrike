@@ -939,6 +939,21 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       },
     }),
     securityCommand({
+      id: "session.stats",
+      title: "Statistics",
+      description: "Session token/cost/model/tool usage and LLM diagnostics",
+      slash: { name: "stats", aliases: ["usage", "tokens", "diagnostics"] },
+      disabled: !params.id,
+      onSelect: () => {
+        const sessionID = params.id
+        if (!sessionID) return
+        void openDialog(
+          () => import("@/components/dialog-stats"),
+          (x) => dialog.show(() => <x.DialogStats sessionID={sessionID} />),
+        )
+      },
+    }),
+    securityCommand({
       id: "session.queue.pause",
       title: "Pause Queue",
       description: "Pause the ingest queue for this session",
