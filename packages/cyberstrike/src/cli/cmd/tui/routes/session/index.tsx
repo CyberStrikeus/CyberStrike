@@ -62,6 +62,7 @@ import { DialogSessionRename } from "../../component/dialog-session-rename"
 import { DialogHackbrowserLaunch } from "../../component/dialog-hackbrowser-launch"
 import { DialogVulnerability } from "../../component/dialog-vulnerability"
 import { DialogWebContext } from "../../component/dialog-web-context"
+import { DialogStats } from "../../component/dialog-stats"
 import { DialogMethodology } from "../../component/dialog-methodology"
 import { DialogReport } from "../../component/dialog-report"
 import { Sidebar } from "./sidebar"
@@ -577,6 +578,18 @@ export function Session() {
       },
     },
     {
+      title: "Statistics",
+      value: "session.stats",
+      category: "Session",
+      slash: {
+        name: "stats",
+        aliases: ["usage", "tokens", "diagnostics"],
+      },
+      onSelect: (dialog) => {
+        dialog.replace(() => <DialogStats sessionID={route.sessionID} />)
+      },
+    },
+    {
       title: "View methodology",
       value: "session.methodology",
       category: "Session",
@@ -710,7 +723,7 @@ export function Session() {
     },
     {
       title: conceal() ? "Disable code concealment" : "Enable code concealment",
-      value: "session.toggle.conceal",
+      value: "view.conceal",
       keybind: "messages_toggle_conceal" as any,
       category: "Session",
       onSelect: (dialog) => {
@@ -747,7 +760,7 @@ export function Session() {
     },
     {
       title: showDetails() ? "Hide tool details" : "Show tool details",
-      value: "session.toggle.actions",
+      value: "view.actions",
       keybind: "tool_details",
       category: "Session",
       onSelect: (dialog) => {
@@ -757,7 +770,7 @@ export function Session() {
     },
     {
       title: "Toggle session scrollbar",
-      value: "session.toggle.scrollbar",
+      value: "view.scrollbar",
       keybind: "scrollbar_toggle",
       category: "Session",
       onSelect: (dialog) => {
@@ -767,7 +780,7 @@ export function Session() {
     },
     {
       title: showHeader() ? "Hide header" : "Show header",
-      value: "session.toggle.header",
+      value: "view.header",
       category: "Session",
       onSelect: (dialog) => {
         setShowHeader((prev) => !prev)
@@ -1126,7 +1139,7 @@ export function Session() {
     })),
     {
       title: "Pin/unpin current session",
-      value: "session.pin.toggle",
+      value: "session.pin",
       keybind: "session_pin_toggle",
       category: "Session",
       slash: {

@@ -524,7 +524,7 @@ function App() {
     {
       title: "View status",
       keybind: "status_view",
-      value: "cyberstrike.status",
+      value: "view.status",
       slash: {
         name: "status",
       },
@@ -556,7 +556,7 @@ function App() {
     },
     {
       title: "Help",
-      value: "help.show",
+      value: "view.help",
       slash: {
         name: "help",
       },
