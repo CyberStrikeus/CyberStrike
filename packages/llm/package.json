@@ -36,17 +36,17 @@
   },
   "devDependencies": {
     "@clack/prompts": "1.0.0-alpha.1",
-    "@effect/platform-node": "catalog:",
-    "@cyberstrike-io/http-recorder": "workspace:*",
-    "@tsconfig/bun": "catalog:",
-    "@types/bun": "catalog:",
-    "@typescript/native-preview": "catalog:"
+    "@effect/platform-node": "4.0.0-beta.83",
+    "@cyberstrike-io/http-recorder": "*",
+    "@tsconfig/bun": "1.0.9",
+    "@types/bun": "1.3.13",
+    "@typescript/native-preview": "7.0.0-dev.20251207.1"
   },
   "dependencies": {
     "@smithy/eventstream-codec": "4.2.14",
     "@smithy/util-utf8": "4.2.2",
-    "@cyberstrike-io/schema": "workspace:*",
+    "@cyberstrike-io/schema": "*",
     "aws4fetch": "1.0.20",
-    "effect": "catalog:"
+    "effect": "4.0.0-beta.83"
   }
 }

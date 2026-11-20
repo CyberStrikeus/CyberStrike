@@ -12,11 +12,11 @@
     ".": "./src/index.ts"
   },
   "devDependencies": {
-    "@tsconfig/bun": "catalog:",
-    "@types/node": "catalog:",
-    "@typescript/native-preview": "catalog:"
+    "@tsconfig/bun": "1.0.9",
+    "@types/node": "24.12.2",
+    "@typescript/native-preview": "7.0.0-dev.20251207.1"
   },
   "dependencies": {
-    "effect": "catalog:"
+    "effect": "4.0.0-beta.83"
   }
 }
