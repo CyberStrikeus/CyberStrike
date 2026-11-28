@@ -4,13 +4,14 @@ import type {
   Project,
   Model,
   Provider,
-  Permission,
   UserMessage,
   Message,
   Part,
   Auth,
   Config,
-} from "@cyberstrike-io/sdk"
+} from "@cyberstrike-io/sdk/v2"
+// The permission hook keeps the v1 shape its plugins are written against; the client itself is v2.
+import type { Permission } from "@cyberstrike-io/sdk"
 
 import type { BunShell } from "./shell"
 import { type ToolDefinition } from "./tool"

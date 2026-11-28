@@ -14,6 +14,8 @@ export {
   WebObjectValueTable,
   WebFunctionTable,
   EndpointTemplateTable,
+  RequestObservationTable,
+  CoverageNoteTable,
 } from "../session/session.sql"
 export { SessionShareTable } from "../share/share.sql"
 export { ProjectTable } from "../project/project.sql"
@@ -31,3 +33,5 @@ export {
   CloudExposureTable,
 } from "../cloud/inventory.sql"
 export { InspectionQueueTable } from "../inspection/schema"
+export { PermissionSavedTable } from "../permission/saved.sql"
+export { SessionLogTable, SessionInstructionTable } from "../session/session-log.sql"

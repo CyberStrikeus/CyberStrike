@@ -21,7 +21,7 @@ export namespace ModelsDev {
     release_date: z.string(),
     attachment: z.boolean(),
     reasoning: z.boolean(),
-    temperature: z.boolean(),
+    temperature: z.boolean().optional(),
     tool_call: z.boolean(),
     interleaved: z
       .union([
@@ -88,13 +88,16 @@ export namespace ModelsDev {
       ])
       .optional(),
     status: z.enum(["alpha", "beta", "deprecated"]).optional(),
-    options: z.record(z.string(), z.any()),
+    options: z.record(z.string(), z.any()).default({}),
     headers: z.record(z.string(), z.string()).optional(),
     provider: z.object({ npm: z.string().optional(), api: z.string().optional() }).optional(),
     reasoning_options: z
       .array(
         z.union([
-          z.object({ type: z.literal("effort"), values: z.array(z.string()) }),
+          z.object({
+            type: z.literal("effort"),
+            values: z.array(z.string().nullable().transform((value) => value ?? "none")),
+          }),
           z.object({ type: z.literal("toggle") }),
           z.object({ type: z.literal("budget_tokens"), min: z.number().optional(), max: z.number().optional() }),
         ]),

@@ -4,6 +4,7 @@ import { Request } from "../session/request"
 import { Observation } from "../session/observation"
 import { UiObservation } from "../session/web/ui-observation"
 import { Session } from "../session"
+import { resolveVisitedBy } from "../session/access-context"
 
 const description = `Get detailed information for a specific HTTP request by ID.
 
