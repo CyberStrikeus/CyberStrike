@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     allowedHosts: true,
-    port: 3000,
+    port: Number(process.env.PORT) || 3000,
+    strictPort: true,
   },
   build: {
     target: "esnext",

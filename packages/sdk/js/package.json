@@ -25,13 +25,13 @@
   ],
   "devDependencies": {
     "@hey-api/openapi-ts": "0.90.10",
-    "@tsconfig/node22": "catalog:",
-    "@types/cross-spawn": "catalog:",
-    "@types/node": "catalog:",
-    "@typescript/native-preview": "catalog:",
-    "typescript": "catalog:"
+    "@tsconfig/node22": "22.0.2",
+    "@types/cross-spawn": "6.0.6",
+    "@types/node": "24.12.2",
+    "@typescript/native-preview": "7.0.0-dev.20251207.1",
+    "typescript": "5.8.2"
   },
   "dependencies": {
-    "cross-spawn": "catalog:"
+    "cross-spawn": "7.0.6"
   }
 }
