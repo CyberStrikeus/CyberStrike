@@ -13,6 +13,13 @@ const CODEX_API_ENDPOINT = "https://chatgpt.com/backend-api/codex/responses"
 const OAUTH_PORT = 1455
 const OAUTH_POLLING_SAFETY_MARGIN_MS = 3000
 
+function parseGptVersion(modelId: string): number | undefined {
+  const match = modelId.match(/^gpt-(\d+(?:\.\d+)?)/)
+  if (!match) return undefined
+  const version = Number.parseFloat(match[1])
+  return Number.isFinite(version) ? version : undefined
+}
+
 interface PkceCodes {
   verifier: string
   challenge: string
@@ -377,7 +384,7 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
         if (auth.type !== "oauth") return {}
 
         // Filter models to only those available via the Codex (ChatGPT subscription) endpoint.
-        // Uses a version-based regex so new models (e.g. gpt-5.7, gpt-6.x) are automatically
+        // Uses the GPT version so new models (e.g. gpt-5.7, gpt-6, gpt-6.x) are automatically
         // included without needing a code change. Explicit allow/disallow sets handle edge cases.
         const allowedModels = new Set([
           "gpt-5.6",
@@ -404,8 +411,8 @@ export async function CodexAuthPlugin(input: PluginInput): Promise<Hooks> {
             delete provider.models[modelId]
             continue
           }
-          const match = modelId.match(/^gpt-(\d+\.\d+)/)
-          if (match && parseFloat(match[1]) > 5.4) continue
+          const version = parseGptVersion(modelId)
+          if (version !== undefined && version > 5.4) continue
           delete provider.models[modelId]
         }
 
